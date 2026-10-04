@@ -3955,21 +3955,44 @@ function closePlaybackSettingsMenu() {
   }
 }
 
-function positionBottomPopover(triggerBtn, popup) {
+function positionBottomPopover(triggerBtn, popup, align = "left") {
   if (!triggerBtn || !popup) return;
   const rect = triggerBtn.getBoundingClientRect();
   popup.style.position = "fixed";
-  popup.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+  popup.style.bottom = `${window.innerHeight - rect.top + 4}px`;
   
-  // Horizontal alignment: clamp within viewport
   const popupWidth = popup.offsetWidth || 230;
-  let left = rect.left;
-  if (left + popupWidth > window.innerWidth - 10) {
-    left = window.innerWidth - popupWidth - 10;
+  let left = (align === "right") ? (rect.right - popupWidth) : rect.left;
+
+  if (left + popupWidth > window.innerWidth - 8) {
+    left = window.innerWidth - popupWidth - 8;
   }
-  if (left < 10) left = 10;
+  if (left < 8) left = 8;
   popup.style.left = `${left}px`;
   popup.style.right = "auto";
+}
+
+function togglePlaybackSettingsMenu(event) {
+  if (event) event.stopPropagation();
+  const popup = document.getElementById("playbackSettingsPopup");
+  const btn = document.getElementById("playbackSettingsBtn");
+  if (!popup) return;
+  const isHidden = popup.classList.contains("hidden");
+  closeEquipmentMenu();
+  closeLineModeMenu();
+  if (isHidden) {
+    popup.classList.remove("hidden");
+    positionBottomPopover(btn, popup, "left");
+  } else {
+    popup.classList.add("hidden");
+  }
+}
+
+function closePlaybackSettingsMenu() {
+  const popup = document.getElementById("playbackSettingsPopup");
+  if (popup && !popup.classList.contains("hidden")) {
+    popup.classList.add("hidden");
+  }
 }
 
 function toggleLineModeMenu(event) {
@@ -3982,7 +4005,7 @@ function toggleLineModeMenu(event) {
   closePlaybackSettingsMenu();
   if (isHidden) {
     popup.classList.remove("hidden");
-    positionBottomPopover(btn, popup);
+    positionBottomPopover(btn, popup, "left");
   } else {
     popup.classList.add("hidden");
   }
@@ -4005,20 +4028,7 @@ function toggleEquipmentMenu(event) {
   closeLineModeMenu();
   if (isHidden) {
     popup.classList.remove("hidden");
-    // Align material menu towards right side of trigger button
-    if (btn) {
-      const rect = btn.getBoundingClientRect();
-      popup.style.position = "fixed";
-      popup.style.bottom = `${window.innerHeight - rect.top + 8}px`;
-      const popupWidth = popup.offsetWidth || 270;
-      let left = rect.right - popupWidth;
-      if (left + popupWidth > window.innerWidth - 10) {
-        left = window.innerWidth - popupWidth - 10;
-      }
-      if (left < 10) left = 10;
-      popup.style.left = `${left}px`;
-      popup.style.right = "auto";
-    }
+    positionBottomPopover(btn, popup, "right");
   } else {
     popup.classList.add("hidden");
   }
