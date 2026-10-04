@@ -3955,35 +3955,34 @@ function closePlaybackSettingsMenu() {
   }
 }
 
-function toggleEquipmentMenu(event) {
-  if (event) event.stopPropagation();
-  const popup = document.getElementById("equipmentMenuPopup");
-  if (!popup) return;
-  const isHidden = popup.classList.contains("hidden");
-  closePlaybackSettingsMenu();
-  if (isHidden) {
-    popup.classList.remove("hidden");
-  } else {
-    popup.classList.add("hidden");
+function positionBottomPopover(triggerBtn, popup) {
+  if (!triggerBtn || !popup) return;
+  const rect = triggerBtn.getBoundingClientRect();
+  popup.style.position = "fixed";
+  popup.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+  
+  // Horizontal alignment: clamp within viewport
+  const popupWidth = popup.offsetWidth || 230;
+  let left = rect.left;
+  if (left + popupWidth > window.innerWidth - 10) {
+    left = window.innerWidth - popupWidth - 10;
   }
-}
-
-function closeEquipmentMenu() {
-  const popup = document.getElementById("equipmentMenuPopup");
-  if (popup && !popup.classList.contains("hidden")) {
-    popup.classList.add("hidden");
-  }
+  if (left < 10) left = 10;
+  popup.style.left = `${left}px`;
+  popup.style.right = "auto";
 }
 
 function toggleLineModeMenu(event) {
   if (event) event.stopPropagation();
   const popup = document.getElementById("lineModeMenuPopup");
+  const btn = document.getElementById("lineModeMenuBtn");
   if (!popup) return;
   const isHidden = popup.classList.contains("hidden");
   closeEquipmentMenu();
   closePlaybackSettingsMenu();
   if (isHidden) {
     popup.classList.remove("hidden");
+    positionBottomPopover(btn, popup);
   } else {
     popup.classList.add("hidden");
   }
@@ -3991,6 +3990,42 @@ function toggleLineModeMenu(event) {
 
 function closeLineModeMenu() {
   const popup = document.getElementById("lineModeMenuPopup");
+  if (popup && !popup.classList.contains("hidden")) {
+    popup.classList.add("hidden");
+  }
+}
+
+function toggleEquipmentMenu(event) {
+  if (event) event.stopPropagation();
+  const popup = document.getElementById("equipmentMenuPopup");
+  const btn = document.getElementById("equipmentMenuBtn");
+  if (!popup) return;
+  const isHidden = popup.classList.contains("hidden");
+  closePlaybackSettingsMenu();
+  closeLineModeMenu();
+  if (isHidden) {
+    popup.classList.remove("hidden");
+    // Align material menu towards right side of trigger button
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      popup.style.position = "fixed";
+      popup.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+      const popupWidth = popup.offsetWidth || 270;
+      let left = rect.right - popupWidth;
+      if (left + popupWidth > window.innerWidth - 10) {
+        left = window.innerWidth - popupWidth - 10;
+      }
+      if (left < 10) left = 10;
+      popup.style.left = `${left}px`;
+      popup.style.right = "auto";
+    }
+  } else {
+    popup.classList.add("hidden");
+  }
+}
+
+function closeEquipmentMenu() {
+  const popup = document.getElementById("equipmentMenuPopup");
   if (popup && !popup.classList.contains("hidden")) {
     popup.classList.add("hidden");
   }
