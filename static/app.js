@@ -2,6 +2,10 @@
 
 const DRAFT_STORAGE_KEY = "tactical_coach_active_draft_v1";
 
+function isMobileScreen() {
+  return window.innerWidth <= 768 || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+}
+
 function createEmptyExercise() {
   return {
     id: "ex_" + Math.random().toString(36).substr(2, 9),
@@ -14,7 +18,7 @@ function createEmptyExercise() {
     description: "",
     coaching_points: "",
     element_scale: 1.0,
-    field_rotation: 0,
+    field_rotation: isMobileScreen() ? 270 : 0,
     playback_speed: 0.5,
     keyframes: [
       {
@@ -307,9 +311,26 @@ const MAX_SCALE = 3.0;
 let fieldRotation = 270;
 
 function rotatePitch() {
+  const oldRotation = fieldRotation;
   fieldRotation = (fieldRotation + 90) % 360;
   const rotBadge = document.getElementById("rotationLevelText");
   if (rotBadge) rotBadge.textContent = `${fieldRotation}°`;
+
+  // Wenn das Feld rotiert wird, passen wir die lokale Rotation jedes Elements
+  // um -90° an, damit es seine optische Ausrichtung im Sichtfeld des Benutzers beibehält!
+  // (Beispiel: Eine horizontale Hürde bei 270° wird bei Felddrehung auf 0° um +90° zur Feldachse gedreht,
+  // bleibt also für den Betrachter weiterhin exakt waagerecht!)
+  if (currentExercise && Array.isArray(currentExercise.keyframes)) {
+    currentExercise.keyframes.forEach(kf => {
+      (kf.elements || []).forEach(el => {
+        el.rotation = ((el.rotation || 0) - 90) % 360;
+        if (el.rotation < 0) el.rotation += 360;
+      });
+    });
+  }
+
+  currentExercise.field_rotation = fieldRotation;
+  saveLocalDraft();
   drawScene();
   updateActionPopupPosition();
 }
@@ -513,9 +534,20 @@ function updateFormFields() {
     globalElementScale = parseFloat(currentExercise.element_scale) || 1.0;
   }
   if (currentExercise.field_rotation !== undefined) {
-    fieldRotation = parseInt(currentExercise.field_rotation) || 0;
+    // If mobile and field_rotation is 0 in draft or new exercise, ensure 270 on mobile
+    if (isMobileScreen() && (!currentExercise.field_rotation || currentExercise.field_rotation === 0)) {
+      fieldRotation = 270;
+      currentExercise.field_rotation = 270;
+    } else {
+      fieldRotation = parseInt(currentExercise.field_rotation) || 0;
+    }
     const rotBadge = document.getElementById("rotationLevelText");
     if (rotBadge) rotBadge.textContent = `${fieldRotation}°`;
+  } else if (isMobileScreen()) {
+    fieldRotation = 270;
+    currentExercise.field_rotation = 270;
+    const rotBadge = document.getElementById("rotationLevelText");
+    if (rotBadge) rotBadge.textContent = "270°";
   }
   if (currentExercise.playback_speed !== undefined) {
     currentSpeed = parseFloat(currentExercise.playback_speed) || 0.5;
@@ -1327,7 +1359,11 @@ function drawElementOnCanvas(el, isSelected = false) {
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Number (always readable upright!)
+    // Number (always readable upright for viewer!)
+    ctx.save();
+    if (el.rotation) {
+      ctx.rotate((-el.rotation * Math.PI) / 180);
+    }
     ctx.fillStyle = textCol;
     ctx.font = "bold 13px sans-serif";
     ctx.textAlign = "center";
@@ -1343,6 +1379,7 @@ function drawElementOnCanvas(el, isSelected = false) {
       ctx.font = "10px sans-serif";
       ctx.fillText(el.name, 0, radius + 10);
     }
+    ctx.restore();
 
   } else if (el.type === "ball") {
     const radius = 10;
@@ -1416,12 +1453,17 @@ function drawElementOnCanvas(el, isSelected = false) {
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(-gw / 2 - 3, -gh / 2 - 3, 6, 6);
     ctx.fillRect(gw / 2 - 3, -gh / 2 - 3, 6, 6);
-    // Label "5m Tor" inside net
+    // Label "5m Tor" inside net (always upright for viewer)
+    ctx.save();
+    if (el.rotation) {
+      ctx.rotate((-el.rotation * Math.PI) / 180);
+    }
     ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
     ctx.font = "bold 10px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("5m Tor", 0, 0);
+    ctx.restore();
 
   } else if (el.type === "ladder") {
     ctx.strokeStyle = "#facc15";
