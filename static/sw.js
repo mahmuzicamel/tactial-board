@@ -1,8 +1,9 @@
-const CACHE_NAME = 'tactical-coach-v50';
+const CACHE_NAME = 'tactical-coach-v51';
 const ASSETS_TO_CACHE = [
   '/',
   '/static/index.html',
   '/static/app.js',
+  '/static/js/app-module.js',
   '/static/manifest.json',
   '/static/icons/icon-192.png',
   '/static/icons/icon-512.png',
