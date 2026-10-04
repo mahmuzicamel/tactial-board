@@ -20,6 +20,19 @@ export function distToPolyline(px, py, points) {
   return minDist;
 }
 
+// Point in Polygon algorithm (Ray-Casting) to detect elements inside lasso loop
+export function pointInPolygon(point, vs) {
+  const x = point.x, y = point.y;
+  let inside = false;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i].x, yi = vs[i].y;
+    const xj = vs[j].x, yj = vs[j].y;
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
 export function getCubicBezierPoint(t, p0, p1, p2, p3) {
   const u = 1 - t;
   const tt = t * t;

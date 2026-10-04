@@ -13,6 +13,7 @@ import * as inspectors from "./ui/inspectors.js";
 import * as timeline from "./ui/timeline.js";
 import * as tools from "./interaction/tools.js";
 import * as curveEditor from "./interaction/curve-editor.js";
+import * as pointer from "./interaction/pointer.js";
 import * as client from "./api/client.js";
 import { state, getCurrentKeyframe, getCurrentExercise, setCurrentExercise } from "./state/store.js";
 import { HistoryManager } from "./state/history.js";
@@ -40,6 +41,7 @@ window.TacticalCoach = {
   timeline,
   tools,
   curveEditor,
+  pointer,
   client,
   state,
   getCurrentKeyframe,

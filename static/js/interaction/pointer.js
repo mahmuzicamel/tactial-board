@@ -1,0 +1,474 @@
+// interaction/pointer.js - Pointerdown/move/up Ereignisbehandlung für Canvas, Lasso & Drag-and-Drop
+import { state, getCurrentExercise, getCurrentKeyframe } from "../state/store.js";
+import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT, isEquipment } from "../core/constants.js";
+import {
+  distToSegment,
+  distToPolyline,
+  distToCubicBezier,
+  pointInPolygon,
+  getEffectiveCurveControlPoints,
+  getArrowCurveControlPoints,
+  getCubicBezierPoint,
+  fitCubicBezierToStroke
+} from "../core/geometry.js";
+import { handleCurvePointerDown, updateCurveDrag } from "./curve-editor.js";
+import { showInspector, showGroupInspector, showArrowInspector, hideInspector } from "../ui/inspectors.js";
+import { setActiveTool } from "./tools.js";
+
+export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = {}) {
+  if (state.isPlaying) return;
+  if (e.cancelable) e.preventDefault();
+
+  const {
+    drawScene = () => {},
+    updateActionPopupPosition = () => {},
+    recordHistory = () => {}
+  } = callbacks;
+
+  // Snapshot before action begins for undo
+  state.dragInitialSnapshot = JSON.stringify(getCurrentExercise());
+
+  // Multi-touch pinch zoom & pan
+  if (e.touches && e.touches.length >= 2) {
+    state.isDragging = false;
+    state.isDrawingArrow = false;
+    state.isPanning = true;
+
+    const t1 = e.touches[0];
+    const t2 = e.touches[1];
+    state.initialPinchDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+    state.initialPinchScale = state.viewScale;
+    state.panStartX = (t1.clientX + t2.clientX) / 2 - state.viewPanX;
+    state.panStartY = (t1.clientY + t2.clientY) / 2 - state.viewPanY;
+    return;
+  }
+
+  const { x, y } = getCanvasCoords(e);
+  const kf = getCurrentKeyframe();
+  if (!kf) return;
+
+  const prevKf = state.currentKeyframeIndex > 0 ? getCurrentExercise().keyframes[state.currentKeyframeIndex - 1] : null;
+  const handleHitRadius = Math.max(16, 22 / Math.sqrt(state.viewScale));
+
+  // 1. Check curve editor handles (ghost or selected arrow)
+  const curveHit = handleCurvePointerDown(x, y, kf, prevKf, handleHitRadius);
+  if (curveHit) {
+    state.activeCurveDrag = curveHit;
+    state.isDragging = false;
+    state.isDraggingArrow = false;
+    hideInspector();
+    return;
+  }
+
+  // 2. Check if clicked an element
+  const effectiveElScale = Math.max(0.6, state.globalElementScale || 1.0);
+  const hitRadius = Math.max(26 * effectiveElScale, (34 * effectiveElScale) / Math.sqrt(state.viewScale));
+  const clickedElement = [...(kf.elements || [])].reverse().find(el => Math.hypot(el.x - x, el.y - y) <= hitRadius);
+
+  if (clickedElement) {
+    if (state.activeTool !== "select") {
+      setActiveTool("select");
+    }
+    if (state.selectedElementIds.includes(clickedElement.id)) {
+      state.isDragging = true;
+      state.isDraggingArrow = false;
+      state.groupDragOffsets = {};
+      kf.elements.filter(it => state.selectedElementIds.includes(it.id)).forEach(it => {
+        state.groupDragOffsets[it.id] = { dx: x - it.x, dy: y - it.y };
+      });
+      drawScene();
+      updateActionPopupPosition();
+      return;
+    }
+    state.selectedElementIds = [];
+    state.selectedElementId = clickedElement.id;
+    state.selectedArrowIndex = null;
+    state.selectedArrowPart = null;
+    state.isDragging = true;
+    state.isDraggingArrow = false;
+    state.dragStartX = x - clickedElement.x;
+    state.dragStartY = y - clickedElement.y;
+    showInspector(clickedElement);
+    drawScene();
+    updateActionPopupPosition();
+    return;
+  }
+
+  // 3. Check arrows / lines
+  if (kf.arrows && kf.arrows.length > 0) {
+    const arrowHitThreshold = Math.max(16, 22 / Math.sqrt(state.viewScale));
+    const handleThreshold = Math.max(18, 24 / Math.sqrt(state.viewScale));
+
+    for (let i = kf.arrows.length - 1; i >= 0; i--) {
+      const arr = kf.arrows[i];
+      const { p1, p2 } = getArrowCurveControlPoints(arr);
+      const distStart = Math.hypot(arr.x1 - x, arr.y1 - y);
+      const distEnd = Math.hypot(arr.x2 - x, arr.y2 - y);
+
+      if (distEnd <= handleThreshold) {
+        if (state.activeTool !== "select") setActiveTool("select");
+        state.selectedArrowIndex = i;
+        state.selectedArrowPart = "end";
+        state.selectedElementId = null;
+        state.selectedElementIds = [];
+        state.isDraggingArrow = true;
+        state.isDragging = false;
+        showArrowInspector(arr);
+        drawScene();
+        updateActionPopupPosition();
+        return;
+      } else if (distStart <= handleThreshold) {
+        if (state.activeTool !== "select") setActiveTool("select");
+        state.selectedArrowIndex = i;
+        state.selectedArrowPart = "start";
+        state.selectedElementId = null;
+        state.selectedElementIds = [];
+        state.isDraggingArrow = true;
+        state.isDragging = false;
+        showArrowInspector(arr);
+        drawScene();
+        updateActionPopupPosition();
+        return;
+      } else if ((arr.raw_points && distToPolyline(x, y, arr.raw_points) <= arrowHitThreshold) ||
+                 (!arr.raw_points && distToCubicBezier(x, y, { x: arr.x1, y: arr.y1 }, p1, p2, { x: arr.x2, y: arr.y2 }) <= arrowHitThreshold)) {
+        if (state.activeTool !== "select") setActiveTool("select");
+        state.selectedArrowIndex = i;
+        state.selectedArrowPart = "body";
+        state.selectedElementId = null;
+        state.selectedElementIds = [];
+        state.isDraggingArrow = true;
+        state.isDragging = false;
+        state.arrowDragOffsetX = x;
+        state.arrowDragOffsetY = y;
+        showArrowInspector(arr);
+        drawScene();
+        updateActionPopupPosition();
+        return;
+      }
+    }
+  }
+
+  // 4. Clicked on empty pitch
+  if (state.activeTool === "select") {
+    state.selectedElementId = null;
+    state.selectedElementIds = [];
+    state.selectedArrowIndex = null;
+    state.selectedArrowPart = null;
+    hideInspector();
+    updateActionPopupPosition();
+
+    state.isLassoSelecting = true;
+    state.lassoPoints = [{ x, y }];
+    drawScene();
+  } else {
+    state.selectedElementId = null;
+    state.selectedElementIds = [];
+    state.selectedArrowIndex = null;
+    state.selectedArrowPart = null;
+    hideInspector();
+    updateActionPopupPosition();
+
+    state.isDrawingArrow = true;
+    state.arrowStartX = x;
+    state.arrowStartY = y;
+    state.arrowCurrentX = x;
+    state.arrowCurrentY = y;
+    state.arrowDrawStrokePoints = [{ x, y }];
+    drawScene();
+  }
+}
+
+export function handleCanvasPointerMove(e, canvas, getCanvasCoords, callbacks = {}) {
+  if (state.isPlaying) return;
+  if (e.cancelable) e.preventDefault();
+
+  const {
+    drawScene = () => {},
+    updateZoomUI = () => {},
+    updateActionPopupPosition = () => {}
+  } = callbacks;
+
+  // Two-finger pinch / pan
+  if (state.isPanning && e.touches && e.touches.length >= 2) {
+    const t1 = e.touches[0];
+    const t2 = e.touches[1];
+    const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+    if (state.initialPinchDistance && state.initialPinchDistance > 10) {
+      const factor = dist / state.initialPinchDistance;
+      state.viewScale = Math.max(0.4, Math.min(2.5, state.initialPinchScale * factor));
+    }
+    const midX = (t1.clientX + t2.clientX) / 2;
+    const midY = (t1.clientY + t2.clientY) / 2;
+    state.viewPanX = midX - state.panStartX;
+    state.viewPanY = midY - state.panStartY;
+    updateZoomUI();
+    drawScene();
+    return;
+  }
+
+  const { x, y } = getCanvasCoords(e);
+
+  // Curve handle drag
+  if (state.activeCurveDrag) {
+    updateCurveDrag(x, y, state.activeCurveDrag);
+    drawScene();
+    return;
+  }
+
+  if (state.isDragging || state.isDraggingArrow) {
+    if (!state.isMovingElement) {
+      state.isMovingElement = true;
+      hideInspector();
+    }
+  }
+
+  // Dragging group
+  if (state.isDragging && state.selectedElementIds.length > 0) {
+    const kf = getCurrentKeyframe();
+    const ex = getCurrentExercise();
+    const draggedElements = kf.elements.filter(it => state.selectedElementIds.includes(it.id));
+    draggedElements.forEach(el => {
+      const off = state.groupDragOffsets[el.id];
+      if (off) {
+        el.x = Math.max(20, Math.min(VIRTUAL_WIDTH - 20, x - off.dx));
+        el.y = Math.max(20, Math.min(VIRTUAL_HEIGHT - 20, y - off.dy));
+      }
+    });
+
+    draggedElements.forEach(el => {
+      if (isEquipment(el.type) && ex && Array.isArray(ex.keyframes)) {
+        ex.keyframes.forEach((otherKf, idx) => {
+          if (idx !== state.currentKeyframeIndex) {
+            const matched = (otherKf.elements || []).find(it => it.id === el.id);
+            if (matched) {
+              matched.x = el.x;
+              matched.y = el.y;
+              if (el.rotation !== undefined) matched.rotation = el.rotation;
+            }
+          }
+        });
+      }
+    });
+
+    drawScene();
+    updateActionPopupPosition();
+  } else if (state.isDragging && state.selectedElementId) {
+    const kf = getCurrentKeyframe();
+    const ex = getCurrentExercise();
+    const el = (kf.elements || []).find(it => it.id === state.selectedElementId);
+    if (el) {
+      el.x = Math.max(20, Math.min(VIRTUAL_WIDTH - 20, x - state.dragStartX));
+      el.y = Math.max(20, Math.min(VIRTUAL_HEIGHT - 20, y - state.dragStartY));
+
+      if (isEquipment(el.type) && ex && Array.isArray(ex.keyframes)) {
+        ex.keyframes.forEach((otherKf, idx) => {
+          if (idx !== state.currentKeyframeIndex) {
+            const matched = (otherKf.elements || []).find(it => it.id === el.id);
+            if (matched) {
+              matched.x = el.x;
+              matched.y = el.y;
+              if (el.rotation !== undefined) matched.rotation = el.rotation;
+            }
+          }
+        });
+      }
+
+      drawScene();
+      updateActionPopupPosition();
+    }
+  } else if (state.isLassoSelecting) {
+    const lastPoint = state.lassoPoints[state.lassoPoints.length - 1];
+    if (!lastPoint || Math.hypot(x - lastPoint.x, y - lastPoint.y) > 6) {
+      state.lassoPoints.push({ x, y });
+      drawScene();
+    }
+  } else if (state.isDraggingArrow && state.selectedArrowIndex !== null) {
+    const kf = getCurrentKeyframe();
+    const ex = getCurrentExercise();
+    const arr = kf.arrows ? kf.arrows[state.selectedArrowIndex] : null;
+    if (arr) {
+      if (state.selectedArrowPart === "start") {
+        arr.x1 = Math.max(10, Math.min(VIRTUAL_WIDTH - 10, x));
+        arr.y1 = Math.max(10, Math.min(VIRTUAL_HEIGHT - 10, y));
+      } else if (state.selectedArrowPart === "end") {
+        arr.x2 = Math.max(10, Math.min(VIRTUAL_WIDTH - 10, x));
+        arr.y2 = Math.max(10, Math.min(VIRTUAL_HEIGHT - 10, y));
+      } else if (state.selectedArrowPart === "body") {
+        const dx = x - state.arrowDragOffsetX;
+        const dy = y - state.arrowDragOffsetY;
+        arr.x1 = Math.max(10, Math.min(VIRTUAL_WIDTH - 10, arr.x1 + dx));
+        arr.y1 = Math.max(10, Math.min(VIRTUAL_HEIGHT - 10, arr.y1 + dy));
+        arr.x2 = Math.max(10, Math.min(VIRTUAL_WIDTH - 10, arr.x2 + dx));
+        arr.y2 = Math.max(10, Math.min(VIRTUAL_HEIGHT - 10, arr.y2 + dy));
+        if (arr.raw_points && arr.raw_points.length > 0) {
+          for (const pt of arr.raw_points) {
+            pt.x += dx;
+            pt.y += dy;
+          }
+        }
+        state.arrowDragOffsetX = x;
+        state.arrowDragOffsetY = y;
+      }
+
+      if (arr.persistent && arr.id && ex && Array.isArray(ex.keyframes)) {
+        ex.keyframes.forEach((otherKf, idx) => {
+          if (idx !== state.currentKeyframeIndex && otherKf.arrows) {
+            const matched = otherKf.arrows.find(it => it.id === arr.id);
+            if (matched) {
+              matched.x1 = arr.x1;
+              matched.y1 = arr.y1;
+              matched.x2 = arr.x2;
+              matched.y2 = arr.y2;
+              matched.cp1_dx = arr.cp1_dx;
+              matched.cp1_dy = arr.cp1_dy;
+              matched.cp2_dx = arr.cp2_dx;
+              matched.cp2_dy = arr.cp2_dy;
+            }
+          }
+        });
+      }
+
+      drawScene();
+      updateActionPopupPosition();
+    }
+  } else if (state.isDrawingArrow) {
+    state.arrowCurrentX = x;
+    state.arrowCurrentY = y;
+    const lastPt = state.arrowDrawStrokePoints[state.arrowDrawStrokePoints.length - 1];
+    if (!lastPt || Math.hypot(x - lastPt.x, y - lastPt.y) >= 4) {
+      state.arrowDrawStrokePoints.push({ x, y });
+    }
+    drawScene();
+  }
+}
+
+export function handleCanvasPointerUp(e, canvas, callbacks = {}) {
+  const {
+    drawScene = () => {},
+    updateActionPopupPosition = () => {},
+    recordHistory = () => {}
+  } = callbacks;
+
+  if (state.activeCurveDrag) {
+    state.activeCurveDrag = null;
+    drawScene();
+    updateActionPopupPosition();
+    if (state.dragInitialSnapshot && state.dragInitialSnapshot !== JSON.stringify(getCurrentExercise())) {
+      recordHistory();
+    }
+    state.dragInitialSnapshot = null;
+    return;
+  }
+
+  state.isMovingElement = false;
+
+  if (state.isPanning) {
+    if (!e.touches || e.touches.length < 2) {
+      state.isPanning = false;
+      state.initialPinchDistance = null;
+    }
+  }
+  if (state.isDragging) {
+    state.isDragging = false;
+    state.groupDragOffsets = {};
+  }
+  if (state.isDraggingArrow) {
+    state.isDraggingArrow = false;
+  }
+
+  // Lasso finalize
+  if (state.isLassoSelecting) {
+    state.isLassoSelecting = false;
+    const kf = getCurrentKeyframe();
+
+    if (state.lassoPoints.length >= 3 && kf && kf.elements.length > 0) {
+      const enclosedIds = [];
+      kf.elements.forEach(el => {
+        if (pointInPolygon({ x: el.x, y: el.y }, state.lassoPoints)) {
+          enclosedIds.push(el.id);
+        }
+      });
+
+      if (enclosedIds.length > 1) {
+        state.selectedElementIds = enclosedIds;
+        state.selectedElementId = null;
+        showGroupInspector(enclosedIds.length);
+      } else if (enclosedIds.length === 1) {
+        state.selectedElementId = enclosedIds[0];
+        state.selectedElementIds = [];
+        const singleEl = kf.elements.find(it => it.id === state.selectedElementId);
+        if (singleEl) showInspector(singleEl);
+      } else {
+        state.selectedElementIds = [];
+        state.selectedElementId = null;
+        hideInspector();
+      }
+    } else {
+      state.selectedElementIds = [];
+      state.selectedElementId = null;
+      hideInspector();
+    }
+
+    state.lassoPoints = [];
+    drawScene();
+    updateActionPopupPosition();
+  }
+
+  // Arrow drawing finalize
+  if (state.isDrawingArrow) {
+    state.isDrawingArrow = false;
+    const dist = Math.hypot(state.arrowCurrentX - state.arrowStartX, state.arrowCurrentY - state.arrowStartY);
+    if (dist > 15) {
+      const kf = getCurrentKeyframe();
+      if (!kf.arrows) kf.arrows = [];
+      const aType = (state.activeTool === "pass") ? "pass" : ((state.activeTool === "guide") ? "guide" : "run");
+      const col = (state.activeTool === "pass") ? "#facc15" : ((state.activeTool === "guide") ? "#fbbf24" : "#38bdf8");
+
+      let cp1_dx = 0, cp1_dy = 0, cp2_dx = 0, cp2_dy = 0;
+      let rawPoints = null;
+
+      if (state.lineDrawMode === "raw_freehand" && state.arrowDrawStrokePoints.length >= 2) {
+        rawPoints = state.arrowDrawStrokePoints.map(p => ({ x: Math.round(p.x), y: Math.round(p.y) }));
+      } else if (state.lineDrawMode === "freehand" && state.arrowDrawStrokePoints.length >= 3) {
+        const fitted = fitCubicBezierToStroke(state.arrowDrawStrokePoints);
+        cp1_dx = Math.round(fitted.cp1_dx);
+        cp1_dy = Math.round(fitted.cp1_dy);
+        cp2_dx = Math.round(fitted.cp2_dx);
+        cp2_dy = Math.round(fitted.cp2_dy);
+      }
+
+      const newArrow = {
+        id: "arr_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+        type: aType,
+        color: col,
+        x1: Math.round(state.arrowStartX),
+        y1: Math.round(state.arrowStartY),
+        x2: Math.round(state.arrowCurrentX),
+        y2: Math.round(state.arrowCurrentY),
+        cp1_dx,
+        cp1_dy,
+        cp2_dx,
+        cp2_dy,
+        persistent: false
+      };
+
+      if (rawPoints && rawPoints.length > 0) {
+        newArrow.raw_points = rawPoints;
+      }
+
+      kf.arrows.push(newArrow);
+      state.selectedArrowIndex = kf.arrows.length - 1;
+      state.selectedArrowPart = null;
+      showArrowInspector(newArrow);
+    }
+
+    state.arrowDrawStrokePoints = [];
+    drawScene();
+    updateActionPopupPosition();
+  }
+
+  if (state.dragInitialSnapshot && state.dragInitialSnapshot !== JSON.stringify(getCurrentExercise())) {
+    recordHistory();
+  }
+  state.dragInitialSnapshot = null;
+}
