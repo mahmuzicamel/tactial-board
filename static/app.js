@@ -1,54 +1,62 @@
 // Tactical Coach Frontend Logic
 
-let currentExercise = {
-  id: "ex_initial",
-  title: "3-gegen-2 Umschaltspiel nach Ballgewinn",
-  age_group: "F-Jugend (U9)",
-  focus: "Umschaltspiel",
-  player_count: "6-8 Spieler",
-  pitch_type: "half",
-  dimensions: "25x20m",
-  description: "Zwei Teams (3 Angreifer Blau gegen 2 Verteidiger Rot). Blau eröffnet mit schnellem Pass in die Schnittstelle. Rot versucht den Ball abzufangen und auf die Minitore zu kontern.",
-  coaching_points: "• Offene Spielstellung vor der Annahme\n• Erster Kontakt direkt nach vorne in den freien Raum\n• Schnelles Nachrücken und Dreiecksbildung",
-  keyframes: [
-    {
-      title: "Schritt 1: Ausgangsstellung & Pass",
-      elements: [
-        { id: "b1", type: "player", team: "blue", number: "4", name: "Daniel", x: 200, y: 350 },
-        { id: "b2", type: "player", team: "blue", number: "7", name: "Ben", x: 450, y: 200 },
-        { id: "b3", type: "player", team: "blue", number: "9", name: "Ayla", x: 450, y: 500 },
-        { id: "r1", type: "player", team: "red", number: "2", name: "", x: 380, y: 300 },
-        { id: "r2", type: "player", team: "red", number: "5", name: "", x: 380, y: 400 },
-        { id: "ball", type: "ball", x: 225, y: 350 },
-        { id: "c1", type: "cone", x: 300, y: 150 },
-        { id: "c2", type: "cone", x: 300, y: 550 },
-        { id: "m1", type: "minigoal", x: 100, y: 150 },
-        { id: "m2", type: "minigoal", x: 100, y: 550 }
-      ],
-      arrows: [
-        { type: "pass", x1: 225, y1: 350, x2: 435, y2: 215, color: "#facc15" }
-      ]
-    },
-    {
-      title: "Schritt 2: Annahme & Pass in Tiefe",
-      elements: [
-        { id: "b1", type: "player", team: "blue", number: "4", name: "Daniel", x: 350, y: 350 },
-        { id: "b2", type: "player", team: "blue", number: "7", name: "Ben", x: 550, y: 220 },
-        { id: "b3", type: "player", team: "blue", number: "9", name: "Ayla", x: 620, y: 450 },
-        { id: "r1", type: "player", team: "red", number: "2", name: "", x: 480, y: 270 },
-        { id: "r2", type: "player", team: "red", number: "5", name: "", x: 450, y: 380 },
-        { id: "ball", type: "ball", x: 565, y: 225 },
-        { id: "c1", type: "cone", x: 300, y: 150 },
-        { id: "c2", type: "cone", x: 300, y: 550 },
-        { id: "m1", type: "minigoal", x: 100, y: 150 },
-        { id: "m2", type: "minigoal", x: 100, y: 550 }
-      ],
-      arrows: [
-        { type: "run", x1: 450, y1: 500, x2: 620, y2: 450, color: "#38bdf8" }
-      ]
+const DRAFT_STORAGE_KEY = "tactical_coach_active_draft_v1";
+
+function createEmptyExercise() {
+  return {
+    id: "ex_" + Math.random().toString(36).substr(2, 9),
+    title: "",
+    age_group: "F-Jugend (U9)",
+    focus: "Passspiel",
+    player_count: "6-8 Spieler",
+    pitch_type: "half",
+    dimensions: "20x15m",
+    description: "",
+    coaching_points: "",
+    element_scale: 1.0,
+    field_rotation: 0,
+    playback_speed: 0.5,
+    keyframes: [
+      {
+        title: "Schritt 1: Startaufstellung",
+        elements: [],
+        arrows: []
+      }
+    ]
+  };
+}
+
+// Initialise state: start with empty exercise; active draft or URL link will override on load
+let currentExercise = createEmptyExercise();
+
+function saveLocalDraft() {
+  try {
+    if (currentExercise && currentExercise.keyframes) {
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({
+        exercise: currentExercise,
+        keyframeIndex: currentKeyframeIndex,
+        savedAt: Date.now()
+      }));
     }
-  ]
-};
+  } catch (e) {
+    console.warn("Could not save local draft to localStorage:", e);
+  }
+}
+
+function loadLocalDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.exercise && Array.isArray(parsed.exercise.keyframes) && parsed.exercise.keyframes.length > 0) {
+      return parsed;
+    }
+  } catch (e) {
+    console.warn("Could not read local draft:", e);
+  }
+  return null;
+}
+
 
 let currentKeyframeIndex = 0;
 let globalElementScale = 1.0;
@@ -112,6 +120,7 @@ function recordHistory() {
   if (undoStack.length > MAX_HISTORY) undoStack.shift();
   redoStack = []; // clear redo on new action
   updateUndoRedoUI();
+  saveLocalDraft();
 }
 
 function updateUndoRedoUI() {
@@ -144,6 +153,7 @@ function undo() {
 
   isUndoRedoAction = false;
   updateUndoRedoUI();
+  saveLocalDraft();
 }
 
 function redo() {
@@ -168,6 +178,7 @@ function redo() {
 
   isUndoRedoAction = false;
   updateUndoRedoUI();
+  saveLocalDraft();
 }
 
 function resetUndoRedo() {
@@ -350,6 +361,29 @@ if ("serviceWorker" in navigator) {
 
 // Initialize
 window.addEventListener("DOMContentLoaded", async () => {
+  // Check URL route first for deep-linked exercise ID (e.g. /exercise/<guid> or ?id=<guid>)
+  const routeExerciseId = getExerciseIdFromUrl();
+  let loadedFromUrl = false;
+
+  if (routeExerciseId) {
+    await loadExerciseFromCatalog(routeExerciseId, false);
+    loadedFromUrl = true;
+  } else {
+    // No specific URL parameter: restore user's last working state from localStorage
+    const savedDraft = loadLocalDraft();
+    if (savedDraft && savedDraft.exercise) {
+      currentExercise = savedDraft.exercise;
+      currentKeyframeIndex = Math.min(savedDraft.keyframeIndex || 0, (currentExercise.keyframes.length - 1) || 0);
+      if (currentExercise.id && currentExercise.id !== "ex_initial") {
+        updateUrlForExercise(currentExercise.id, true);
+      }
+    } else {
+      // First time ever: completely empty field, ready to build new exercise!
+      currentExercise = createEmptyExercise();
+      currentKeyframeIndex = 0;
+    }
+  }
+
   resetUndoRedo();
   resizeCanvasToContainer();
   setupCanvasEvents();
@@ -369,12 +403,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     drawScene();
     updateActionPopupPosition();
   }, 350);
-
-  // Check URL route for deep-linked exercise ID (e.g. /exercise/<guid> or ?id=<guid>)
-  const routeExerciseId = getExerciseIdFromUrl();
-  if (routeExerciseId) {
-    await loadExerciseFromCatalog(routeExerciseId, false);
-  }
 });
 
 // Support browser back/forward buttons
@@ -417,14 +445,34 @@ function resizeCanvasToContainer() {
 }
 
 function updateFormFields() {
-  document.getElementById("exTitle").value = currentExercise.title || "";
-  document.getElementById("exAgeGroup").value = currentExercise.age_group || "F-Jugend (U9)";
-  document.getElementById("exFocus").value = currentExercise.focus || "Umschaltspiel";
-  document.getElementById("exPlayers").value = currentExercise.player_count || "6-8 Spieler";
-  document.getElementById("exDimensions").value = currentExercise.dimensions || "25x20m";
-  document.getElementById("exDescription").value = currentExercise.description || "";
-  document.getElementById("exCoaching").value = currentExercise.coaching_points || "";
-  document.getElementById("pitchSelect").value = currentExercise.pitch_type || "half";
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  };
+
+  setVal("exTitle", currentExercise.title || "");
+  setVal("modalExTitle", currentExercise.title || "");
+
+  setVal("exAgeGroup", currentExercise.age_group || "F-Jugend (U9)");
+  setVal("modalExAgeGroup", currentExercise.age_group || "F-Jugend (U9)");
+
+  setVal("exFocus", currentExercise.focus || "Passspiel");
+  setVal("modalExFocus", currentExercise.focus || "Passspiel");
+
+  setVal("exPlayers", currentExercise.player_count || "6-8 Spieler");
+  setVal("modalExPlayers", currentExercise.player_count || "6-8 Spieler");
+
+  setVal("exDimensions", currentExercise.dimensions || "20x15m");
+  setVal("modalExDimensions", currentExercise.dimensions || "20x15m");
+
+  setVal("exDescription", currentExercise.description || "");
+  setVal("modalExDescription", currentExercise.description || "");
+
+  setVal("exCoaching", currentExercise.coaching_points || "");
+  setVal("modalExCoaching", currentExercise.coaching_points || "");
+
+  setVal("pitchSelect", currentExercise.pitch_type || "half");
+
   if (currentExercise.element_scale !== undefined) {
     globalElementScale = parseFloat(currentExercise.element_scale) || 1.0;
   }
@@ -453,6 +501,7 @@ function syncFormToState() {
   currentExercise.element_scale = globalElementScale;
   currentExercise.field_rotation = fieldRotation;
   currentExercise.playback_speed = currentSpeed;
+  saveLocalDraft();
 }
 
 function updateElementScaleUI() {
@@ -3065,6 +3114,25 @@ function openDetailsModal() {
 }
 
 function closeDetailsModal() {
+  const getVal = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.value : "";
+  };
+  const mTitle = getVal("modalExTitle");
+  if (mTitle) document.getElementById("exTitle").value = mTitle;
+  const mAge = getVal("modalExAgeGroup");
+  if (mAge) document.getElementById("exAgeGroup").value = mAge;
+  const mFocus = getVal("modalExFocus");
+  if (mFocus) document.getElementById("exFocus").value = mFocus;
+  const mPl = getVal("modalExPlayers");
+  if (mPl) document.getElementById("exPlayers").value = mPl;
+  const mDim = getVal("modalExDimensions");
+  if (mDim) document.getElementById("exDimensions").value = mDim;
+  const mDesc = getVal("modalExDescription");
+  if (mDesc) document.getElementById("exDescription").value = mDesc;
+  const mCoach = getVal("modalExCoaching");
+  if (mCoach) document.getElementById("exCoaching").value = mCoach;
+
   syncFormToState();
   document.getElementById("detailsModal").classList.add("hidden");
 }
@@ -3674,6 +3742,7 @@ async function saveCurrentExercise() {
     const data = await res.json();
     if (data.status === "ok") {
       currentExercise.id = data.id;
+      saveLocalDraft();
       updateUrlForExercise(data.id);
       showToast("✅ Übung erfolgreich gespeichert!");
       refreshExerciseBadge();
@@ -3696,24 +3765,7 @@ function createNewExercise() {
     if (isPlaying) {
       stopAnimation();
     }
-    currentExercise = {
-      id: "ex_" + Math.random().toString(36).substr(2, 9),
-      title: "Neue Trainingsübung",
-      age_group: "F-Jugend (U9)",
-      focus: "Passspiel",
-      player_count: "6-8 Spieler",
-      pitch_type: "half",
-      dimensions: "20x15m",
-      description: "",
-      coaching_points: "",
-      keyframes: [
-        {
-          title: "Schritt 1: Startaufstellung",
-          elements: [],
-          arrows: []
-        }
-      ]
-    };
+    currentExercise = createEmptyExercise();
     currentKeyframeIndex = 0;
     selectedElementId = null;
     selectedElementIds = [];
@@ -3726,6 +3778,7 @@ function createNewExercise() {
     renderKeyframeTabs();
     drawScene();
     resetUndoRedo();
+    saveLocalDraft();
     if (window.location.pathname !== "/") {
       window.history.pushState({}, "", "/");
     }
@@ -3824,6 +3877,7 @@ async function loadExerciseFromCatalog(id, updateUrl = true) {
     resetUndoRedo();
     closeCatalogModal();
     closeSidebarMenu();
+    saveLocalDraft();
 
     if (updateUrl) {
       updateUrlForExercise(data.id);
