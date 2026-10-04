@@ -82,6 +82,7 @@ let arrowStartY = 0;
 let arrowCurrentX = 0;
 let arrowCurrentY = 0;
 let arrowDrawStrokePoints = [];
+let lineDrawMode = "freehand"; // 'freehand' (auto-fit Bezier), 'bezier' (draw straight + show handles), 'straight' (never curve)
 
 // Undo / Redo History State
 const MAX_HISTORY = 40;
@@ -649,7 +650,7 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
     const aType = (activeTool === "pass") ? "pass" : ((activeTool === "guide") ? "guide" : "run");
     const col = (activeTool === "pass") ? "#facc15" : ((activeTool === "guide") ? "#fbbf24" : "#38bdf8");
 
-    if (arrowDrawStrokePoints && arrowDrawStrokePoints.length > 2) {
+    if (lineDrawMode === "freehand" && arrowDrawStrokePoints && arrowDrawStrokePoints.length > 2) {
       // Draw smooth live stroke path following user's hand
       ctx.save();
       ctx.strokeStyle = col;
@@ -2234,8 +2235,8 @@ function setupCanvasEvents() {
         const aType = (activeTool === "pass") ? "pass" : ((activeTool === "guide") ? "guide" : "run");
         const col = (activeTool === "pass") ? "#facc15" : ((activeTool === "guide") ? "#fbbf24" : "#38bdf8");
 
-        // Fit smooth Bezier curve parameters from recorded stroke points
-        const fittedCurve = fitCubicBezierToStroke(arrowDrawStrokePoints);
+        // Fit smooth Bezier curve parameters from recorded stroke points (if in freehand mode)
+        const fittedCurve = (lineDrawMode === "freehand") ? fitCubicBezierToStroke(arrowDrawStrokePoints) : null;
 
         const newArrow = {
           id: `arr_${Math.random().toString(36).substr(2, 7)}`,
@@ -3974,6 +3975,74 @@ function closeEquipmentMenu() {
   }
 }
 
+function toggleLineModeMenu(event) {
+  if (event) event.stopPropagation();
+  const popup = document.getElementById("lineModeMenuPopup");
+  if (!popup) return;
+  const isHidden = popup.classList.contains("hidden");
+  closeEquipmentMenu();
+  closePlaybackSettingsMenu();
+  if (isHidden) {
+    popup.classList.remove("hidden");
+  } else {
+    popup.classList.add("hidden");
+  }
+}
+
+function closeLineModeMenu() {
+  const popup = document.getElementById("lineModeMenuPopup");
+  if (popup && !popup.classList.contains("hidden")) {
+    popup.classList.add("hidden");
+  }
+}
+
+function setLineDrawMode(mode) {
+  lineDrawMode = mode;
+  closeLineModeMenu();
+
+  const label = document.getElementById("lineModeCurrentLabel");
+  const icon = document.getElementById("lineModeCurrentIcon");
+  const checkFreehand = document.getElementById("lineModeCheckFreehand");
+  const checkBezier = document.getElementById("lineModeCheckBezier");
+  const checkStraight = document.getElementById("lineModeCheckStraight");
+
+  const optFreehand = document.getElementById("lineModeOptFreehand");
+  const optBezier = document.getElementById("lineModeOptBezier");
+  const optStraight = document.getElementById("lineModeOptStraight");
+
+  // Reset all option styles
+  [optFreehand, optBezier, optStraight].forEach(opt => {
+    if (opt) {
+      opt.className = "w-full text-left px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-transparent text-slate-300 flex items-center justify-between text-xs transition";
+    }
+  });
+  if (checkFreehand) checkFreehand.classList.add("hidden");
+  if (checkBezier) checkBezier.classList.add("hidden");
+  if (checkStraight) checkStraight.classList.add("hidden");
+
+  if (mode === "freehand") {
+    if (label) label.innerText = "Freihand";
+    if (icon) icon.className = "fa-solid fa-signature text-[11px] text-emerald-400";
+    if (optFreehand) optFreehand.className = "w-full text-left px-2 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/60 flex items-center justify-between text-xs transition";
+    if (checkFreehand) checkFreehand.classList.remove("hidden");
+  } else if (mode === "bezier") {
+    if (label) label.innerText = "Bézier";
+    if (icon) icon.className = "fa-solid fa-bezier-curve text-[11px] text-cyan-400";
+    if (optBezier) optBezier.className = "w-full text-left px-2 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-500/50 text-cyan-300 hover:bg-cyan-900/60 flex items-center justify-between text-xs transition";
+    if (checkBezier) checkBezier.classList.remove("hidden");
+  } else if (mode === "straight") {
+    if (label) label.innerText = "Gerade";
+    if (icon) icon.className = "fa-solid fa-minus text-[11px] text-slate-300";
+    if (optStraight) optStraight.className = "w-full text-left px-2 py-1.5 rounded-lg bg-slate-700/60 border border-slate-500/50 text-white hover:bg-slate-700 flex items-center justify-between text-xs transition";
+    if (checkStraight) checkStraight.classList.remove("hidden");
+  }
+
+  // If user is currently in select mode, switch to Laufweg for convenient drawing
+  if (activeTool === "select") {
+    setActiveTool("run");
+  }
+}
+
 // Global click-listener to auto-dismiss open popovers when clicking elsewhere
 document.addEventListener("pointerdown", (e) => {
   const playbackPopup = document.getElementById("playbackSettingsPopup");
@@ -3989,6 +4058,14 @@ document.addEventListener("pointerdown", (e) => {
   if (equipPopup && !equipPopup.classList.contains("hidden")) {
     if (!equipPopup.contains(e.target) && !equipBtn?.contains(e.target)) {
       equipPopup.classList.add("hidden");
+    }
+  }
+
+  const lineModePopup = document.getElementById("lineModeMenuPopup");
+  const lineModeBtn = document.getElementById("lineModeMenuBtn");
+  if (lineModePopup && !lineModePopup.classList.contains("hidden")) {
+    if (!lineModePopup.contains(e.target) && !lineModeBtn?.contains(e.target)) {
+      lineModePopup.classList.add("hidden");
     }
   }
 });
