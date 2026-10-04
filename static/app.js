@@ -3299,6 +3299,38 @@ function spawnElement(type, options = {}) {
   drawScene();
   updateActionPopupPosition();
   recordHistory();
+
+  // Mobile HUD Feedback for spawned elements
+  if (type === "player") {
+    const teamName = options.team === "blue" ? "Blauer Spieler" : (options.team === "red" ? "Roter Spieler" : "Joker (Gelb)");
+    const badgeColor = options.team === "blue" ? "bg-blue-600 text-white" : (options.team === "red" ? "bg-red-600 text-white" : "bg-yellow-400 text-black");
+    const num = newEl.number || "";
+    showMobileSelectionHUD(teamName, `Nummer ${num} platziert`, `<div class="w-8 h-8 rounded-full ${badgeColor} border-2 border-white flex items-center justify-center font-bold text-sm shadow-lg">${num || 'P'}</div>`);
+  } else if (type === "ball") {
+    showMobileSelectionHUD("Fußball", "Ball auf dem Spielfeld platziert", `<span class="text-3xl leading-none">⚽</span>`);
+  } else if (isEquipment(type)) {
+    const equipNames = {
+      minigoal: "Minitor",
+      goal_5m: "5m Jugendtor",
+      cone: "Hütchen",
+      pole: "Slalomstange",
+      ladder: "Koordinationsleiter",
+      dummy: "Freistoß-Dummy",
+      ring: "Reifen / Ring",
+      hurdle: "Minifußball-Hürde"
+    };
+    const equipIcons = {
+      minigoal: '<i class="fa-solid fa-bullseye text-white text-2xl"></i>',
+      goal_5m: '<i class="fa-solid fa-border-all text-emerald-400 text-2xl"></i>',
+      cone: '<i class="fa-solid fa-shapes text-orange-500 text-2xl"></i>',
+      pole: '<i class="fa-solid fa-grip-lines-vertical text-yellow-400 text-2xl"></i>',
+      ladder: '<i class="fa-solid fa-bars text-yellow-300 text-2xl"></i>',
+      dummy: '<i class="fa-solid fa-person-shelter text-yellow-400 text-2xl"></i>',
+      ring: '<i class="fa-regular fa-circle-dot text-cyan-400 text-2xl"></i>',
+      hurdle: '<i class="fa-solid fa-square-minus text-orange-400 text-2xl"></i>'
+    };
+    showMobileSelectionHUD(equipNames[type] || "Material", "Trainingsgerät hinzugefügt", equipIcons[type] || '<i class="fa-solid fa-shapes text-amber-400 text-2xl"></i>');
+  }
 }
 
 function setActiveTool(tool) {
@@ -3318,6 +3350,17 @@ function setActiveTool(tool) {
     } else {
       activeBtn.className = "px-2 py-1 rounded-md bg-emerald-600 text-white flex items-center gap-1 border border-emerald-500 transition text-[11px] font-semibold";
     }
+  }
+
+  // Mobile HUD Feedback
+  if (tool === "select") {
+    showMobileSelectionHUD("Verschieben", "Elemente berühren & bewegen", '<i class="fa-solid fa-hand text-emerald-400"></i>');
+  } else if (tool === "pass") {
+    showMobileSelectionHUD("Passweg", "Gepunktete Linie ziehen", '<i class="fa-solid fa-ellipsis text-yellow-400"></i>');
+  } else if (tool === "run") {
+    showMobileSelectionHUD("Laufweg", "Lauf- oder Dribbelspur ziehen", '<i class="fa-solid fa-arrow-right text-cyan-400"></i>');
+  } else if (tool === "guide") {
+    showMobileSelectionHUD("Hilfslinie", "Begrenzung / Zonenlinie ziehen", '<i class="fa-solid fa-border-none text-amber-400"></i>');
   }
 }
 
@@ -4320,6 +4363,27 @@ function setLineDrawMode(mode) {
   if (activeTool === "select") {
     setActiveTool("run");
   }
+
+  // Mobile HUD Feedback for line mode
+  const modeTitles = {
+    raw_freehand: "Full Freihand",
+    freehand: "Freihand (Auto-Fit)",
+    bezier: "Bézier (Griffe)",
+    straight: "Immer Gerade"
+  };
+  const modeSubtitles = {
+    raw_freehand: "1:1 exakt wie gezeichnet",
+    freehand: "Bogen zeichnen & automatisch glätten",
+    bezier: "Start/Ende + Steuerpunkte biegen",
+    straight: "Klassische Direktlinie"
+  };
+  const modeIcons = {
+    raw_freehand: '<i class="fa-solid fa-pen-nib text-amber-400 text-2xl"></i>',
+    freehand: '<i class="fa-solid fa-signature text-emerald-400 text-2xl"></i>',
+    bezier: '<i class="fa-solid fa-bezier-curve text-cyan-400 text-2xl"></i>',
+    straight: '<i class="fa-solid fa-minus text-slate-300 text-2xl"></i>'
+  };
+  showMobileSelectionHUD(modeTitles[mode] || "Linienmodus", modeSubtitles[mode] || "", modeIcons[mode] || "");
 }
 
 // Bottom Dock Horizontal Scroll Indicator Helpers
@@ -4364,6 +4428,41 @@ function scrollBottomDock(direction) {
   } else {
     container.scrollBy({ left: amount, behavior: "smooth" });
   }
+}
+
+// Mobile Center Selection HUD / Feedback
+let mobileHudTimer = null;
+
+function showMobileSelectionHUD(title, subtitle = "", iconHtml = "") {
+  // Nur auf Touch- / Mobilgeräten anzeigen (z. B. Smartphone/Tablet oder Viewport < 768px)
+  const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  if (!isMobile) return;
+
+  const hud = document.getElementById("mobileSelectionHud");
+  const titleEl = document.getElementById("mobileSelectionTitle");
+  const subtitleEl = document.getElementById("mobileSelectionSubtitle");
+  const iconEl = document.getElementById("mobileSelectionIcon");
+  if (!hud || !titleEl) return;
+
+  titleEl.textContent = title;
+  if (subtitleEl) {
+    subtitleEl.textContent = subtitle;
+    subtitleEl.style.display = subtitle ? "block" : "none";
+  }
+  if (iconEl) {
+    iconEl.innerHTML = iconHtml;
+    iconEl.style.display = iconHtml ? "block" : "none";
+  }
+
+  // Animation einblenden
+  hud.classList.remove("opacity-0", "pointer-events-none", "scale-90");
+  hud.classList.add("opacity-100", "scale-100");
+
+  clearTimeout(mobileHudTimer);
+  mobileHudTimer = setTimeout(() => {
+    hud.classList.remove("opacity-100", "scale-100");
+    hud.classList.add("opacity-0", "pointer-events-none", "scale-90");
+  }, 950);
 }
 
 // Mobile Tooltip Handling (Long-press / Hold on touch screens)
