@@ -74,21 +74,6 @@
       opacity: 0;
       pointer-events: none;
     }
-    /* Scroll indicator arrow bounce animation */
-    @keyframes pulse-horizontal {
-      0%, 100% { transform: translateX(0); }
-      50% { transform: translateX(3px); }
-    }
-    @keyframes pulse-horizontal-left {
-      0%, 100% { transform: translateX(0); }
-      50% { transform: translateX(-3px); }
-    }
-    .animate-bounce-right {
-      animation: pulse-horizontal 1.2s infinite ease-in-out;
-    }
-    .animate-bounce-left {
-      animation: pulse-horizontal-left 1.2s infinite ease-in-out;
-    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 flex flex-col select-none inset-0 absolute">
@@ -500,7 +485,7 @@
       <div class="relative w-full max-w-5xl mx-auto">
         <!-- Left Gradient Indicator (Shows when scrolled to the right) -->
         <div id="dockScrollLeftHint" onclick="scrollBottomDock('left')" class="opacity-0 pointer-events-none transition-opacity duration-200 absolute left-0 top-0 bottom-0 w-8 z-10 flex items-center justify-start pl-1 bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent cursor-pointer rounded-l-lg">
-          <span class="w-5 h-5 rounded-full bg-slate-800/90 border border-slate-700/80 text-emerald-400 flex items-center justify-center text-[10px] shadow-md animate-bounce-left">
+          <span class="w-5 h-5 rounded-full bg-slate-800/90 border border-slate-700/80 text-emerald-400 flex items-center justify-center text-[10px] shadow-md">
             <i class="fa-solid fa-chevron-left"></i>
           </span>
         </div>
@@ -723,7 +708,7 @@
 
         <!-- Right Gradient Indicator (Shows when scrolled to the left) -->
         <div id="dockScrollRightHint" onclick="scrollBottomDock('right')" class="opacity-0 pointer-events-none transition-opacity duration-200 absolute right-0 top-0 bottom-0 w-8 z-10 flex items-center justify-end pr-1 bg-gradient-to-l from-slate-950 via-slate-950/80 to-transparent cursor-pointer rounded-r-lg">
-          <span class="w-5 h-5 rounded-full bg-slate-800/90 border border-slate-700/80 text-emerald-400 flex items-center justify-center text-[10px] shadow-md animate-bounce-right">
+          <span class="w-5 h-5 rounded-full bg-slate-800/90 border border-slate-700/80 text-emerald-400 flex items-center justify-center text-[10px] shadow-md">
             <i class="fa-solid fa-chevron-right"></i>
           </span>
         </div>
@@ -974,7 +959,7 @@
     <span id="toastMsg">Mitteilung</span>
   </div>
 
-  <script type="module" src="/static/js/app-module.js?v=60"></script>
-  <script src="/static/app.js?v=60"></script>
+  <script type="module" src="/static/js/app-module.js?v=61"></script>
+  <script src="/static/app.js?v=61"></script>
 </body>
 </html>
