@@ -240,15 +240,40 @@ async function copyExerciseShareLink() {
   const id = currentExercise.id;
   const directUrl = `${window.location.origin}/exercise/${encodeURIComponent(id)}`;
 
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
+  let copied = false;
+  // Modern async clipboard API (requires secure context / https or localhost)
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
       await navigator.clipboard.writeText(directUrl);
-      showToast("🔗 Link kopiert: " + directUrl);
-    } else {
-      prompt("Direktlink zur Übung kopieren:", directUrl);
+      copied = true;
+    } catch (e) {
+      copied = false;
     }
-  } catch (err) {
-    prompt("Direktlink zur Übung kopieren:", directUrl);
+  }
+
+  // Fallback for non-https / plain IP environments (like 100.81.194.35)
+  if (!copied) {
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = directUrl;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+      textArea.setAttribute("readonly", "");
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      copied = document.execCommand("copy");
+      document.body.removeChild(textArea);
+    } catch (err) {
+      copied = false;
+    }
+  }
+
+  if (copied) {
+    showToast("🔗 Link kopiert: " + directUrl);
+  } else {
+    prompt("Link kopieren:", directUrl);
   }
 }
 
@@ -3292,17 +3317,42 @@ function changePitchType(type) {
 }
 
 function clearCurrentCanvas() {
-  if (confirm("Möchtest du alle Elemente und Wege aus diesem Schritt entfernen?")) {
-    const kf = currentExercise.keyframes[currentKeyframeIndex];
-    // Remove arrows and dynamic elements (players/balls) from current step
-    kf.arrows = [];
-    kf.elements = kf.elements.filter(el => isEquipment(el.type)); // Keep equipment structure!
-    selectedElementId = null;
-    selectedElementIds = [];
-    hideInspector();
-    drawScene();
-    recordHistory();
+  openClearConfirmModal();
+}
+
+let clearConfirmResolve = null;
+function openClearConfirmModal() {
+  const modal = document.getElementById("clearConfirmModal");
+  if (!modal) {
+    if (confirm("Möchtest du alle Elemente und Wege aus diesem Schritt entfernen?")) {
+      executeClearCurrentCanvas();
+    }
+    return;
   }
+  modal.classList.remove("hidden");
+}
+
+function closeClearConfirmModal(proceed = false) {
+  const modal = document.getElementById("clearConfirmModal");
+  if (modal) modal.classList.add("hidden");
+  if (proceed) {
+    executeClearCurrentCanvas();
+  }
+}
+
+function executeClearCurrentCanvas() {
+  const kf = currentExercise.keyframes[currentKeyframeIndex];
+  if (!kf) return;
+  // Remove arrows and dynamic elements (players/balls) from current step
+  kf.arrows = [];
+  kf.elements = kf.elements.filter(el => isEquipment(el.type)); // Keep equipment structure!
+  selectedElementId = null;
+  selectedElementIds = [];
+  hideInspector();
+  drawScene();
+  recordHistory();
+  saveLocalDraft();
+  showToast("🧹 Schritt geleert!");
 }
 
 // Keyframes Management

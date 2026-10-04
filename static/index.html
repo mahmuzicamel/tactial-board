@@ -481,8 +481,8 @@
         </div>
       </div>
 
-      <!-- Material & Tool Dock (Unten hinterlegt, touch-friendly) -->
-      <div class="w-full max-w-5xl mx-auto glass-panel rounded-lg px-2 py-1 flex items-center justify-between gap-1.5 shadow-lg border border-slate-800">
+      <!-- Material & Tool Dock (Unten hinterlegt, touch-friendly, scrollbar auf mobilen Geräten) -->
+      <div class="w-full max-w-5xl mx-auto glass-panel rounded-lg px-2 py-1 flex items-center justify-between gap-1.5 shadow-lg border border-slate-800 overflow-x-auto no-scrollbar">
         
         <!-- Action Modes (Select, Pass, Run, Guide with Curve Mode Settings) -->
         <div class="flex items-center gap-1 shrink-0 pr-1.5 border-r border-slate-800">
@@ -915,13 +915,34 @@
     </div>
   </div>
 
+  <!-- Custom Confirmation Modal for Clearing Canvas -->
+  <div id="clearConfirmModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col gap-4 text-center">
+      <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 mx-auto flex items-center justify-center text-xl">
+        <i class="fa-solid fa-broom"></i>
+      </div>
+      <div>
+        <h3 class="text-base font-bold text-white mb-1">Schritt leeren?</h3>
+        <p class="text-xs text-slate-300">Möchtest du alle Spieler, Bälle und Wege aus diesem Schritt entfernen?</p>
+      </div>
+      <div class="flex items-center gap-2 pt-1">
+        <button onclick="closeClearConfirmModal(false)" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition">
+          Abbrechen
+        </button>
+        <button onclick="closeClearConfirmModal(true)" class="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-rose-600/30 transition">
+          Leeren
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toastNotification" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 bg-slate-900/95 border border-emerald-500/50 text-white rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-2.5 text-xs font-medium transition-all duration-300 pointer-events-none">
     <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
     <span id="toastMsg">Mitteilung</span>
   </div>
 
-  <script type="module" src="/static/js/app-module.js?v=58"></script>
-  <script src="/static/app.js?v=58"></script>
+  <script type="module" src="/static/js/app-module.js?v=59"></script>
+  <script src="/static/app.js?v=59"></script>
 </body>
 </html>
