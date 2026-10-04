@@ -59,23 +59,32 @@ def hex_to_rgb(hex_str: str) -> Tuple[int, int, int]:
         return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
     return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
 
-def draw_arrow(draw: ImageDraw.ImageDraw, start: Tuple[float, float], end: Tuple[float, float], color: str = "#f1c40f", width: int = 4, dashed: bool = False, wavy: bool = False, guide: bool = False, anim_t: float = 0.0, cp1: Tuple[float, float] = None, cp2: Tuple[float, float] = None):
+def draw_arrow(draw: ImageDraw.ImageDraw, start: Tuple[float, float], end: Tuple[float, float], color: str = "#f1c40f", width: int = 4, dashed: bool = False, wavy: bool = False, guide: bool = False, anim_t: float = 0.0, cp1: Tuple[float, float] = None, cp2: Tuple[float, float] = None, raw_points: List[Tuple[float, float]] = None):
     x1, y1 = start
     x2, y2 = end
     dx = x2 - x1
     dy = y2 - y1
     dist = math.hypot(dx, dy)
-    if dist < 5:
+    if dist < 5 and not (raw_points and len(raw_points) >= 2):
         return
 
-    is_curved = (cp1 is not None and cp2 is not None and (
+    is_raw = bool(raw_points and len(raw_points) >= 2)
+    is_curved = (not is_raw) and (cp1 is not None and cp2 is not None and (
         math.hypot(cp1[0] - (x1 + dx * (1.0 / 3.0)), cp1[1] - (y1 + dy * (1.0 / 3.0))) > 1.0 or
         math.hypot(cp2[0] - (x1 + dx * (2.0 / 3.0)), cp2[1] - (y1 + dy * (2.0 / 3.0))) > 1.0
     ))
 
     # Calculate tangent angle at tip (t = 1) for the arrowhead
     tip_angle = math.atan2(dy, dx)
-    if is_curved:
+    if is_raw:
+        plast = raw_points[-1]
+        prev_idx = max(0, len(raw_points) - 4)
+        pprev = raw_points[prev_idx]
+        pdx = plast[0] - pprev[0]
+        pdy = plast[1] - pprev[1]
+        if math.hypot(pdx, pdy) > 0.001:
+            tip_angle = math.atan2(pdy, pdx)
+    elif is_curved:
         tdx = x2 - cp2[0]
         tdy = y2 - cp2[1]
         if math.hypot(tdx, tdy) > 0.001:
@@ -105,10 +114,15 @@ def draw_arrow(draw: ImageDraw.ImageDraw, start: Tuple[float, float], end: Tuple
         dash_cycle = dash_len + gap_len
         phase = -(anim_t * 35.0) % dash_cycle
 
-        # Sample curve or straight line
-        total_len = dist
-        samples = max(24, int(dist / 4))
-        pts = [cubic_pt(i / samples) for i in range(samples + 1)] if is_curved else [(x1 + dx * (i / samples), y1 + dy * (i / samples)) for i in range(samples + 1)]
+        # Sample curve or straight line or raw polyline
+        if is_raw:
+            pts = list(raw_points)
+        elif is_curved:
+            samples = max(24, int(dist / 4))
+            pts = [cubic_pt(i / samples) for i in range(samples + 1)]
+        else:
+            samples = max(24, int(dist / 4))
+            pts = [(x1 + dx * (i / samples), y1 + dy * (i / samples)) for i in range(samples + 1)]
         
         # Calculate cumulative distances along curve
         cum_dists = [0.0]
@@ -122,7 +136,6 @@ def draw_arrow(draw: ImageDraw.ImageDraw, start: Tuple[float, float], end: Tuple
             c_start = max(0.0, curr)
             c_end = min(total_len, curr + dash_len)
             if c_end > c_start:
-                # Find polyline segment between c_start and c_end
                 dash_pts = []
                 for idx in range(len(pts)):
                     cd = cum_dists[idx]
@@ -140,8 +153,33 @@ def draw_arrow(draw: ImageDraw.ImageDraw, start: Tuple[float, float], end: Tuple
         draw.ellipse([x2 - r_pt, y2 - r_pt, x2 + r_pt, y2 + r_pt], fill=pulse_color)
         return
 
-    # Draw path (curved or straight)
-    if is_curved:
+    # Draw path (raw polyline, curved bezier, wavy or straight)
+    if is_raw:
+        pts = list(raw_points)
+        if dashed:
+            dash_len = 10
+            gap_len = 8
+            dash_cycle = dash_len + gap_len
+            cum_dists = [0.0]
+            for i in range(1, len(pts)):
+                d = math.hypot(pts[i][0] - pts[i-1][0], pts[i][1] - pts[i-1][1])
+                cum_dists.append(cum_dists[-1] + d)
+            total_len = cum_dists[-1]
+            curr = 0.0
+            while curr < total_len:
+                c_start = curr
+                c_end = min(total_len, curr + dash_len)
+                segment = []
+                for idx in range(len(pts)):
+                    cd = cum_dists[idx]
+                    if cd >= c_start and cd <= c_end:
+                        segment.append(pts[idx])
+                if len(segment) >= 2:
+                    draw.line(segment, fill=color, width=width)
+                curr += dash_cycle
+        else:
+            draw.line(pts, fill=color, width=width)
+    elif is_curved:
         samples = max(24, int(dist / 5))
         curve_pts = [cubic_pt(i / samples) for i in range(samples + 1)]
         if dashed:
@@ -621,7 +659,11 @@ def render_frame(pitch_type: str, elements: List[Dict[str, Any]], arrows: List[D
                 cp1 = (s[0] + dx * (1.0 / 3.0) + arrow.get("cp1_dx", 0), s[1] + dy * (1.0 / 3.0) + arrow.get("cp1_dy", 0))
                 cp2 = (s[0] + dx * (2.0 / 3.0) + arrow.get("cp2_dx", 0), s[1] + dy * (2.0 / 3.0) + arrow.get("cp2_dy", 0))
             
-            draw_arrow(draw, s, e, color=color, width=4, dashed=dashed, wavy=wavy, guide=guide, anim_t=anim_t, cp1=cp1, cp2=cp2)
+            raw_points = None
+            if arrow.get("raw_points") and isinstance(arrow["raw_points"], list) and len(arrow["raw_points"]) >= 2:
+                raw_points = [(float(pt["x"]), float(pt["y"])) for pt in arrow["raw_points"]]
+
+            draw_arrow(draw, s, e, color=color, width=4, dashed=dashed, wavy=wavy, guide=guide, anim_t=anim_t, cp1=cp1, cp2=cp2, raw_points=raw_points)
 
     # 3. Static & moving elements (players, cones, balls)
     order_map = {"cone": 1, "pole": 1, "ladder": 1, "ring": 1, "hurdle": 1, "dummy": 1, "minigoal": 2, "goal_5m": 2, "player": 3, "ball": 4}

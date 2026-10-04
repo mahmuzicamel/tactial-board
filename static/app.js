@@ -82,7 +82,7 @@ let arrowStartY = 0;
 let arrowCurrentX = 0;
 let arrowCurrentY = 0;
 let arrowDrawStrokePoints = [];
-let lineDrawMode = "freehand"; // 'freehand' (auto-fit Bezier), 'bezier' (draw straight + show handles), 'straight' (never curve)
+let lineDrawMode = "freehand"; // 'raw_freehand' (1:1 freehand), 'freehand' (auto-fit Bezier), 'bezier' (draw straight + show handles), 'straight' (never curve)
 
 // Undo / Redo History State
 const MAX_HISTORY = 40;
@@ -580,7 +580,7 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
       // Pfeile des Geister-Schritts
       for (const pArrow of (gKf.arrows || [])) {
         const { p1: pArr1, p2: pArr2 } = getArrowCurveControlPoints(pArrow);
-        drawArrow(pArrow.x1, pArrow.y1, pArrow.x2, pArrow.y2, pArrow.type, pArrow.color || "#94a3b8", false, null, pArr1, pArr2);
+        drawArrow(pArrow.x1, pArrow.y1, pArrow.x2, pArrow.y2, pArrow.type, pArrow.color || "#94a3b8", false, null, pArr1, pArr2, pArrow.raw_points);
       }
 
       // Elemente des Geister-Schritts
@@ -642,7 +642,7 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
     const arrow = arrows[i];
     const isSelected = (selectedArrowIndex === i && selectedElementId === null);
     const { p1, p2 } = getArrowCurveControlPoints(arrow);
-    drawArrow(arrow.x1, arrow.y1, arrow.x2, arrow.y2, arrow.type, arrow.color || (arrow.type === "guide" ? "#fbbf24" : "#facc15"), isSelected, nowSec, p1, p2);
+    drawArrow(arrow.x1, arrow.y1, arrow.x2, arrow.y2, arrow.type, arrow.color || (arrow.type === "guide" ? "#fbbf24" : "#facc15"), isSelected, nowSec, p1, p2, arrow.raw_points);
   }
 
   // Draw arrow in progress (live freehand trail or fitted preview)
@@ -650,7 +650,7 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
     const aType = (activeTool === "pass") ? "pass" : ((activeTool === "guide") ? "guide" : "run");
     const col = (activeTool === "pass") ? "#facc15" : ((activeTool === "guide") ? "#fbbf24" : "#38bdf8");
 
-    if (lineDrawMode === "freehand" && arrowDrawStrokePoints && arrowDrawStrokePoints.length > 2) {
+    if ((lineDrawMode === "freehand" || lineDrawMode === "raw_freehand") && arrowDrawStrokePoints && arrowDrawStrokePoints.length > 2) {
       // Draw smooth live stroke path following user's hand
       ctx.save();
       ctx.strokeStyle = col;
@@ -856,13 +856,14 @@ function drawPitchBackground(pitchType) {
   }
 }
 
-function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected = false, animTime = null, cp1 = null, cp2 = null) {
+function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected = false, animTime = null, cp1 = null, cp2 = null, rawPoints = null) {
   const dx = x2 - x1;
   const dy = y2 - y1;
   const dist = Math.hypot(dx, dy);
-  if (dist < 5) return;
+  if (dist < 5 && !(rawPoints && rawPoints.length >= 2)) return;
 
-  const isCurved = (cp1 && cp2 && (Math.hypot(cp1.x - (x1 + dx * (1 / 3)), cp1.y - (y1 + dy * (1 / 3))) > 1 || Math.hypot(cp2.x - (x1 + dx * (2 / 3)), cp2.y - (y1 + dy * (2 / 3))) > 1));
+  const isRaw = (rawPoints && rawPoints.length >= 2);
+  const isCurved = (!isRaw && cp1 && cp2 && (Math.hypot(cp1.x - (x1 + dx * (1 / 3)), cp1.y - (y1 + dy * (1 / 3))) > 1 || Math.hypot(cp2.x - (x1 + dx * (2 / 3)), cp2.y - (y1 + dy * (2 / 3))) > 1));
 
   ctx.save();
 
@@ -870,19 +871,34 @@ function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected 
   if (isSelected) {
     ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
     ctx.lineWidth = 14;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    if (isCurved) {
-      ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+    if (isRaw) {
+      ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
+      for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
     } else {
-      ctx.lineTo(x2, y2);
+      ctx.moveTo(x1, y1);
+      if (isCurved) {
+        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+      } else {
+        ctx.lineTo(x2, y2);
+      }
     }
     ctx.stroke();
   }
 
   // Calculate tangent angle at tip (t = 1) for the arrowhead
   let tipAngle = Math.atan2(dy, dx);
-  if (isCurved) {
+  if (isRaw) {
+    const pLast = rawPoints[rawPoints.length - 1];
+    const pPrev = rawPoints[Math.max(0, rawPoints.length - 4)];
+    const pdx = pLast.x - pPrev.x;
+    const pdy = pLast.y - pPrev.y;
+    if (Math.hypot(pdx, pdy) > 0.001) {
+      tipAngle = Math.atan2(pdy, pdx);
+    }
+  } else if (isCurved) {
     // Tangent vector of cubic bezier at t = 1 is 3 * (p3 - p2)
     const tdx = x2 - cp2.x;
     const tdy = y2 - cp2.y;
@@ -909,11 +925,16 @@ function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected 
     ctx.setLineDash([12, 8]);
     ctx.lineDashOffset = dashOffset;
     ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    if (isCurved) {
-      ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+    if (isRaw) {
+      ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
+      for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
     } else {
-      ctx.lineTo(x2, y2);
+      ctx.moveTo(x1, y1);
+      if (isCurved) {
+        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+      } else {
+        ctx.lineTo(x2, y2);
+      }
     }
     ctx.stroke();
 
@@ -925,11 +946,16 @@ function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected 
     ctx.setLineDash([12, 8]);
     ctx.lineDashOffset = dashOffset;
     ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    if (isCurved) {
-      ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+    if (isRaw) {
+      ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
+      for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
     } else {
-      ctx.lineTo(x2, y2);
+      ctx.moveTo(x1, y1);
+      if (isCurved) {
+        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+      } else {
+        ctx.lineTo(x2, y2);
+      }
     }
     ctx.stroke();
 
@@ -949,21 +975,31 @@ function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected 
     if (type === "pass") {
       ctx.setLineDash([10, 8]);
       ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      if (isCurved) {
-        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+      if (isRaw) {
+        ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
+        for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
       } else {
-        ctx.lineTo(x2, y2);
+        ctx.moveTo(x1, y1);
+        if (isCurved) {
+          ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+        } else {
+          ctx.lineTo(x2, y2);
+        }
       }
       ctx.stroke();
     } else {
       // Run / dribble solid line
       ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      if (isCurved) {
-        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+      if (isRaw) {
+        ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
+        for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
       } else {
-        ctx.lineTo(x2, y2);
+        ctx.moveTo(x1, y1);
+        if (isCurved) {
+          ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+        } else {
+          ctx.lineTo(x2, y2);
+        }
       }
       ctx.stroke();
     }
@@ -1321,6 +1357,17 @@ function pointInPolygon(point, vs) {
     if (intersect) inside = !inside;
   }
   return inside;
+}
+
+// Distance from point (px, py) to a polyline points array
+function distToPolyline(px, py, points) {
+  if (!points || points.length < 2) return Infinity;
+  let minDist = Infinity;
+  for (let i = 1; i < points.length; i++) {
+    const d = distToSegment(px, py, points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
+    if (d < minDist) minDist = d;
+  }
+  return minDist;
 }
 
 // Helper to calculate distance from point (px, py) to line segment (x1, y1)-(x2, y2)
@@ -1875,7 +1922,7 @@ function setupCanvasEvents() {
           drawScene();
           updateActionPopupPosition();
           return;
-        } else if (distToCubicBezier(x, y, { x: arr.x1, y: arr.y1 }, p1, p2, { x: arr.x2, y: arr.y2 }) <= arrowHitThreshold) {
+        } else if ((arr.raw_points && distToPolyline(x, y, arr.raw_points) <= arrowHitThreshold) || (!arr.raw_points && distToCubicBezier(x, y, { x: arr.x1, y: arr.y1 }, p1, p2, { x: arr.x2, y: arr.y2 }) <= arrowHitThreshold)) {
           if (activeTool !== "select") setActiveTool("select");
           selectedArrowIndex = i;
           selectedArrowPart = "body";
@@ -2119,6 +2166,12 @@ function setupCanvasEvents() {
           arr.y1 = Math.max(10, Math.min(VIRTUAL_HEIGHT - 10, arr.y1 + dy));
           arr.x2 = Math.max(10, Math.min(VIRTUAL_WIDTH - 10, arr.x2 + dx));
           arr.y2 = Math.max(10, Math.min(VIRTUAL_HEIGHT - 10, arr.y2 + dy));
+          if (arr.raw_points && arr.raw_points.length > 0) {
+            for (const pt of arr.raw_points) {
+              pt.x += dx;
+              pt.y += dy;
+            }
+          }
           arrowDragOffsetX = x;
           arrowDragOffsetY = y;
         }
@@ -2249,7 +2302,10 @@ function setupCanvasEvents() {
           persistent: false
         };
 
-        if (fittedCurve && (fittedCurve.cp1_dx !== 0 || fittedCurve.cp1_dy !== 0 || fittedCurve.cp2_dx !== 0 || fittedCurve.cp2_dy !== 0)) {
+        if (lineDrawMode === "raw_freehand" && arrowDrawStrokePoints && arrowDrawStrokePoints.length >= 2) {
+          // Store exact user stroke points for full freehand
+          newArrow.raw_points = arrowDrawStrokePoints.map(p => ({ x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10 }));
+        } else if (fittedCurve && (fittedCurve.cp1_dx !== 0 || fittedCurve.cp1_dy !== 0 || fittedCurve.cp2_dx !== 0 || fittedCurve.cp2_dy !== 0)) {
           newArrow.cp1_dx = fittedCurve.cp1_dx;
           newArrow.cp1_dy = fittedCurve.cp1_dy;
           newArrow.cp2_dx = fittedCurve.cp2_dx;
@@ -4024,25 +4080,33 @@ function setLineDrawMode(mode) {
 
   const label = document.getElementById("lineModeCurrentLabel");
   const icon = document.getElementById("lineModeCurrentIcon");
+  const checkRawFreehand = document.getElementById("lineModeCheckRawFreehand");
   const checkFreehand = document.getElementById("lineModeCheckFreehand");
   const checkBezier = document.getElementById("lineModeCheckBezier");
   const checkStraight = document.getElementById("lineModeCheckStraight");
 
+  const optRawFreehand = document.getElementById("lineModeOptRawFreehand");
   const optFreehand = document.getElementById("lineModeOptFreehand");
   const optBezier = document.getElementById("lineModeOptBezier");
   const optStraight = document.getElementById("lineModeOptStraight");
 
   // Reset all option styles
-  [optFreehand, optBezier, optStraight].forEach(opt => {
+  [optRawFreehand, optFreehand, optBezier, optStraight].forEach(opt => {
     if (opt) {
       opt.className = "w-full text-left px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-transparent text-slate-300 flex items-center justify-between text-xs transition";
     }
   });
+  if (checkRawFreehand) checkRawFreehand.classList.add("hidden");
   if (checkFreehand) checkFreehand.classList.add("hidden");
   if (checkBezier) checkBezier.classList.add("hidden");
   if (checkStraight) checkStraight.classList.add("hidden");
 
-  if (mode === "freehand") {
+  if (mode === "raw_freehand") {
+    if (label) label.innerText = "Full Freihand";
+    if (icon) icon.className = "fa-solid fa-pen-nib text-[11px] text-amber-400";
+    if (optRawFreehand) optRawFreehand.className = "w-full text-left px-2 py-1.5 rounded-lg bg-amber-950/60 border border-amber-500/50 text-amber-300 hover:bg-amber-900/60 flex items-center justify-between text-xs transition";
+    if (checkRawFreehand) checkRawFreehand.classList.remove("hidden");
+  } else if (mode === "freehand") {
     if (label) label.innerText = "Freihand";
     if (icon) icon.className = "fa-solid fa-signature text-[11px] text-emerald-400";
     if (optFreehand) optFreehand.className = "w-full text-left px-2 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/60 flex items-center justify-between text-xs transition";

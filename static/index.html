@@ -503,10 +503,22 @@
             </button>
 
             <!-- Line Mode Popover -->
-            <div id="lineModeMenuPopup" class="hidden absolute bottom-full left-0 mb-1 z-50 p-2 glass-panel bg-slate-900/98 backdrop-blur-md rounded-xl border border-slate-700 shadow-2xl flex flex-col gap-1.5 min-w-[210px]">
+            <div id="lineModeMenuPopup" class="hidden absolute bottom-full left-0 mb-1 z-50 p-2 glass-panel bg-slate-900/98 backdrop-blur-md rounded-xl border border-slate-700 shadow-2xl flex flex-col gap-1.5 min-w-[215px]">
               <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1 border-b border-slate-800 pb-1">Linien-Zeichenmodus</div>
               
-              <!-- Option 1: Freihand (Auto-Bézier) -->
+              <!-- Option 1: Full Freihand (1:1 Spur) -->
+              <button onclick="setLineDrawMode('raw_freehand')" id="lineModeOptRawFreehand" class="w-full text-left px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-transparent text-slate-300 flex items-center justify-between text-xs transition">
+                <div class="flex items-center gap-2">
+                  <i class="fa-solid fa-pen-nib text-amber-400 text-xs"></i>
+                  <div>
+                    <div class="font-bold text-[11px]">Full Freihand</div>
+                    <div class="text-[9px] text-slate-400 leading-tight">1:1 exakt wie gezeichnet</div>
+                  </div>
+                </div>
+                <i id="lineModeCheckRawFreehand" class="fa-solid fa-check text-amber-400 text-xs hidden"></i>
+              </button>
+
+              <!-- Option 2: Freihand Auto-Fit (Bézier-Glättung) -->
               <button onclick="setLineDrawMode('freehand')" id="lineModeOptFreehand" class="w-full text-left px-2 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/60 flex items-center justify-between text-xs transition">
                 <div class="flex items-center gap-2">
                   <i class="fa-solid fa-signature text-emerald-400 text-xs"></i>
@@ -518,7 +530,7 @@
                 <i id="lineModeCheckFreehand" class="fa-solid fa-check text-emerald-400 text-xs"></i>
               </button>
 
-              <!-- Option 2: Bézier-Griffe (Manuell) -->
+              <!-- Option 3: Bézier-Griffe (Manuell) -->
               <button onclick="setLineDrawMode('bezier')" id="lineModeOptBezier" class="w-full text-left px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-transparent text-slate-300 flex items-center justify-between text-xs transition">
                 <div class="flex items-center gap-2">
                   <i class="fa-solid fa-bezier-curve text-cyan-400 text-xs"></i>
@@ -530,7 +542,7 @@
                 <i id="lineModeCheckBezier" class="fa-solid fa-check text-cyan-400 text-xs hidden"></i>
               </button>
 
-              <!-- Option 3: Immer Gerade -->
+              <!-- Option 4: Immer Gerade -->
               <button onclick="setLineDrawMode('straight')" id="lineModeOptStraight" class="w-full text-left px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-transparent text-slate-300 flex items-center justify-between text-xs transition">
                 <div class="flex items-center gap-2">
                   <i class="fa-solid fa-minus text-slate-400 text-xs"></i>
@@ -887,6 +899,6 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=49"></script>
+  <script src="/static/app.js?v=50"></script>
 </body>
 </html>
