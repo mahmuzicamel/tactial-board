@@ -352,8 +352,11 @@
         </button>
       </div>
 
-      <!-- Arrow-only action buttons (Persistent across frames toggle) -->
+      <!-- Arrow-only action buttons (Persistent across frames toggle & Reset Curve) -->
       <div id="actionPopupArrowControls" class="hidden flex items-center gap-1">
+        <button id="actionPopupArrowResetCurveBtn" onclick="resetSelectedArrowCurve()" class="hidden w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-90 text-cyan-400 flex items-center justify-center text-xs transition" title="Laufkurve wieder begradigen">
+          <i class="fa-solid fa-bezier-curve"></i>
+        </button>
         <button id="actionPopupPersistentBtn" onclick="toggleArrowPersistent()" class="h-8 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-90 text-amber-400 flex items-center gap-1 text-[11px] font-bold transition" title="Linie über alle Schritte/Frames hinweg beibehalten">
           <i class="fa-solid fa-layer-group text-[10px]"></i>
           <span id="actionPopupPersistentLabel">Dauerhaft</span>
@@ -834,6 +837,6 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=43"></script>
+  <script src="/static/app.js?v=44"></script>
 </body>
 </html>

@@ -577,7 +577,8 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
 
       // Pfeile des Geister-Schritts
       for (const pArrow of (gKf.arrows || [])) {
-        drawArrow(pArrow.x1, pArrow.y1, pArrow.x2, pArrow.y2, pArrow.type, pArrow.color || "#94a3b8", false);
+        const { p1: pArr1, p2: pArr2 } = getArrowCurveControlPoints(pArrow);
+        drawArrow(pArrow.x1, pArrow.y1, pArrow.x2, pArrow.y2, pArrow.type, pArrow.color || "#94a3b8", false, null, pArr1, pArr2);
       }
 
       // Elemente des Geister-Schritts
@@ -638,7 +639,8 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
   for (let i = 0; i < arrows.length; i++) {
     const arrow = arrows[i];
     const isSelected = (selectedArrowIndex === i && selectedElementId === null);
-    drawArrow(arrow.x1, arrow.y1, arrow.x2, arrow.y2, arrow.type, arrow.color || (arrow.type === "guide" ? "#fbbf24" : "#facc15"), isSelected, nowSec);
+    const { p1, p2 } = getArrowCurveControlPoints(arrow);
+    drawArrow(arrow.x1, arrow.y1, arrow.x2, arrow.y2, arrow.type, arrow.color || (arrow.type === "guide" ? "#fbbf24" : "#facc15"), isSelected, nowSec, p1, p2);
   }
 
   // Draw arrow in progress
@@ -815,13 +817,14 @@ function drawPitchBackground(pitchType) {
   }
 }
 
-function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected = false, animTime = null) {
+function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected = false, animTime = null, cp1 = null, cp2 = null) {
   const dx = x2 - x1;
   const dy = y2 - y1;
   const dist = Math.hypot(dx, dy);
   if (dist < 5) return;
 
-  const angle = Math.atan2(dy, dx);
+  const isCurved = (cp1 && cp2 && (Math.hypot(cp1.x - (x1 + dx * (1 / 3)), cp1.y - (y1 + dy * (1 / 3))) > 1 || Math.hypot(cp2.x - (x1 + dx * (2 / 3)), cp2.y - (y1 + dy * (2 / 3))) > 1));
+
   ctx.save();
 
   // If selected, highlight glow background
@@ -830,8 +833,23 @@ function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected 
     ctx.lineWidth = 14;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
+    if (isCurved) {
+      ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+    } else {
+      ctx.lineTo(x2, y2);
+    }
     ctx.stroke();
+  }
+
+  // Calculate tangent angle at tip (t = 1) for the arrowhead
+  let tipAngle = Math.atan2(dy, dx);
+  if (isCurved) {
+    // Tangent vector of cubic bezier at t = 1 is 3 * (p3 - p2)
+    const tdx = x2 - cp2.x;
+    const tdy = y2 - cp2.y;
+    if (Math.hypot(tdx, tdy) > 0.001) {
+      tipAngle = Math.atan2(tdy, tdx);
+    }
   }
 
   // Type: "guide" -> Blinking / Pulsing dashed Hilfslinie
@@ -853,7 +871,11 @@ function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected 
     ctx.lineDashOffset = dashOffset;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
+    if (isCurved) {
+      ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+    } else {
+      ctx.lineTo(x2, y2);
+    }
     ctx.stroke();
 
     // Sharp bright core line (Amber/Gold or custom color)
@@ -865,7 +887,11 @@ function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected 
     ctx.lineDashOffset = dashOffset;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
+    if (isCurved) {
+      ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+    } else {
+      ctx.lineTo(x2, y2);
+    }
     ctx.stroke();
 
     // Symmetrical diamond / indicator at both endpoints
@@ -885,23 +911,31 @@ function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected 
       ctx.setLineDash([10, 8]);
       ctx.beginPath();
       ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
+      if (isCurved) {
+        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+      } else {
+        ctx.lineTo(x2, y2);
+      }
       ctx.stroke();
     } else {
       // Run / dribble solid line
       ctx.beginPath();
       ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
+      if (isCurved) {
+        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+      } else {
+        ctx.lineTo(x2, y2);
+      }
       ctx.stroke();
     }
 
-    // Arrow tip
+    // Arrow tip oriented along tipAngle
     ctx.setLineDash([]);
     const arrowSize = 14;
     ctx.beginPath();
     ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - arrowSize * Math.cos(angle - Math.PI / 6), y2 - arrowSize * Math.sin(angle - Math.PI / 6));
-    ctx.lineTo(x2 - arrowSize * Math.cos(angle + Math.PI / 6), y2 - arrowSize * Math.sin(angle + Math.PI / 6));
+    ctx.lineTo(x2 - arrowSize * Math.cos(tipAngle - Math.PI / 6), y2 - arrowSize * Math.sin(tipAngle - Math.PI / 6));
+    ctx.lineTo(x2 - arrowSize * Math.cos(tipAngle + Math.PI / 6), y2 - arrowSize * Math.sin(tipAngle + Math.PI / 6));
     ctx.closePath();
     ctx.fill();
   }
@@ -922,6 +956,49 @@ function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected 
     ctx.arc(x2, y2, 8, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
+
+    // Interactive Curve Control Handles (mid, p1, p2)
+    if (cp1 && cp2) {
+      const p0 = { x: x1, y: y1 };
+      const p3 = { x: x2, y: y2 };
+      const pMid = getCubicBezierPoint(0.5, p0, cp1, cp2, p3);
+
+      // Dotted tangent arms
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(cp1.x, cp1.y);
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(cp2.x, cp2.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // P1 handle (cyan)
+      ctx.fillStyle = "#06b6d4";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cp1.x, cp1.y, 6.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // P2 handle (cyan)
+      ctx.beginPath();
+      ctx.arc(cp2.x, cp2.y, 6.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Midpoint handle (Amber/Yellow curve crown handle)
+      ctx.fillStyle = "#f59e0b";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(pMid.x, pMid.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
   }
 
   ctx.restore();
@@ -1218,6 +1295,21 @@ function distToSegment(px, py, x1, y1, x2, y2) {
   return Math.hypot(px - projX, py - projY);
 }
 
+// Distance from point (px, py) to a cubic bezier curve sampled with 20 segments
+function distToCubicBezier(px, py, p0, p1, p2, p3) {
+  let minDist = Infinity;
+  let prevPt = p0;
+  const samples = 20;
+  for (let i = 1; i <= samples; i++) {
+    const t = i / samples;
+    const currPt = getCubicBezierPoint(t, p0, p1, p2, p3);
+    const d = distToSegment(px, py, prevPt.x, prevPt.y, currPt.x, currPt.y);
+    if (d < minDist) minDist = d;
+    prevPt = currPt;
+  }
+  return minDist;
+}
+
 // Calculate coordinates on a cubic bezier curve given P0, P1, P2, P3 at parameter t (0 <= t <= 1)
 function getCubicBezierPoint(t, p0, p1, p2, p3) {
   const u = 1 - t;
@@ -1245,6 +1337,21 @@ function getEffectiveCurveControlPoints(fromEl, toEl) {
   const p2 = {
     x: fromEl.x + dx * (2 / 3) + (toEl.cp2_dx || 0),
     y: fromEl.y + dy * (2 / 3) + (toEl.cp2_dy || 0)
+  };
+  return { p1, p2 };
+}
+
+// Control points for explicit arrow / line objects
+function getArrowCurveControlPoints(arr) {
+  const dx = arr.x2 - arr.x1;
+  const dy = arr.y2 - arr.y1;
+  const p1 = {
+    x: arr.x1 + dx * (1 / 3) + (arr.cp1_dx || 0),
+    y: arr.y1 + dy * (1 / 3) + (arr.cp1_dy || 0)
+  };
+  const p2 = {
+    x: arr.x1 + dx * (2 / 3) + (arr.cp2_dx || 0),
+    y: arr.y1 + dy * (2 / 3) + (arr.cp2_dy || 0)
   };
   return { p1, p2 };
 }
@@ -1576,8 +1683,50 @@ function setupCanvasEvents() {
       const arrowHitThreshold = Math.max(16, 22 / Math.sqrt(viewScale));
       const handleThreshold = Math.max(18, 24 / Math.sqrt(viewScale));
 
+      // First check if user clicked on curve handles of the currently selected arrow
+      if (selectedArrowIndex !== null && kf.arrows[selectedArrowIndex]) {
+        const selArr = kf.arrows[selectedArrowIndex];
+        const { p1: selP1, p2: selP2 } = getArrowCurveControlPoints(selArr);
+        const selPMid = getCubicBezierPoint(0.5, { x: selArr.x1, y: selArr.y1 }, selP1, selP2, { x: selArr.x2, y: selArr.y2 });
+
+        if (Math.hypot(x - selP1.x, y - selP1.y) <= handleThreshold) {
+          activeCurveDrag = {
+            arrowIndex: selectedArrowIndex,
+            handle: "p1",
+            arrow: selArr
+          };
+          isDragging = false;
+          isDraggingArrow = false;
+          hideInspector();
+          return;
+        }
+        if (Math.hypot(x - selPMid.x, y - selPMid.y) <= handleThreshold) {
+          activeCurveDrag = {
+            arrowIndex: selectedArrowIndex,
+            handle: "mid",
+            arrow: selArr
+          };
+          isDragging = false;
+          isDraggingArrow = false;
+          hideInspector();
+          return;
+        }
+        if (Math.hypot(x - selP2.x, y - selP2.y) <= handleThreshold) {
+          activeCurveDrag = {
+            arrowIndex: selectedArrowIndex,
+            handle: "p2",
+            arrow: selArr
+          };
+          isDragging = false;
+          isDraggingArrow = false;
+          hideInspector();
+          return;
+        }
+      }
+
       for (let i = kf.arrows.length - 1; i >= 0; i--) {
         const arr = kf.arrows[i];
+        const { p1, p2 } = getArrowCurveControlPoints(arr);
         const distStart = Math.hypot(arr.x1 - x, arr.y1 - y);
         const distEnd = Math.hypot(arr.x2 - x, arr.y2 - y);
 
@@ -1605,7 +1754,7 @@ function setupCanvasEvents() {
           drawScene();
           updateActionPopupPosition();
           return;
-        } else if (distToSegment(x, y, arr.x1, arr.y1, arr.x2, arr.y2) <= arrowHitThreshold) {
+        } else if (distToCubicBezier(x, y, { x: arr.x1, y: arr.y1 }, p1, p2, { x: arr.x2, y: arr.y2 }) <= arrowHitThreshold) {
           if (activeTool !== "select") setActiveTool("select");
           selectedArrowIndex = i;
           selectedArrowPart = "body";
@@ -1682,8 +1831,54 @@ function setupCanvasEvents() {
 
     const { x, y } = getCanvasCoords(e);
 
-    // If dragging a Ghost Curve Handle:
+    // If dragging a Curve Handle (Ghost motion or Arrow/Guideline):
     if (activeCurveDrag) {
+      if (activeCurveDrag.arrow) {
+        // Dragging curve handle on a drawn Arrow / Guideline
+        const { handle, arrow } = activeCurveDrag;
+        const dx = arrow.x2 - arrow.x1;
+        const dy = arrow.y2 - arrow.y1;
+
+        if (handle === "p1") {
+          const defaultP1X = arrow.x1 + dx * (1 / 3);
+          const defaultP1Y = arrow.y1 + dy * (1 / 3);
+          arrow.cp1_dx = Math.round(x - defaultP1X);
+          arrow.cp1_dy = Math.round(y - defaultP1Y);
+        } else if (handle === "p2") {
+          const defaultP2X = arrow.x1 + dx * (2 / 3);
+          const defaultP2Y = arrow.y1 + dy * (2 / 3);
+          arrow.cp2_dx = Math.round(x - defaultP2X);
+          arrow.cp2_dy = Math.round(y - defaultP2Y);
+        } else if (handle === "mid") {
+          const straightMidX = arrow.x1 + dx * 0.5;
+          const straightMidY = arrow.y1 + dy * 0.5;
+          const offsetMidX = x - straightMidX;
+          const offsetMidY = y - straightMidY;
+          arrow.cp1_dx = Math.round(offsetMidX * 1.33);
+          arrow.cp1_dy = Math.round(offsetMidY * 1.33);
+          arrow.cp2_dx = Math.round(offsetMidX * 1.33);
+          arrow.cp2_dy = Math.round(offsetMidY * 1.33);
+        }
+
+        // If persistent arrow, sync curve parameters across all frames
+        if (arrow.persistent && arrow.id) {
+          currentExercise.keyframes.forEach((otherKf, idx) => {
+            if (idx !== currentKeyframeIndex && otherKf.arrows) {
+              const matched = otherKf.arrows.find(it => it.id === arrow.id);
+              if (matched) {
+                matched.cp1_dx = arrow.cp1_dx;
+                matched.cp1_dy = arrow.cp1_dy;
+                matched.cp2_dx = arrow.cp2_dx;
+                matched.cp2_dy = arrow.cp2_dy;
+              }
+            }
+          });
+        }
+
+        drawScene();
+        return;
+      }
+
       const { handle, fromEl, toEl } = activeCurveDrag;
       const dx = toEl.x - fromEl.x;
       const dy = toEl.y - fromEl.y;
@@ -1816,6 +2011,10 @@ function setupCanvasEvents() {
                 matched.y1 = arr.y1;
                 matched.x2 = arr.x2;
                 matched.y2 = arr.y2;
+                matched.cp1_dx = arr.cp1_dx;
+                matched.cp1_dy = arr.cp1_dy;
+                matched.cp2_dx = arr.cp2_dx;
+                matched.cp2_dy = arr.cp2_dy;
               }
             }
           });
@@ -1835,6 +2034,7 @@ function setupCanvasEvents() {
     if (activeCurveDrag) {
       activeCurveDrag = null;
       drawScene();
+      updateActionPopupPosition();
       // Record history if curve handle was moved
       if (dragInitialSnapshot && dragInitialSnapshot !== JSON.stringify(currentExercise)) {
         recordHistory();
@@ -2161,11 +2361,11 @@ function updateActionPopupPosition() {
   } else if (selectedArrowIndex !== null && kf.arrows && kf.arrows[selectedArrowIndex]) {
     const arr = kf.arrows[selectedArrowIndex];
     // Position context popup directly above the midpoint of the selected arrow / guide line
-    const midX = (arr.x1 + arr.x2) / 2;
-    const midY = (arr.y1 + arr.y2) / 2;
-    const screenPos = getScreenCoords(midX, midY);
+    const { p1, p2 } = getArrowCurveControlPoints(arr);
+    const mid = getCubicBezierPoint(0.5, { x: arr.x1, y: arr.y1 }, p1, p2, { x: arr.x2, y: arr.y2 });
+    const screenPos = getScreenCoords(mid.x, mid.y);
     posX = screenPos.x;
-    posY = screenPos.y - 28;
+    posY = screenPos.y - 32;
 
     if (elControls) elControls.classList.add("hidden");
     if (arrowControls) arrowControls.classList.remove("hidden");
@@ -2184,6 +2384,20 @@ function updateActionPopupPosition() {
 function updateArrowPersistentButtonState(arr) {
   const btn = document.getElementById("actionPopupPersistentBtn");
   const label = document.getElementById("actionPopupPersistentLabel");
+  const resetCurveBtn = document.getElementById("actionPopupArrowResetCurveBtn");
+
+  if (resetCurveBtn) {
+    const hasCurve = (arr.cp1_dx !== undefined && arr.cp1_dx !== 0) ||
+                     (arr.cp1_dy !== undefined && arr.cp1_dy !== 0) ||
+                     (arr.cp2_dx !== undefined && arr.cp2_dx !== 0) ||
+                     (arr.cp2_dy !== undefined && arr.cp2_dy !== 0);
+    if (hasCurve) {
+      resetCurveBtn.classList.remove("hidden");
+    } else {
+      resetCurveBtn.classList.add("hidden");
+    }
+  }
+
   if (!btn || !label || !arr) return;
 
   if (arr.persistent) {
@@ -2195,6 +2409,34 @@ function updateArrowPersistentButtonState(arr) {
     label.innerText = "Dauerhaft machen";
     btn.title = "Linie über alle Schritte hinweg beibehalten";
   }
+}
+
+function resetSelectedArrowCurve() {
+  const kf = currentExercise.keyframes[currentKeyframeIndex];
+  if (!kf || selectedArrowIndex === null || !kf.arrows || !kf.arrows[selectedArrowIndex]) return;
+  const arr = kf.arrows[selectedArrowIndex];
+  delete arr.cp1_dx;
+  delete arr.cp1_dy;
+  delete arr.cp2_dx;
+  delete arr.cp2_dy;
+
+  if (arr.persistent && arr.id) {
+    currentExercise.keyframes.forEach((otherKf, idx) => {
+      if (idx !== currentKeyframeIndex && otherKf.arrows) {
+        const matched = otherKf.arrows.find(it => it.id === arr.id);
+        if (matched) {
+          delete matched.cp1_dx;
+          delete matched.cp1_dy;
+          delete matched.cp2_dx;
+          delete matched.cp2_dy;
+        }
+      }
+    });
+  }
+
+  drawScene();
+  updateActionPopupPosition();
+  recordHistory();
 }
 
 function toggleArrowPersistent() {
