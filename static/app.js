@@ -176,6 +176,71 @@ function resetUndoRedo() {
   updateUndoRedoUI();
 }
 
+// Toast helper
+function showToast(message, isError = false) {
+  const toast = document.getElementById("toastNotification");
+  const msgEl = document.getElementById("toastMsg");
+  const iconEl = document.getElementById("toastIcon");
+  if (!toast || !msgEl) {
+    if (isError) alert(message);
+    return;
+  }
+
+  msgEl.textContent = message;
+  if (isError) {
+    toast.className = "fixed top-16 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 bg-slate-900/95 border border-rose-500/60 text-rose-200 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-2.5 text-xs font-medium transition-all duration-300";
+    if (iconEl) iconEl.className = "fa-solid fa-triangle-exclamation text-rose-400 text-sm";
+  } else {
+    toast.className = "fixed top-16 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 bg-slate-900/95 border border-emerald-500/60 text-white rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-2.5 text-xs font-medium transition-all duration-300";
+    if (iconEl) iconEl.className = "fa-solid fa-circle-check text-emerald-400 text-sm";
+  }
+
+  toast.classList.remove("hidden");
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 2800);
+}
+
+// URL routing & deep linking
+function getExerciseIdFromUrl() {
+  const path = window.location.pathname;
+  const match = path.match(/^\/(?:exercise|e)\/([a-zA-Z0-9_\-]+)/);
+  if (match) return match[1];
+
+  const params = new URLSearchParams(window.location.search);
+  return params.get("id") || params.get("exercise");
+}
+
+function updateUrlForExercise(id, replace = false) {
+  if (!id) return;
+  const targetPath = `/exercise/${encodeURIComponent(id)}`;
+  if (window.location.pathname !== targetPath) {
+    if (replace) {
+      window.history.replaceState({ exerciseId: id }, "", targetPath);
+    } else {
+      window.history.pushState({ exerciseId: id }, "", targetPath);
+    }
+  }
+}
+
+async function copyExerciseShareLink() {
+  syncFormToState();
+  const id = currentExercise.id;
+  const directUrl = `${window.location.origin}/exercise/${encodeURIComponent(id)}`;
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(directUrl);
+      showToast("🔗 Link kopiert: " + directUrl);
+    } else {
+      prompt("Direktlink zur Übung kopieren:", directUrl);
+    }
+  } catch (err) {
+    prompt("Direktlink zur Übung kopieren:", directUrl);
+  }
+}
+
 // Animation playback state
 let isPlaying = false;
 let isLoopMode = true; // true = Endless loop, false = Play 1x and stop at end
@@ -284,7 +349,7 @@ if ("serviceWorker" in navigator) {
 }
 
 // Initialize
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
   resetUndoRedo();
   resizeCanvasToContainer();
   setupCanvasEvents();
@@ -304,6 +369,20 @@ window.addEventListener("DOMContentLoaded", () => {
     drawScene();
     updateActionPopupPosition();
   }, 350);
+
+  // Check URL route for deep-linked exercise ID (e.g. /exercise/<guid> or ?id=<guid>)
+  const routeExerciseId = getExerciseIdFromUrl();
+  if (routeExerciseId) {
+    await loadExerciseFromCatalog(routeExerciseId, false);
+  }
+});
+
+// Support browser back/forward buttons
+window.addEventListener("popstate", async (e) => {
+  const routeExerciseId = getExerciseIdFromUrl();
+  if (routeExerciseId) {
+    await loadExerciseFromCatalog(routeExerciseId, false);
+  }
 });
 
 if (window.visualViewport) {
@@ -3595,11 +3674,12 @@ async function saveCurrentExercise() {
     const data = await res.json();
     if (data.status === "ok") {
       currentExercise.id = data.id;
-      alert("✅ Übung erfolgreich gespeichert!");
+      updateUrlForExercise(data.id);
+      showToast("✅ Übung erfolgreich gespeichert!");
       refreshExerciseBadge();
     }
   } catch (err) {
-    alert("Fehler beim Speichern: " + err.message);
+    showToast("Fehler beim Speichern: " + err.message, true);
   }
 }
 
@@ -3646,6 +3726,9 @@ function createNewExercise() {
     renderKeyframeTabs();
     drawScene();
     resetUndoRedo();
+    if (window.location.pathname !== "/") {
+      window.history.pushState({}, "", "/");
+    }
   }
 }
 
@@ -3710,7 +3793,7 @@ function filterCatalog() {
   loadCatalogExercises(query);
 }
 
-async function loadExerciseFromCatalog(id) {
+async function loadExerciseFromCatalog(id, updateUrl = true) {
   try {
     // Falls gerade eine Animation läuft, vorher zwingend anhalten und säubern
     if (isPlaying) {
@@ -3718,6 +3801,9 @@ async function loadExerciseFromCatalog(id) {
     }
 
     const res = await fetch(`/api/exercises/${id}`);
+    if (!res.ok) {
+      throw new Error(`Übung mit ID "${id}" wurde nicht gefunden.`);
+    }
     const data = await res.json();
     if (!data || !data.keyframes || data.keyframes.length === 0) {
       throw new Error("Ungültiges Übungsformat empfangen.");
@@ -3738,8 +3824,13 @@ async function loadExerciseFromCatalog(id) {
     resetUndoRedo();
     closeCatalogModal();
     closeSidebarMenu();
+
+    if (updateUrl) {
+      updateUrlForExercise(data.id);
+    }
   } catch (err) {
-    alert("Fehler beim Laden: " + err.message);
+    showToast("Fehler beim Laden: " + err.message, true);
+    console.error("Fehler beim Laden der Übung:", err);
   }
 }
 
@@ -3921,7 +4012,7 @@ async function shareMedia(type) {
           await navigator.share({
             title: title,
             text: text,
-            url: window.location.href
+            url: `${window.location.origin}/exercise/${encodeURIComponent(currentExercise.id)}`
           });
         } else {
           exportCanvasPNG();

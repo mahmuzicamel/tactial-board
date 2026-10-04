@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tactical-coach-v55';
+const CACHE_NAME = 'tactical-coach-v56';
 const ASSETS_TO_CACHE = [
   '/',
   '/static/index.html',
@@ -33,8 +33,16 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network first with fallback to cache for app files, skip API requests
-  if (event.request.url.includes('/api/')) {
+  // Skip API requests and media
+  if (event.request.url.includes('/api/') || event.request.url.includes('/media/')) {
+    return;
+  }
+
+  // Handle SPA navigation for HTML documents (/exercise/... or /e/... or /)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/'))
+    );
     return;
   }
 

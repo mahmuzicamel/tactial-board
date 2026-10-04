@@ -193,6 +193,14 @@ def get_service_worker():
 def index():
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
+@app.get("/exercise/{exercise_id}")
+def exercise_view(exercise_id: str):
+    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+@app.get("/e/{exercise_id}")
+def exercise_view_short(exercise_id: str):
+    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8090)
