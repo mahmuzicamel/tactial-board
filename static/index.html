@@ -515,59 +515,6 @@
               <span id="lineModeCurrentLabel" class="hidden md:inline text-[10px]">Freihand</span>
               <i class="fa-solid fa-chevron-up text-[8px] text-slate-400"></i>
             </button>
-
-            <!-- Line Mode Popover -->
-            <div id="lineModeMenuPopup" class="hidden absolute bottom-full left-0 mb-1 z-50 p-2 glass-panel bg-slate-900/98 backdrop-blur-md rounded-xl border border-slate-700 shadow-2xl flex flex-col gap-1.5 min-w-[215px]">
-              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1 border-b border-slate-800 pb-1">Linien-Zeichenmodus</div>
-              
-              <!-- Option 1: Full Freihand (1:1 Spur) -->
-              <button onclick="setLineDrawMode('raw_freehand')" id="lineModeOptRawFreehand" class="w-full text-left px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-transparent text-slate-300 flex items-center justify-between text-xs transition">
-                <div class="flex items-center gap-2">
-                  <i class="fa-solid fa-pen-nib text-amber-400 text-xs"></i>
-                  <div>
-                    <div class="font-bold text-[11px]">Full Freihand</div>
-                    <div class="text-[9px] text-slate-400 leading-tight">1:1 exakt wie gezeichnet</div>
-                  </div>
-                </div>
-                <i id="lineModeCheckRawFreehand" class="fa-solid fa-check text-amber-400 text-xs hidden"></i>
-              </button>
-
-              <!-- Option 2: Freihand Auto-Fit (Bézier-Glättung) -->
-              <button onclick="setLineDrawMode('freehand')" id="lineModeOptFreehand" class="w-full text-left px-2 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/60 flex items-center justify-between text-xs transition">
-                <div class="flex items-center gap-2">
-                  <i class="fa-solid fa-signature text-emerald-400 text-xs"></i>
-                  <div>
-                    <div class="font-bold text-[11px]">Freihand (Auto-Fit)</div>
-                    <div class="text-[9px] text-slate-400 leading-tight">Bogen zeichnen & glätten</div>
-                  </div>
-                </div>
-                <i id="lineModeCheckFreehand" class="fa-solid fa-check text-emerald-400 text-xs"></i>
-              </button>
-
-              <!-- Option 3: Bézier-Griffe (Manuell) -->
-              <button onclick="setLineDrawMode('bezier')" id="lineModeOptBezier" class="w-full text-left px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-transparent text-slate-300 flex items-center justify-between text-xs transition">
-                <div class="flex items-center gap-2">
-                  <i class="fa-solid fa-bezier-curve text-cyan-400 text-xs"></i>
-                  <div>
-                    <div class="font-bold text-[11px]">Bézier (Griffe)</div>
-                    <div class="text-[9px] text-slate-400 leading-tight">Start/Ende + Griffe biegen</div>
-                  </div>
-                </div>
-                <i id="lineModeCheckBezier" class="fa-solid fa-check text-cyan-400 text-xs hidden"></i>
-              </button>
-
-              <!-- Option 4: Immer Gerade -->
-              <button onclick="setLineDrawMode('straight')" id="lineModeOptStraight" class="w-full text-left px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-transparent text-slate-300 flex items-center justify-between text-xs transition">
-                <div class="flex items-center gap-2">
-                  <i class="fa-solid fa-minus text-slate-400 text-xs"></i>
-                  <div>
-                    <div class="font-bold text-[11px]">Immer Gerade</div>
-                    <div class="text-[9px] text-slate-400 leading-tight">Klassische Direktlinie</div>
-                  </div>
-                </div>
-                <i id="lineModeCheckStraight" class="fa-solid fa-check text-slate-400 text-xs hidden"></i>
-              </button>
-            </div>
           </div>
         </div>
 
@@ -604,104 +551,6 @@
               <span>Material</span>
               <i class="fa-solid fa-chevron-up text-[9px] text-slate-400"></i>
             </button>
-
-            <!-- Floating Equipment Selection Grid -->
-            <div id="equipmentMenuPopup" class="hidden absolute bottom-full right-0 mb-1 z-50 p-2.5 glass-panel bg-slate-900/98 backdrop-blur-md rounded-xl border border-slate-700 shadow-2xl flex flex-col gap-2 min-w-[260px] max-w-[92vw]">
-              <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trainingsmaterial</span>
-                <span class="text-[10px] text-slate-500">Bleibt über alle Schritte</span>
-              </div>
-
-              <div class="grid grid-cols-2 gap-1.5">
-                <!-- Minigoal -->
-                <button onclick="spawnElement('minigoal'); closeEquipmentMenu();" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center gap-2 border border-slate-700 transition active:scale-95 text-left">
-                  <div class="w-6 h-6 rounded bg-slate-900 flex items-center justify-center shrink-0">
-                    <i class="fa-solid fa-bullseye text-white text-xs"></i>
-                  </div>
-                  <div>
-                    <div class="text-xs font-semibold text-white">Minitor</div>
-                    <div class="text-[10px] text-slate-400">Funino / Bownet</div>
-                  </div>
-                </button>
-
-                <!-- 5m Youth Goal (E-Jugend) -->
-                <button onclick="spawnElement('goal_5m'); closeEquipmentMenu();" class="p-1.5 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/50 flex items-center gap-2 border border-emerald-600/50 transition active:scale-95 text-left">
-                  <div class="w-6 h-6 rounded bg-emerald-900/60 flex items-center justify-center shrink-0">
-                    <i class="fa-solid fa-border-all text-emerald-400 text-xs"></i>
-                  </div>
-                  <div>
-                    <div class="text-xs font-semibold text-emerald-300">5m Jugendtor</div>
-                    <div class="text-[10px] text-emerald-500/80">E-/D-Jugend</div>
-                  </div>
-                </button>
-
-                <!-- Cone (Hütchen) -->
-                <button onclick="spawnElement('cone'); closeEquipmentMenu();" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center gap-2 border border-slate-700 transition active:scale-95 text-left">
-                  <div class="w-6 h-6 rounded bg-slate-900 flex items-center justify-center shrink-0">
-                    <i class="fa-solid fa-shapes text-orange-500 text-xs"></i>
-                  </div>
-                  <div>
-                    <div class="text-xs font-semibold text-white">Hütchen</div>
-                    <div class="text-[10px] text-slate-400">Markierungsteller</div>
-                  </div>
-                </button>
-
-                <!-- Pole (Stange) -->
-                <button onclick="spawnElement('pole'); closeEquipmentMenu();" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center gap-2 border border-slate-700 transition active:scale-95 text-left">
-                  <div class="w-6 h-6 rounded bg-slate-900 flex items-center justify-center shrink-0">
-                    <i class="fa-solid fa-grip-lines-vertical text-yellow-400 text-xs"></i>
-                  </div>
-                  <div>
-                    <div class="text-xs font-semibold text-white">Slalomstange</div>
-                    <div class="text-[10px] text-slate-400">Dribbling & Slalom</div>
-                  </div>
-                </button>
-
-                <!-- Ladder -->
-                <button onclick="spawnElement('ladder'); closeEquipmentMenu();" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center gap-2 border border-slate-700 transition active:scale-95 text-left">
-                  <div class="w-6 h-6 rounded bg-slate-900 flex items-center justify-center shrink-0">
-                    <i class="fa-solid fa-bars text-yellow-300 text-xs"></i>
-                  </div>
-                  <div>
-                    <div class="text-xs font-semibold text-white">Koordinationsleiter</div>
-                    <div class="text-[10px] text-slate-400">Beinarbeit & Speed</div>
-                  </div>
-                </button>
-
-                <!-- Dummy / Training Figure -->
-                <button onclick="spawnElement('dummy'); closeEquipmentMenu();" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center gap-2 border border-slate-700 transition active:scale-95 text-left">
-                  <div class="w-6 h-6 rounded bg-slate-900 flex items-center justify-center shrink-0">
-                    <i class="fa-solid fa-person-shelter text-yellow-400 text-xs"></i>
-                  </div>
-                  <div>
-                    <div class="text-xs font-semibold text-white">Freistoß-Dummy</div>
-                    <div class="text-[10px] text-slate-400">Mauerfigur</div>
-                  </div>
-                </button>
-
-                <!-- Ring / Agility Ring -->
-                <button onclick="spawnElement('ring'); closeEquipmentMenu();" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center gap-2 border border-slate-700 transition active:scale-95 text-left">
-                  <div class="w-6 h-6 rounded bg-slate-900 flex items-center justify-center shrink-0">
-                    <i class="fa-regular fa-circle-dot text-cyan-400 text-xs"></i>
-                  </div>
-                  <div>
-                    <div class="text-xs font-semibold text-white">Reifen / Ring</div>
-                    <div class="text-[10px] text-slate-400">Agility & Sprünge</div>
-                  </div>
-                </button>
-
-                <!-- Hurdle / Agility-Hürde -->
-                <button onclick="spawnElement('hurdle'); closeEquipmentMenu();" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center gap-2 border border-slate-700 transition active:scale-95 text-left">
-                  <div class="w-6 h-6 rounded bg-slate-900 flex items-center justify-center shrink-0">
-                    <i class="fa-solid fa-square-minus text-orange-400 text-xs"></i>
-                  </div>
-                  <div>
-                    <div class="text-xs font-semibold text-white">Minifußball-Hürde</div>
-                    <div class="text-[10px] text-slate-400">Sprünge</div>
-                  </div>
-                </button>
-              </div>
-            </div>
           </div>
         </div>
         </div>
@@ -953,6 +802,188 @@
     </div>
   </div>
 
+  <!-- Central Modal Dialog: Material / Equipment -->
+  <div id="equipmentMenuModal" class="hidden fixed inset-0 z-[105] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel bg-slate-900/98 border border-slate-700 rounded-2xl w-full max-w-sm p-4 shadow-2xl flex flex-col gap-3 max-h-[85vh]">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-shapes text-amber-400 text-sm"></i>
+          <span class="text-sm font-bold text-white tracking-wide">Trainingsmaterial</span>
+        </div>
+        <button onclick="closeEquipmentMenu()" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <div class="text-[11px] text-slate-400 -mt-1">
+        Tippe auf ein Element, um es auf dem Spielfeld zu platzieren:
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 overflow-y-auto pr-0.5">
+        <!-- Minigoal -->
+        <button onclick="spawnElement('minigoal'); closeEquipmentMenu();" class="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 transition active:scale-95 text-left flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-bullseye text-white text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-white">Minitor</div>
+            <div class="text-[10px] text-slate-400">Funino / Bownet</div>
+          </div>
+        </button>
+
+        <!-- 5m Youth Goal (E-Jugend) -->
+        <button onclick="spawnElement('goal_5m'); closeEquipmentMenu();" class="p-2 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-600/50 transition active:scale-95 text-left flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-emerald-900/60 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-border-all text-emerald-400 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-emerald-300">5m Jugendtor</div>
+            <div class="text-[10px] text-emerald-500/80">E-/D-Jugend</div>
+          </div>
+        </button>
+
+        <!-- Cone (Hütchen) -->
+        <button onclick="spawnElement('cone'); closeEquipmentMenu();" class="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 transition active:scale-95 text-left flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-shapes text-orange-500 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-white">Hütchen</div>
+            <div class="text-[10px] text-slate-400">Markierungsteller</div>
+          </div>
+        </button>
+
+        <!-- Pole (Stange) -->
+        <button onclick="spawnElement('pole'); closeEquipmentMenu();" class="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 transition active:scale-95 text-left flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-grip-lines-vertical text-yellow-400 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-white">Slalomstange</div>
+            <div class="text-[10px] text-slate-400">Dribbling & Slalom</div>
+          </div>
+        </button>
+
+        <!-- Ladder -->
+        <button onclick="spawnElement('ladder'); closeEquipmentMenu();" class="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 transition active:scale-95 text-left flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-bars text-yellow-300 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-white">Koordinationsleiter</div>
+            <div class="text-[10px] text-slate-400">Beinarbeit</div>
+          </div>
+        </button>
+
+        <!-- Dummy / Training Figure -->
+        <button onclick="spawnElement('dummy'); closeEquipmentMenu();" class="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 transition active:scale-95 text-left flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-person-shelter text-yellow-400 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-white">Dummy</div>
+            <div class="text-[10px] text-slate-400">Mauerfigur</div>
+          </div>
+        </button>
+
+        <!-- Ring / Agility Ring -->
+        <button onclick="spawnElement('ring'); closeEquipmentMenu();" class="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 transition active:scale-95 text-left flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+            <i class="fa-regular fa-circle-dot text-cyan-400 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-white">Reifen / Ring</div>
+            <div class="text-[10px] text-slate-400">Agility & Sprünge</div>
+          </div>
+        </button>
+
+        <!-- Hurdle / Agility-Hürde -->
+        <button onclick="spawnElement('hurdle'); closeEquipmentMenu();" class="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 transition active:scale-95 text-left flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-square-minus text-orange-400 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-white">Minifußball-Hürde</div>
+            <div class="text-[10px] text-slate-400">Sprünge</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Central Modal Dialog: Line Mode / Freihand Mode -->
+  <div id="lineModeMenuModal" class="hidden fixed inset-0 z-[105] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel bg-slate-900/98 border border-slate-700 rounded-2xl w-full max-w-xs p-4 shadow-2xl flex flex-col gap-3">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-signature text-cyan-400 text-sm"></i>
+          <span class="text-sm font-bold text-white tracking-wide">Linien-Zeichenmodus</span>
+        </div>
+        <button onclick="closeLineModeMenu()" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <!-- Option 1: Full Freihand (1:1 Spur) -->
+        <button onclick="setLineDrawMode('raw_freehand')" id="lineModeOptRawFreehand" class="w-full text-left p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-transparent text-slate-300 flex items-center justify-between transition">
+          <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-pen-nib text-amber-400 text-xs"></i>
+            </div>
+            <div>
+              <div class="font-bold text-xs text-white">Full Freihand</div>
+              <div class="text-[10px] text-slate-400 leading-tight">1:1 exakt wie mit dem Finger gezeichnet</div>
+            </div>
+          </div>
+          <i id="lineModeCheckRawFreehand" class="fa-solid fa-check text-amber-400 text-sm hidden"></i>
+        </button>
+
+        <!-- Option 2: Freihand Auto-Fit (Bézier-Glättung) -->
+        <button onclick="setLineDrawMode('freehand')" id="lineModeOptFreehand" class="w-full text-left p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/60 flex items-center justify-between transition">
+          <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-emerald-900/60 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-signature text-emerald-400 text-xs"></i>
+            </div>
+            <div>
+              <div class="font-bold text-xs text-emerald-300">Freihand (Auto-Fit)</div>
+              <div class="text-[10px] text-slate-400 leading-tight">Schwungvoll zeichnen & automatisch glätten</div>
+            </div>
+          </div>
+          <i id="lineModeCheckFreehand" class="fa-solid fa-check text-emerald-400 text-sm"></i>
+        </button>
+
+        <!-- Option 3: Bézier-Griffe (Manuell) -->
+        <button onclick="setLineDrawMode('bezier')" id="lineModeOptBezier" class="w-full text-left p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-transparent text-slate-300 flex items-center justify-between transition">
+          <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-bezier-curve text-cyan-400 text-xs"></i>
+            </div>
+            <div>
+              <div class="font-bold text-xs text-white">Bézier (Griffe)</div>
+              <div class="text-[10px] text-slate-400 leading-tight">Start/Ende + interaktive Griffe biegen</div>
+            </div>
+          </div>
+          <i id="lineModeCheckBezier" class="fa-solid fa-check text-cyan-400 text-sm hidden"></i>
+        </button>
+
+        <!-- Option 4: Immer Gerade -->
+        <button onclick="setLineDrawMode('straight')" id="lineModeOptStraight" class="w-full text-left p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-transparent text-slate-300 flex items-center justify-between transition">
+          <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-minus text-slate-400 text-xs"></i>
+            </div>
+            <div>
+              <div class="font-bold text-xs text-white">Immer Gerade</div>
+              <div class="text-[10px] text-slate-400 leading-tight">Klassische gerade Direktlinie</div>
+            </div>
+          </div>
+          <i id="lineModeCheckStraight" class="fa-solid fa-check text-slate-400 text-sm hidden"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Mobile Floating Tooltip Toast (Long-press on mobile or hover) -->
   <div id="mobileTooltip" class="opacity-0 pointer-events-none fixed z-[120] px-2.5 py-1 bg-slate-900/95 border border-slate-700/80 text-white rounded-lg shadow-xl text-[11px] font-medium backdrop-blur-md transition-opacity duration-150 transform -translate-x-1/2 -translate-y-full whitespace-nowrap">
     <span id="mobileTooltipText"></span>
@@ -964,7 +995,7 @@
     <span id="toastMsg">Mitteilung</span>
   </div>
 
-  <script type="module" src="/static/js/app-module.js?v=62"></script>
-  <script src="/static/app.js?v=62"></script>
+  <script type="module" src="/static/js/app-module.js?v=63"></script>
+  <script src="/static/app.js?v=63"></script>
 </body>
 </html>

@@ -4202,28 +4202,8 @@ function printExerciseSheet() {
 }
 
 // ----------------------------------------------------
-// UI Navigation & Popover Menus (Bottom Dock Restructuring)
+// UI Navigation & Popover Menus / Modal Dialogs
 // ----------------------------------------------------
-function togglePlaybackSettingsMenu(event) {
-  if (event) event.stopPropagation();
-  const popup = document.getElementById("playbackSettingsPopup");
-  if (!popup) return;
-  const isHidden = popup.classList.contains("hidden");
-  closeEquipmentMenu();
-  if (isHidden) {
-    popup.classList.remove("hidden");
-  } else {
-    popup.classList.add("hidden");
-  }
-}
-
-function closePlaybackSettingsMenu() {
-  const popup = document.getElementById("playbackSettingsPopup");
-  if (popup && !popup.classList.contains("hidden")) {
-    popup.classList.add("hidden");
-  }
-}
-
 function togglePlaybackSettingsMenu(event) {
   if (event) event.stopPropagation();
   const popup = document.getElementById("playbackSettingsPopup");
@@ -4247,43 +4227,43 @@ function closePlaybackSettingsMenu() {
 
 function toggleLineModeMenu(event) {
   if (event) event.stopPropagation();
-  const popup = document.getElementById("lineModeMenuPopup");
-  if (!popup) return;
-  const isHidden = popup.classList.contains("hidden");
+  const modal = document.getElementById("lineModeMenuModal");
+  if (!modal) return;
+  const isHidden = modal.classList.contains("hidden");
   closeEquipmentMenu();
   closePlaybackSettingsMenu();
   if (isHidden) {
-    popup.classList.remove("hidden");
+    modal.classList.remove("hidden");
   } else {
-    popup.classList.add("hidden");
+    modal.classList.add("hidden");
   }
 }
 
 function closeLineModeMenu() {
-  const popup = document.getElementById("lineModeMenuPopup");
-  if (popup && !popup.classList.contains("hidden")) {
-    popup.classList.add("hidden");
+  const modal = document.getElementById("lineModeMenuModal");
+  if (modal && !modal.classList.contains("hidden")) {
+    modal.classList.add("hidden");
   }
 }
 
 function toggleEquipmentMenu(event) {
   if (event) event.stopPropagation();
-  const popup = document.getElementById("equipmentMenuPopup");
-  if (!popup) return;
-  const isHidden = popup.classList.contains("hidden");
+  const modal = document.getElementById("equipmentMenuModal");
+  if (!modal) return;
+  const isHidden = modal.classList.contains("hidden");
   closePlaybackSettingsMenu();
   closeLineModeMenu();
   if (isHidden) {
-    popup.classList.remove("hidden");
+    modal.classList.remove("hidden");
   } else {
-    popup.classList.add("hidden");
+    modal.classList.add("hidden");
   }
 }
 
 function closeEquipmentMenu() {
-  const popup = document.getElementById("equipmentMenuPopup");
-  if (popup && !popup.classList.contains("hidden")) {
-    popup.classList.add("hidden");
+  const modal = document.getElementById("equipmentMenuModal");
+  if (modal && !modal.classList.contains("hidden")) {
+    modal.classList.add("hidden");
   }
 }
 
@@ -4465,7 +4445,7 @@ function setupMobileTooltips() {
   document.addEventListener("touchcancel", hideMobileTooltip, { passive: true });
 }
 
-// Global click-listener to auto-dismiss open popovers when clicking elsewhere
+// Global click-listener to auto-dismiss open popovers / modals when clicking outside
 document.addEventListener("pointerdown", (e) => {
   const playbackPopup = document.getElementById("playbackSettingsPopup");
   const playbackBtn = document.getElementById("playbackSettingsBtn");
@@ -4475,19 +4455,21 @@ document.addEventListener("pointerdown", (e) => {
     }
   }
 
-  const equipPopup = document.getElementById("equipmentMenuPopup");
+  const equipModal = document.getElementById("equipmentMenuModal");
   const equipBtn = document.getElementById("equipmentMenuBtn");
-  if (equipPopup && !equipPopup.classList.contains("hidden")) {
-    if (!equipPopup.contains(e.target) && !equipBtn?.contains(e.target)) {
-      equipPopup.classList.add("hidden");
+  if (equipModal && !equipModal.classList.contains("hidden")) {
+    // If click is on the modal backdrop itself (not inside the dialog container)
+    if (e.target === equipModal) {
+      closeEquipmentMenu();
     }
   }
 
-  const lineModePopup = document.getElementById("lineModeMenuPopup");
+  const lineModeModal = document.getElementById("lineModeMenuModal");
   const lineModeBtn = document.getElementById("lineModeMenuBtn");
-  if (lineModePopup && !lineModePopup.classList.contains("hidden")) {
-    if (!lineModePopup.contains(e.target) && !lineModeBtn?.contains(e.target)) {
-      lineModePopup.classList.add("hidden");
+  if (lineModeModal && !lineModeModal.classList.contains("hidden")) {
+    // If click is on the modal backdrop itself
+    if (e.target === lineModeModal) {
+      closeLineModeMenu();
     }
   }
 });
