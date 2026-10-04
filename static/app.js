@@ -81,6 +81,7 @@ let arrowStartX = 0;
 let arrowStartY = 0;
 let arrowCurrentX = 0;
 let arrowCurrentY = 0;
+let arrowDrawStrokePoints = [];
 
 // Undo / Redo History State
 const MAX_HISTORY = 40;
@@ -643,11 +644,48 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
     drawArrow(arrow.x1, arrow.y1, arrow.x2, arrow.y2, arrow.type, arrow.color || (arrow.type === "guide" ? "#fbbf24" : "#facc15"), isSelected, nowSec, p1, p2);
   }
 
-  // Draw arrow in progress
+  // Draw arrow in progress (live freehand trail or fitted preview)
   if (isDrawingArrow && activeTool !== "select") {
     const aType = (activeTool === "pass") ? "pass" : ((activeTool === "guide") ? "guide" : "run");
     const col = (activeTool === "pass") ? "#facc15" : ((activeTool === "guide") ? "#fbbf24" : "#38bdf8");
-    drawArrow(arrowStartX, arrowStartY, arrowCurrentX, arrowCurrentY, aType, col, false, nowSec);
+
+    if (arrowDrawStrokePoints && arrowDrawStrokePoints.length > 2) {
+      // Draw smooth live stroke path following user's hand
+      ctx.save();
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 4;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      if (aType === "pass") {
+        ctx.setLineDash([10, 8]);
+      } else if (aType === "guide") {
+        ctx.setLineDash([12, 8]);
+        ctx.strokeStyle = "#fbbf24";
+      }
+      ctx.beginPath();
+      ctx.moveTo(arrowDrawStrokePoints[0].x, arrowDrawStrokePoints[0].y);
+      for (let p = 1; p < arrowDrawStrokePoints.length; p++) {
+        ctx.lineTo(arrowDrawStrokePoints[p].x, arrowDrawStrokePoints[p].y);
+      }
+      ctx.stroke();
+
+      // Draw dynamic arrowhead at the leading tip of the freehand stroke
+      const pLast = arrowDrawStrokePoints[arrowDrawStrokePoints.length - 1];
+      const pPrev = arrowDrawStrokePoints[Math.max(0, arrowDrawStrokePoints.length - 3)];
+      const tipAngle = Math.atan2(pLast.y - pPrev.y, pLast.x - pPrev.x);
+      const arrowSize = 14;
+      ctx.setLineDash([]);
+      ctx.fillStyle = (aType === "guide") ? "#fbbf24" : col;
+      ctx.beginPath();
+      ctx.moveTo(pLast.x, pLast.y);
+      ctx.lineTo(pLast.x - arrowSize * Math.cos(tipAngle - Math.PI / 6), pLast.y - arrowSize * Math.sin(tipAngle - Math.PI / 6));
+      ctx.lineTo(pLast.x - arrowSize * Math.cos(tipAngle + Math.PI / 6), pLast.y - arrowSize * Math.sin(tipAngle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    } else {
+      drawArrow(arrowStartX, arrowStartY, arrowCurrentX, arrowCurrentY, aType, col, false, nowSec);
+    }
   }
 
   // 3. Draw Elements (sort so balls and players render above cones)
@@ -1356,6 +1394,88 @@ function getArrowCurveControlPoints(arr) {
   return { p1, p2 };
 }
 
+// Fit a smooth cubic Bezier curve to a sequence of recorded stroke points
+function fitCubicBezierToStroke(points) {
+  if (!points || points.length < 3) return null;
+  const p0 = points[0];
+  const p3 = points[points.length - 1];
+  const chordDx = p3.x - p0.x;
+  const chordDy = p3.y - p0.y;
+  const chordLen = Math.hypot(chordDx, chordDy);
+  if (chordLen < 15) return null;
+
+  // Compute cumulative distances along stroke
+  const cumDists = [0];
+  for (let i = 1; i < points.length; i++) {
+    cumDists.push(cumDists[i - 1] + Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y));
+  }
+  const totalStrokeLen = cumDists[cumDists.length - 1];
+  if (totalStrokeLen < 15) return null;
+
+  // Check if stroke deviates meaningfully from a straight line
+  let maxDeviation = 0;
+  for (let i = 1; i < points.length - 1; i++) {
+    const dev = distToSegment(points[i].x, points[i].y, p0.x, p0.y, p3.x, p3.y);
+    if (dev > maxDeviation) maxDeviation = dev;
+  }
+
+  // If nearly straight (deviation < 6% of length or < 8px), keep it as clean straight line
+  if (maxDeviation < 8 || maxDeviation / chordLen < 0.05) {
+    return { cp1_dx: 0, cp1_dy: 0, cp2_dx: 0, cp2_dy: 0 };
+  }
+
+  // Least-squares fit for cubic bezier control points P1 and P2:
+  // P(t) = (1-t)^3 * P0 + 3(1-t)^2*t * P1 + 3(1-t)*t^2 * P2 + t^3 * P3
+  // Let B1(t) = 3*(1-t)^2*t and B2(t) = 3*(1-t)*t^2
+  // We want to minimize sum || B1*P1 + B2*P2 - (P(t) - (1-t)^3*P0 - t^3*P3) ||^2
+  let c11 = 0, c12 = 0, c22 = 0;
+  let rx1 = 0, ry1 = 0, rx2 = 0, ry2 = 0;
+
+  for (let i = 0; i < points.length; i++) {
+    const t = Math.max(0.001, Math.min(0.999, cumDists[i] / totalStrokeLen));
+    const u = 1 - t;
+    const b0 = u * u * u;
+    const b1 = 3 * u * u * t;
+    const b2 = 3 * u * t * t;
+    const b3 = t * t * t;
+
+    const targetX = points[i].x - b0 * p0.x - b3 * p3.x;
+    const targetY = points[i].y - b0 * p0.y - b3 * p3.y;
+
+    c11 += b1 * b1;
+    c12 += b1 * b2;
+    c22 += b2 * b2;
+
+    rx1 += b1 * targetX;
+    ry1 += b1 * targetY;
+    rx2 += b2 * targetX;
+    ry2 += b2 * targetY;
+  }
+
+  const det = c11 * c22 - c12 * c12;
+  if (Math.abs(det) < 1e-6) {
+    return { cp1_dx: 0, cp1_dy: 0, cp2_dx: 0, cp2_dy: 0 };
+  }
+
+  const fitP1X = (c22 * rx1 - c12 * rx2) / det;
+  const fitP1Y = (c22 * ry1 - c12 * ry2) / det;
+  const fitP2X = (c11 * rx2 - c12 * rx1) / det;
+  const fitP2Y = (c11 * ry2 - c12 * ry1) / det;
+
+  // Default straight 1/3 and 2/3 positions along chord
+  const defaultP1X = p0.x + chordDx * (1 / 3);
+  const defaultP1Y = p0.y + chordDy * (1 / 3);
+  const defaultP2X = p0.x + chordDx * (2 / 3);
+  const defaultP2Y = p0.y + chordDy * (2 / 3);
+
+  return {
+    cp1_dx: Math.round(fitP1X - defaultP1X),
+    cp1_dy: Math.round(fitP1Y - defaultP1Y),
+    cp2_dx: Math.round(fitP2X - defaultP2X),
+    cp2_dy: Math.round(fitP2Y - defaultP2Y)
+  };
+}
+
 // Convert Virtual Coordinates (1000x700) to Canvas Screen/DOM Pixels
 function getScreenCoords(vx, vy) {
   const rect = canvas.getBoundingClientRect();
@@ -1800,6 +1920,7 @@ function setupCanvasEvents() {
       arrowStartY = y;
       arrowCurrentX = x;
       arrowCurrentY = y;
+      arrowDrawStrokePoints = [{ x, y }];
       drawScene();
     }
   };
@@ -2026,6 +2147,10 @@ function setupCanvasEvents() {
     } else if (isDrawingArrow) {
       arrowCurrentX = x;
       arrowCurrentY = y;
+      const lastPt = arrowDrawStrokePoints[arrowDrawStrokePoints.length - 1];
+      if (!lastPt || Math.hypot(x - lastPt.x, y - lastPt.y) >= 4) {
+        arrowDrawStrokePoints.push({ x, y });
+      }
       drawScene();
     }
   };
@@ -2108,6 +2233,10 @@ function setupCanvasEvents() {
         if (!kf.arrows) kf.arrows = [];
         const aType = (activeTool === "pass") ? "pass" : ((activeTool === "guide") ? "guide" : "run");
         const col = (activeTool === "pass") ? "#facc15" : ((activeTool === "guide") ? "#fbbf24" : "#38bdf8");
+
+        // Fit smooth Bezier curve parameters from recorded stroke points
+        const fittedCurve = fitCubicBezierToStroke(arrowDrawStrokePoints);
+
         const newArrow = {
           id: `arr_${Math.random().toString(36).substr(2, 7)}`,
           type: aType,
@@ -2118,12 +2247,21 @@ function setupCanvasEvents() {
           color: col,
           persistent: false
         };
+
+        if (fittedCurve && (fittedCurve.cp1_dx !== 0 || fittedCurve.cp1_dy !== 0 || fittedCurve.cp2_dx !== 0 || fittedCurve.cp2_dy !== 0)) {
+          newArrow.cp1_dx = fittedCurve.cp1_dx;
+          newArrow.cp1_dy = fittedCurve.cp1_dy;
+          newArrow.cp2_dx = fittedCurve.cp2_dx;
+          newArrow.cp2_dy = fittedCurve.cp2_dy;
+        }
+
         kf.arrows.push(newArrow);
         selectedArrowIndex = kf.arrows.length - 1;
         selectedArrowPart = "body";
         showArrowInspector(newArrow);
         updateActionPopupPosition();
       }
+      arrowDrawStrokePoints = [];
       drawScene();
     }
 
