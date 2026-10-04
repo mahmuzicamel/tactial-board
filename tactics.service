@@ -1,0 +1,14 @@
+[Unit]
+Description=Tactical Coach Football Board & Video Generator Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/.hermes/tactics
+ExecStart=/usr/local/lib/hermes-agent/venv/bin/uvicorn server:app --host 0.0.0.0 --port 8090
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

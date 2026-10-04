@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Local Database
+tactics.db
+*.db
+*.sqlite3
+
+# Generated Media (MP4, GIF, PNG snapshots)
+media/
+*.mp4
+*.gif
+
+# Temp & Cache
+.DS_Store
+*.log
