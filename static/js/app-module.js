@@ -9,6 +9,9 @@ import * as arrows from "./canvas/arrows.js";
 import * as viewport from "./canvas/viewport.js";
 import { PlaybackController } from "./canvas/playback.js";
 import * as popovers from "./ui/popovers.js";
+import * as inspectors from "./ui/inspectors.js";
+import * as timeline from "./ui/timeline.js";
+import * as tools from "./interaction/tools.js";
 import * as client from "./api/client.js";
 import { state, getCurrentKeyframe, getCurrentExercise, setCurrentExercise } from "./state/store.js";
 import { HistoryManager } from "./state/history.js";
@@ -32,6 +35,9 @@ window.TacticalCoach = {
   viewport,
   PlaybackController,
   popovers,
+  inspectors,
+  timeline,
+  tools,
   client,
   state,
   getCurrentKeyframe,
@@ -40,5 +46,6 @@ window.TacticalCoach = {
   HistoryManager
 };
 
-console.log("✅ TacticalCoach modular architecture (Phase 2 core) initialized & active.");
+console.log("✅ TacticalCoach modular architecture (Phase 3 core) initialized & active.");
+
 
