@@ -417,16 +417,25 @@ window.addEventListener("DOMContentLoaded", async () => {
   updateFormFields();
   refreshExerciseBadge();
 
+  // Setup bottom dock scroll indicator listener
+  const bottomDock = document.getElementById("bottomDockScrollContainer");
+  if (bottomDock) {
+    bottomDock.addEventListener("scroll", updateBottomDockScrollHints, { passive: true });
+    window.addEventListener("resize", updateBottomDockScrollHints, { passive: true });
+  }
+
   // Multi-pass resize after layout & safe-areas settle
   setTimeout(() => {
     resizeCanvasToContainer();
     drawScene();
     updateActionPopupPosition();
+    updateBottomDockScrollHints();
   }, 100);
   setTimeout(() => {
     resizeCanvasToContainer();
     drawScene();
     updateActionPopupPosition();
+    updateBottomDockScrollHints();
   }, 350);
 });
 
@@ -4328,6 +4337,50 @@ function setLineDrawMode(mode) {
   // If user is currently in select mode, switch to Laufweg for convenient drawing
   if (activeTool === "select") {
     setActiveTool("run");
+  }
+}
+
+// Bottom Dock Horizontal Scroll Indicator Helpers
+function updateBottomDockScrollHints() {
+  const container = document.getElementById("bottomDockScrollContainer");
+  const leftHint = document.getElementById("dockScrollLeftHint");
+  const rightHint = document.getElementById("dockScrollRightHint");
+  if (!container || !leftHint || !rightHint) return;
+
+  const scrollLeft = container.scrollLeft;
+  const maxScroll = container.scrollWidth - container.clientWidth;
+
+  // Only show hints when content is actually overflowing/scrollable
+  if (maxScroll > 6) {
+    if (scrollLeft > 6) {
+      leftHint.classList.remove("opacity-0", "pointer-events-none");
+      leftHint.classList.add("opacity-100", "pointer-events-auto");
+    } else {
+      leftHint.classList.add("opacity-0", "pointer-events-none");
+      leftHint.classList.remove("opacity-100", "pointer-events-auto");
+    }
+
+    if (scrollLeft < maxScroll - 6) {
+      rightHint.classList.remove("opacity-0", "pointer-events-none");
+      rightHint.classList.add("opacity-100", "pointer-events-auto");
+    } else {
+      rightHint.classList.add("opacity-0", "pointer-events-none");
+      rightHint.classList.remove("opacity-100", "pointer-events-auto");
+    }
+  } else {
+    leftHint.classList.add("opacity-0", "pointer-events-none");
+    rightHint.classList.add("opacity-0", "pointer-events-none");
+  }
+}
+
+function scrollBottomDock(direction) {
+  const container = document.getElementById("bottomDockScrollContainer");
+  if (!container) return;
+  const amount = container.clientWidth * 0.65;
+  if (direction === "left") {
+    container.scrollBy({ left: -amount, behavior: "smooth" });
+  } else {
+    container.scrollBy({ left: amount, behavior: "smooth" });
   }
 }
 
