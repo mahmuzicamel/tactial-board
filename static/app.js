@@ -2698,8 +2698,15 @@ function updateActionPopupPosition() {
     return;
   }
 
-  popup.style.left = `${posX}px`;
-  popup.style.top = `${posY}px`;
+  // Ensure popup stays fully within screen viewport bounds (no left/right/top cutoff on mobile)
+  const popupWidth = popup.offsetWidth || 220;
+  const halfW = popupWidth / 2;
+  const padding = 10;
+  const clampedX = Math.max(halfW + padding, Math.min(window.innerWidth - halfW - padding, posX));
+  const clampedY = Math.max(50, posY);
+
+  popup.style.left = `${clampedX}px`;
+  popup.style.top = `${clampedY}px`;
   popup.classList.remove("hidden");
   updateFocusButtonState();
 }

@@ -81,27 +81,27 @@
   <!-- Floating / Collapsible Top Bar (Maximizes Canvas Workspace) -->
   <header class="relative shrink-0 z-30 shadow-md safe-top">
     <!-- Slim Status / Toggle Bar (always accessible & safe on notch/island) -->
-    <div class="h-10 sm:h-11 bg-slate-900/95 border-b border-slate-800/90 px-2 sm:px-3 flex items-center justify-between">
-      <div class="flex items-center space-x-1.5 sm:space-x-2">
-        <button onclick="toggleTopMenu()" class="p-1.5 px-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg flex items-center gap-1.5 text-xs font-semibold border border-slate-700 transition" title="Sidebar Menü öffnen">
+    <div class="h-10 sm:h-11 bg-slate-900/95 border-b border-slate-800/90 px-1.5 sm:px-3 flex items-center justify-between gap-1">
+      <div class="flex items-center space-x-1 sm:space-x-2 shrink-0">
+        <button onclick="toggleTopMenu()" class="p-1.5 px-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg flex items-center gap-1 sm:gap-1.5 text-xs font-semibold border border-slate-700 transition" title="Sidebar Menü öffnen">
           <i id="menuToggleIcon" class="fa-solid fa-bars text-emerald-400 text-xs"></i>
-          <span class="tracking-wide">Menü</span>
+          <span class="tracking-wide hidden xs:inline sm:inline">Menü</span>
         </button>
 
         <!-- Current Pitch Quick Switch directly visible -->
-        <select id="pitchSelect" onchange="changePitchType(this.value)" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-emerald-500 cursor-pointer font-medium max-w-[110px] sm:max-w-none">
-          <option value="funino">Funino (4 Tore)</option>
+        <select id="pitchSelect" onchange="changePitchType(this.value)" class="bg-slate-800 border border-slate-700 rounded-lg px-1.5 py-1 text-[11px] text-white focus:outline-none focus:border-emerald-500 cursor-pointer font-medium max-w-[85px] sm:max-w-none">
+          <option value="funino">Funino</option>
           <option value="half">Halbfeld</option>
           <option value="full">Vollfeld</option>
           <option value="rondo">Rondo</option>
-          <option value="plain">🌱 Nur Rasen</option>
+          <option value="plain">🌱 Rasen</option>
         </select>
 
         <!-- View Controls (Zoom & Rotation & Element Size) integrated in Header Bar -->
         <div class="relative flex items-center">
-          <button id="viewControlsToggleBtn" onclick="toggleViewControls()" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg flex items-center gap-1 text-[11px] font-bold border border-slate-700 transition" title="Ansicht & Größe">
+          <button id="viewControlsToggleBtn" onclick="toggleViewControls()" class="px-1.5 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg flex items-center gap-1 text-[11px] font-bold border border-slate-700 transition" title="Ansicht & Größe">
             <i class="fa-solid fa-magnifying-glass text-[10px] text-emerald-400"></i>
-            <span id="zoomLevelText">100%</span>
+            <span id="zoomLevelText" class="hidden xs:inline sm:inline">100%</span>
           </button>
 
           <!-- Dropdown Drawer for Zoom, Rotation & Element Size -->
@@ -150,7 +150,7 @@
       </div>
 
       <!-- Quick Actions (Undo, Redo, Clear, Save, Export) -->
-      <div class="flex items-center space-x-1 sm:space-x-1.5">
+      <div class="flex items-center space-x-1 sm:space-x-1.5 shrink-0">
         <!-- Undo / Redo Buttons -->
         <button id="undoBtn" onclick="undo()" disabled class="p-1 px-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 disabled:cursor-not-allowed text-slate-200 rounded-lg border border-slate-700 active:scale-95 transition text-xs flex items-center justify-center" title="Rückgängig (Strg+Z)">
           <i class="fa-solid fa-arrow-rotate-left text-[11px]"></i>
@@ -159,22 +159,22 @@
           <i class="fa-solid fa-arrow-rotate-right text-[11px]"></i>
         </button>
 
-        <button onclick="clearCurrentCanvas()" class="p-1 px-2 bg-slate-800 hover:bg-rose-900/50 text-slate-300 hover:text-rose-300 rounded-lg border border-slate-700 active:scale-95 transition text-xs flex items-center gap-1" title="Feld leeren">
+        <button onclick="clearCurrentCanvas()" class="p-1 px-1.5 sm:px-2 bg-slate-800 hover:bg-rose-900/50 text-slate-300 hover:text-rose-300 rounded-lg border border-slate-700 active:scale-95 transition text-xs flex items-center gap-1" title="Feld leeren">
           <i class="fa-solid fa-broom text-[11px]"></i>
-          <span class="hidden sm:inline">Leeren</span>
+          <span class="hidden md:inline">Leeren</span>
         </button>
 
-        <button onclick="copyExerciseShareLink()" class="p-1 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg border border-slate-700 active:scale-95 transition text-xs flex items-center gap-1" title="Link zur Übung kopieren">
+        <button onclick="copyExerciseShareLink()" class="p-1 px-1.5 sm:px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg border border-slate-700 active:scale-95 transition text-xs flex items-center gap-1" title="Link zur Übung kopieren">
           <i class="fa-solid fa-link text-[11px] text-emerald-400"></i>
-          <span class="hidden md:inline">Link</span>
+          <span class="hidden lg:inline">Link</span>
         </button>
 
-        <button onclick="saveCurrentExercise()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-semibold flex items-center gap-1 shadow-md shadow-emerald-600/20 active:scale-95 transition" title="Übung speichern">
+        <button onclick="saveCurrentExercise()" class="px-2 sm:px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-semibold flex items-center gap-1 shadow-md shadow-emerald-600/20 active:scale-95 transition shrink-0" title="Übung speichern">
           <i class="fa-solid fa-floppy-disk text-xs"></i>
           <span class="hidden sm:inline">Speichern</span>
         </button>
 
-        <button onclick="openExportModal()" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg font-semibold flex items-center gap-1 shadow-md shadow-blue-600/20 active:scale-95 transition" title="Video / Bild teilen">
+        <button onclick="openExportModal()" class="px-2 sm:px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg font-semibold flex items-center gap-1 shadow-md shadow-blue-600/20 active:scale-95 transition shrink-0" title="Video / Bild teilen">
           <i class="fa-solid fa-share-nodes text-xs"></i>
           <span class="hidden sm:inline">Export</span>
         </button>
@@ -921,7 +921,7 @@
     <span id="toastMsg">Mitteilung</span>
   </div>
 
-  <script type="module" src="/static/js/app-module.js?v=57"></script>
-  <script src="/static/app.js?v=57"></script>
+  <script type="module" src="/static/js/app-module.js?v=58"></script>
+  <script src="/static/app.js?v=58"></script>
 </body>
 </html>
