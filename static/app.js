@@ -3955,34 +3955,15 @@ function closePlaybackSettingsMenu() {
   }
 }
 
-function positionBottomPopover(triggerBtn, popup, align = "left") {
-  if (!triggerBtn || !popup) return;
-  const rect = triggerBtn.getBoundingClientRect();
-  popup.style.position = "fixed";
-  popup.style.bottom = `${window.innerHeight - rect.top + 4}px`;
-  
-  const popupWidth = popup.offsetWidth || 230;
-  let left = (align === "right") ? (rect.right - popupWidth) : rect.left;
-
-  if (left + popupWidth > window.innerWidth - 8) {
-    left = window.innerWidth - popupWidth - 8;
-  }
-  if (left < 8) left = 8;
-  popup.style.left = `${left}px`;
-  popup.style.right = "auto";
-}
-
 function togglePlaybackSettingsMenu(event) {
   if (event) event.stopPropagation();
   const popup = document.getElementById("playbackSettingsPopup");
-  const btn = document.getElementById("playbackSettingsBtn");
   if (!popup) return;
   const isHidden = popup.classList.contains("hidden");
   closeEquipmentMenu();
   closeLineModeMenu();
   if (isHidden) {
     popup.classList.remove("hidden");
-    positionBottomPopover(btn, popup, "left");
   } else {
     popup.classList.add("hidden");
   }
@@ -3998,14 +3979,12 @@ function closePlaybackSettingsMenu() {
 function toggleLineModeMenu(event) {
   if (event) event.stopPropagation();
   const popup = document.getElementById("lineModeMenuPopup");
-  const btn = document.getElementById("lineModeMenuBtn");
   if (!popup) return;
   const isHidden = popup.classList.contains("hidden");
   closeEquipmentMenu();
   closePlaybackSettingsMenu();
   if (isHidden) {
     popup.classList.remove("hidden");
-    positionBottomPopover(btn, popup, "left");
   } else {
     popup.classList.add("hidden");
   }
@@ -4021,14 +4000,12 @@ function closeLineModeMenu() {
 function toggleEquipmentMenu(event) {
   if (event) event.stopPropagation();
   const popup = document.getElementById("equipmentMenuPopup");
-  const btn = document.getElementById("equipmentMenuBtn");
   if (!popup) return;
   const isHidden = popup.classList.contains("hidden");
   closePlaybackSettingsMenu();
   closeLineModeMenu();
   if (isHidden) {
     popup.classList.remove("hidden");
-    positionBottomPopover(btn, popup, "right");
   } else {
     popup.classList.add("hidden");
   }
