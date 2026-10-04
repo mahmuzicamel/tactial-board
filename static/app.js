@@ -437,6 +437,8 @@ window.addEventListener("DOMContentLoaded", async () => {
     updateActionPopupPosition();
     updateBottomDockScrollHints();
   }, 350);
+
+  setupMobileTooltips();
 });
 
 // Support browser back/forward buttons
@@ -4382,6 +4384,85 @@ function scrollBottomDock(direction) {
   } else {
     container.scrollBy({ left: amount, behavior: "smooth" });
   }
+}
+
+// Mobile Tooltip Handling (Long-press / Hold on touch screens)
+let mobileTooltipTimer = null;
+let activeTooltipEl = null;
+
+function showMobileTooltip(text, x, y) {
+  const tooltip = document.getElementById("mobileTooltip");
+  const textEl = document.getElementById("mobileTooltipText");
+  if (!tooltip || !textEl || !text) return;
+
+  textEl.textContent = text;
+  tooltip.style.left = `${Math.max(60, Math.min(window.innerWidth - 60, x))}px`;
+  tooltip.style.top = `${Math.max(40, y - 10)}px`;
+  tooltip.classList.remove("opacity-0", "pointer-events-none");
+  tooltip.classList.add("opacity-100");
+}
+
+function hideMobileTooltip() {
+  clearTimeout(mobileTooltipTimer);
+  mobileTooltipTimer = null;
+  activeTooltipEl = null;
+  const tooltip = document.getElementById("mobileTooltip");
+  if (tooltip) {
+    tooltip.classList.add("opacity-0", "pointer-events-none");
+    tooltip.classList.remove("opacity-100");
+  }
+}
+
+function setupMobileTooltips() {
+  // Delegate touch events globally for all elements having a title or data-title
+  document.addEventListener("touchstart", (e) => {
+    const target = e.target.closest("[title], [data-title]");
+    if (!target) {
+      hideMobileTooltip();
+      return;
+    }
+
+    const titleText = target.getAttribute("title") || target.getAttribute("data-title");
+    if (!titleText) return;
+
+    // Prevent standard native browser tooltip on long-press
+    if (target.hasAttribute("title")) {
+      target.setAttribute("data-title", titleText);
+      target.removeAttribute("title");
+    }
+
+    const touch = e.touches[0];
+    const clientX = touch.clientX;
+    const clientY = touch.clientY;
+
+    clearTimeout(mobileTooltipTimer);
+    activeTooltipEl = target;
+
+    // Show tooltip after 450ms long press
+    mobileTooltipTimer = setTimeout(() => {
+      showMobileTooltip(titleText, clientX, clientY);
+      // Auto-hide after 2.5 seconds
+      setTimeout(hideMobileTooltip, 2500);
+    }, 450);
+  }, { passive: true });
+
+  document.addEventListener("touchmove", () => {
+    // If finger moves significantly, cancel long press
+    hideMobileTooltip();
+  }, { passive: true });
+
+  document.addEventListener("touchend", () => {
+    // Restore title attribute when touch ends (with small delay so click handlers still work)
+    clearTimeout(mobileTooltipTimer);
+    setTimeout(() => {
+      if (activeTooltipEl && activeTooltipEl.hasAttribute("data-title") && !activeTooltipEl.hasAttribute("title")) {
+        activeTooltipEl.setAttribute("title", activeTooltipEl.getAttribute("data-title"));
+      }
+    }, 100);
+    setTimeout(hideMobileTooltip, 1200);
+  }, { passive: true });
+
+  document.addEventListener("touchcancel", hideMobileTooltip, { passive: true });
 }
 
 // Global click-listener to auto-dismiss open popovers when clicking elsewhere
