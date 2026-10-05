@@ -1,24 +1,24 @@
 // static/js/app-module.js - ESM Adapter & Bridge
 // Imports all structured clean sub-modules and exports functions globally for HTML inline handlers
 
-import * as constants from "./core/constants.js";
-import * as geometry from "./core/geometry.js";
-import * as pitch from "./core/pitch.js";
-import * as elements from "./canvas/elements.js";
-import * as arrows from "./canvas/arrows.js";
-import * as viewport from "./canvas/viewport.js";
-import { View3DManager } from "./canvas/view3d.js";
-import { PlaybackController } from "./canvas/playback.js";
-import * as popovers from "./ui/popovers.js";
-import * as hud from "./ui/hud.js";
-import * as inspectors from "./ui/inspectors.js";
-import * as timeline from "./ui/timeline.js";
-import * as tools from "./interaction/tools.js";
-import * as curveEditor from "./interaction/curve-editor.js";
-import * as pointer from "./interaction/pointer.js";
-import * as client from "./api/client.js";
-import { state, createEmptyExercise, getCurrentKeyframe, getCurrentExercise, setCurrentExercise } from "./state/store.js";
-import { HistoryManager } from "./state/history.js";
+import * as constants from "./core/constants.js?v=134";
+import * as geometry from "./core/geometry.js?v=134";
+import * as pitch from "./core/pitch.js?v=134";
+import * as elements from "./canvas/elements.js?v=134";
+import * as arrows from "./canvas/arrows.js?v=134";
+import * as viewport from "./canvas/viewport.js?v=134";
+import { View3DManager } from "./canvas/view3d.js?v=134";
+import { PlaybackController } from "./canvas/playback.js?v=134";
+import * as popovers from "./ui/popovers.js?v=134";
+import * as hud from "./ui/hud.js?v=134";
+import * as inspectors from "./ui/inspectors.js?v=134";
+import * as timeline from "./ui/timeline.js?v=134";
+import * as tools from "./interaction/tools.js?v=134";
+import * as curveEditor from "./interaction/curve-editor.js?v=134";
+import * as pointer from "./interaction/pointer.js?v=134";
+import * as client from "./api/client.js?v=134";
+import { state, createEmptyExercise, getCurrentKeyframe, getCurrentExercise, setCurrentExercise } from "./state/store.js?v=134";
+import { HistoryManager } from "./state/history.js?v=134";
 
 // Make popover functions globally callable for HTML inline handlers
 window.toggleTopMenu = popovers.toggleTopMenu;
