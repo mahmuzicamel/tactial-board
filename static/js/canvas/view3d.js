@@ -165,7 +165,8 @@ export class View3DManager {
     ctx.save();
     // Skaliere virtuelle Spielfeld-Koordinaten (1000x700) auf 1024x716
     ctx.scale(1024 / VIRTUAL_WIDTH, 716 / VIRTUAL_HEIGHT);
-    const pitchType = this.state.pitchType || "funino";
+    const ex = this.getCurrentExercise ? this.getCurrentExercise() : null;
+    const pitchType = (ex && ex.pitch_type) || this.state.pitchType || "half";
     drawPitchBackground(ctx, pitchType);
     ctx.restore();
 
@@ -308,11 +309,10 @@ export class View3DManager {
       group.position.set(p3.x, jumpHeight, p3.z);
 
       // Rotation (Objekt-Drehung)
-      if (el.rotation) {
-        group.rotation.y = -(el.rotation * Math.PI) / 180;
-      } else {
-        group.rotation.y = 0;
-      }
+      // Standard-Ausrichtung im 2D-Canvas: Tor steht waagerecht, Netz nach oben/unten (-Y / +Y)
+      // Wenn das Spielfeld rotiert ist oder das Element gedreht wurde, soll das Tor exakt wie im 2D-Board stehen
+      const elRot = el.rotation || 0;
+      group.rotation.y = -(elRot * Math.PI) / 180;
 
       // Skalierung (aus Jump-Effekt & globalem Skalierungs-Slider)
       const scaleMult = (el.scaleMultiplier || 1.0) * (this.state.globalElementScale || 1.0);
@@ -510,6 +510,7 @@ export class View3DManager {
 
     } else if (el.type === "minigoal" || el.type === "goal_mini") {
       // Echtes Minitor (ca. 1.2m x 0.8m) mit Pfosten, Latte, Bodenrahmen und echtem 3D-Netz
+      // Öffnung nach -Z (ins Feld), Netz nach +Z (außen)
       const frameMat = this.getMaterialForColor(0xffffff, 0.2); // Weiß pulverbeschichtet
       const postRadius = 1.6;
       const gw = 40;
@@ -519,12 +520,12 @@ export class View3DManager {
       // 2 Vorderpfosten
       const postGeo = new T.CylinderGeometry(postRadius, postRadius, gh, 12);
       const pL = new T.Mesh(postGeo, frameMat);
-      pL.position.set(-gw / 2, gh / 2, depth / 2);
+      pL.position.set(-gw / 2, gh / 2, -depth / 2);
       pL.castShadow = true;
       group.add(pL);
 
       const pR = new T.Mesh(postGeo, frameMat);
-      pR.position.set(gw / 2, gh / 2, depth / 2);
+      pR.position.set(gw / 2, gh / 2, -depth / 2);
       pR.castShadow = true;
       group.add(pR);
 
@@ -532,7 +533,7 @@ export class View3DManager {
       const crossGeo = new T.CylinderGeometry(postRadius, postRadius, gw, 12);
       const cross = new T.Mesh(crossGeo, frameMat);
       cross.rotation.z = Math.PI / 2;
-      cross.position.set(0, gh, depth / 2);
+      cross.position.set(0, gh, -depth / 2);
       cross.castShadow = true;
       group.add(cross);
 
@@ -550,18 +551,18 @@ export class View3DManager {
 
       const bBack = new T.Mesh(crossGeo, frameMat);
       bBack.rotation.z = Math.PI / 2;
-      bBack.position.set(0, postRadius, -depth / 2);
+      bBack.position.set(0, postRadius, depth / 2);
       group.add(bBack);
 
       // Rückfallbügel oben nach hinten
       const topSideGeo = new T.CylinderGeometry(postRadius * 0.8, postRadius * 0.8, depth * 0.7, 10);
       const tL = new T.Mesh(topSideGeo, frameMat);
-      tL.rotation.x = Math.PI / 2.5;
+      tL.rotation.x = -Math.PI / 2.5;
       tL.position.set(-gw / 2, gh * 0.75, 0);
       group.add(tL);
 
       const tR = new T.Mesh(topSideGeo, frameMat);
-      tR.rotation.x = Math.PI / 2.5;
+      tR.rotation.x = -Math.PI / 2.5;
       tR.position.set(gw / 2, gh * 0.75, 0);
       group.add(tR);
 
@@ -580,33 +581,35 @@ export class View3DManager {
 
     } else if (el.type === "goal_5m" || el.type === "goal_large") {
       // Großes 5m Jugendtor (5m x 2m) mit weißem Aluminium-Rundrohrrahmen und tiefem Tornetz
+      // WICHTIG: Die Toröffnung (Pfosten & Querlatte) liegt bei z = -depth/2 (zeigt in das Feld hinein)!
+      // Das Netz und die Stützen ziehen sich nach hinten auf z = +depth/2 (aus dem Feld heraus).
       const frameMat = this.getMaterialForColor(0xffffff, 0.15);
       const postRadius = 2.6;
       const gw = 76;
       const gh = 36;
       const depth = 32;
 
-      // 2 Senkrechte Torpfosten
+      // 2 Senkrechte Torpfosten (Vorne bei z = -depth/2)
       const postGeo = new T.CylinderGeometry(postRadius, postRadius, gh, 14);
       const pL = new T.Mesh(postGeo, frameMat);
-      pL.position.set(-gw / 2, gh / 2, depth / 2);
+      pL.position.set(-gw / 2, gh / 2, -depth / 2);
       pL.castShadow = true;
       group.add(pL);
 
       const pR = new T.Mesh(postGeo, frameMat);
-      pR.position.set(gw / 2, gh / 2, depth / 2);
+      pR.position.set(gw / 2, gh / 2, -depth / 2);
       pR.castShadow = true;
       group.add(pR);
 
-      // Waagerechte Querlatte
+      // Waagerechte Querlatte vorne bei z = -depth/2
       const crossGeo = new T.CylinderGeometry(postRadius, postRadius, gw + postRadius * 2, 14);
       const cross = new T.Mesh(crossGeo, frameMat);
       cross.rotation.z = Math.PI / 2;
-      cross.position.set(0, gh, depth / 2);
+      cross.position.set(0, gh, -depth / 2);
       cross.castShadow = true;
       group.add(cross);
 
-      // Bodenrahmen (U-Profil)
+      // Bodenrahmen (U-Profil nach hinten zu +depth/2)
       const sideGeo = new T.CylinderGeometry(postRadius * 0.8, postRadius * 0.8, depth, 12);
       const bL = new T.Mesh(sideGeo, frameMat);
       bL.rotation.x = Math.PI / 2;
@@ -620,18 +623,19 @@ export class View3DManager {
 
       const bBack = new T.Mesh(crossGeo, frameMat);
       bBack.rotation.z = Math.PI / 2;
-      bBack.position.set(0, postRadius, -depth / 2);
+      bBack.position.set(0, postRadius, depth / 2);
       group.add(bBack);
 
-      // Diagonale Netzbügel hinten
-      const diagGeo = new T.CylinderGeometry(postRadius * 0.7, postRadius * 0.7, Math.hypot(gh, depth), 10);
+      // Diagonale Netzbügel hinten von der Querlatte nach hinten zum Bodenrahmen
+      const diagLen = Math.hypot(gh, depth);
+      const diagGeo = new T.CylinderGeometry(postRadius * 0.7, postRadius * 0.7, diagLen, 10);
       const dL = new T.Mesh(diagGeo, frameMat);
-      dL.rotation.x = Math.atan2(depth, gh);
+      dL.rotation.x = -Math.atan2(depth, gh);
       dL.position.set(-gw / 2, gh / 2, 0);
       group.add(dL);
 
       const dR = new T.Mesh(diagGeo, frameMat);
-      dR.rotation.x = Math.atan2(depth, gh);
+      dR.rotation.x = -Math.atan2(depth, gh);
       dR.position.set(gw / 2, gh / 2, 0);
       group.add(dR);
 
