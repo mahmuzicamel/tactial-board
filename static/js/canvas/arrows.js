@@ -160,39 +160,27 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
       const p3 = { x: x2, y: y2 };
       const pMid = getCubicBezierPoint(0.5, p0, cp1, cp2, p3);
 
-      // Dotted tangent arms
-      ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.5)";
-      ctx.lineWidth = 1.5;
+      // Midpoint handle (Amber/Yellow curve crown handle - genau wie im Screenshot!)
+      ctx.fillStyle = "#f59e0b";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(cp1.x, cp1.y);
-      ctx.moveTo(x2, y2);
-      ctx.lineTo(cp2.x, cp2.y);
+      ctx.arc(pMid.x, pMid.y, 8.5, 0, Math.PI * 2);
+      ctx.fill();
       ctx.stroke();
-      ctx.setLineDash([]);
 
       // P1 handle (cyan, oberer Wölbungs-Griff für Bogen 1)
       ctx.fillStyle = "#06b6d4";
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(cp1.x, cp1.y, 8.5, 0, Math.PI * 2);
+      ctx.arc(cp1.x, cp1.y, 7.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
       // P2 handle (cyan, unterer Wölbungs-Griff für Bogen 2)
       ctx.beginPath();
-      ctx.arc(cp2.x, cp2.y, 8.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // Midpoint handle (Amber/Yellow curve crown handle)
-      ctx.fillStyle = "#f59e0b";
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(pMid.x, pMid.y, 8.5, 0, Math.PI * 2);
+      ctx.arc(cp2.x, cp2.y, 7.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     }

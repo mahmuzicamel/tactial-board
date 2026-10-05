@@ -62,6 +62,31 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
     return;
   }
 
+  // 1b. Check selected arrow start/end handles directly
+  if (state.selectedArrowIndex !== null && kf.arrows && kf.arrows[state.selectedArrowIndex]) {
+    const selArr = kf.arrows[state.selectedArrowIndex];
+    const distStart = Math.hypot(selArr.x1 - x, selArr.y1 - y);
+    const distEnd = Math.hypot(selArr.x2 - x, selArr.y2 - y);
+    if (distStart <= handleHitRadius) {
+      state.isDraggingArrow = true;
+      state.selectedArrowPart = "start";
+      state.arrowDragOffsetX = x;
+      state.arrowDragOffsetY = y;
+      showArrowInspector(selArr);
+      drawScene();
+      return;
+    }
+    if (distEnd <= handleHitRadius) {
+      state.isDraggingArrow = true;
+      state.selectedArrowPart = "end";
+      state.arrowDragOffsetX = x;
+      state.arrowDragOffsetY = y;
+      showArrowInspector(selArr);
+      drawScene();
+      return;
+    }
+  }
+
   // 2. Check if clicked an element
   const effectiveElScale = Math.max(0.6, state.globalElementScale || 1.0);
   const hitRadius = Math.max(26 * effectiveElScale, (34 * effectiveElScale) / Math.sqrt(state.viewScale));
