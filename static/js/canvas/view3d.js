@@ -64,7 +64,7 @@ export class View3DManager {
     this.renderer.shadowMap.type = window.THREE.PCFSoftShadowMap;
 
     this.renderer.domElement.id = "tactic3dCanvas";
-    this.renderer.domElement.className = "w-full h-full absolute inset-0 z-10 cursor-grab active:cursor-grabbing";
+    this.renderer.domElement.className = "w-full h-full absolute inset-0 z-10 cursor-grab active:cursor-grabbing pointer-events-none";
     this.renderer.domElement.style.display = "none";
     this.container.appendChild(this.renderer.domElement);
 
@@ -229,7 +229,10 @@ export class View3DManager {
   show() {
     if (!this.init()) return;
     this.isActive = true;
-    if (this.renderer) this.renderer.domElement.style.display = "block";
+    if (this.renderer) {
+      this.renderer.domElement.style.display = "block";
+      this.renderer.domElement.classList.remove("pointer-events-none");
+    }
     this.onResize();
     this.updatePitchTexture();
     this.syncScene();
@@ -238,7 +241,10 @@ export class View3DManager {
 
   hide() {
     this.isActive = false;
-    if (this.renderer) this.renderer.domElement.style.display = "none";
+    if (this.renderer) {
+      this.renderer.domElement.style.display = "none";
+      this.renderer.domElement.classList.add("pointer-events-none");
+    }
     if (this.animId) {
       cancelAnimationFrame(this.animId);
       this.animId = null;

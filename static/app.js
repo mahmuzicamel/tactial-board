@@ -1423,6 +1423,7 @@
     TC().popovers.closeExportModal();
     const player = document.getElementById("exportVideoPlayer");
     if (player) { player.pause(); player.src = ""; }
+    if (playbackCtrl) playbackCtrl.stop();
   };
 
   window.openDetailsModal = function () {
