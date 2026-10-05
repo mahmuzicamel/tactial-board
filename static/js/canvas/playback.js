@@ -129,6 +129,7 @@ export class PlaybackController {
     state.animReqId = requestAnimationFrame(loop);
   }
 
+  // Stoppt Playback und räumt Status auf
   stop() {
     state.isPlaying = false;
     if (state.animReqId) {
@@ -137,6 +138,118 @@ export class PlaybackController {
     }
     this.updateUI(false);
     this.drawCallback();
+  }
+
+  // Nimmt eine vollständige 2D-Animation als Video via CCapture.js deterministisch auf (100% flüssig, 0 Framedrops)
+  async recordAnimationVideo({ durationPerStep = 2000, fps = 30, onProgress = null, canvas = null }) {
+    const currentEx = getCurrentExercise();
+    if (!currentEx || !Array.isArray(currentEx.keyframes) || currentEx.keyframes.length < 2) {
+      throw new Error("Mindestens 2 Schritte erforderlich für Video.");
+    }
+
+    const targetCanvas = canvas || document.getElementById("tacticCanvas") || document.getElementById("tacticsCanvas");
+    if (!targetCanvas) {
+      throw new Error("2D Taktik-Canvas nicht gefunden.");
+    }
+
+    const totalSteps = currentEx.keyframes.length;
+    const totalDuration = (totalSteps - 1) * durationPerStep;
+    const totalFrames = Math.max(2, Math.round((totalDuration / 1000) * fps));
+
+    if (typeof window.CCapture === "undefined") {
+      throw new Error("CCapture.js ist nicht geladen.");
+    }
+
+    const capturer = new window.CCapture({
+      format: "webm",
+      framerate: fps,
+      quality: 95,
+      verbose: false
+    });
+
+    capturer.start();
+
+    return new Promise((resolve, reject) => {
+      let frame = 0;
+
+      const captureStep = () => {
+        if (frame > totalFrames) {
+          if (onProgress) onProgress(1.0);
+          capturer.stop();
+          capturer.save((blob) => {
+            // Nach Aufnahme Standard-Ansicht wiederherstellen
+            this.drawCallback();
+            resolve({ blob: blob, mimeType: "video/webm" });
+          });
+          return;
+        }
+
+        const progress = frame / totalFrames;
+        if (onProgress) onProgress(progress);
+
+        const elapsed = (frame / fps) * 1000;
+        const stepIdx = Math.min(totalSteps - 2, Math.floor(elapsed / durationPerStep));
+        const stepProgress = Math.min(1.0, (elapsed % durationPerStep) / durationPerStep);
+        const smoothT = 0.5 - 0.5 * Math.cos(Math.PI * stepProgress);
+
+        const kf1 = currentEx.keyframes[stepIdx] || { elements: [], arrows: [] };
+        const kf2 = currentEx.keyframes[stepIdx + 1] || { elements: [], arrows: [] };
+
+        const map1 = new Map((kf1.elements || []).map(e => [e.id, e]));
+        const map2 = new Map((kf2.elements || []).map(e => [e.id, e]));
+        const interpolated = [];
+        const allIds = new Set([...map1.keys(), ...map2.keys()]);
+
+        for (const id of allIds) {
+          const el1 = map1.get(id);
+          const el2 = map2.get(id);
+          if (el1 && el2) {
+            let posX, posY;
+            if (el2.cp1_dx !== undefined || el2.cp1_dy !== undefined || el2.cp2_dx !== undefined || el2.cp2_dy !== undefined) {
+              const { p1, p2 } = getEffectiveCurveControlPoints(el1, el2);
+              const pt = getCubicBezierPoint(smoothT, el1, p1, p2, el2);
+              posX = pt.x;
+              posY = pt.y;
+            } else {
+              posX = el1.x + (el2.x - el1.x) * smoothT;
+              posY = el1.y + (el2.y - el1.y) * smoothT;
+            }
+
+            let scaleMult = 1.0;
+            let jumpOffset = 0;
+            if (el2.jump) {
+              const jumpFactor = Math.sin(smoothT * Math.PI);
+              scaleMult = 1.0 + jumpFactor * 0.45;
+              jumpOffset = jumpFactor;
+            }
+
+            interpolated.push({
+              ...el1,
+              ...el2,
+              x: posX,
+              y: posY,
+              scaleMultiplier: scaleMult,
+              jumpProgress: jumpOffset
+            });
+          } else if (el1) {
+            interpolated.push(el1);
+          } else if (el2 && smoothT > 0.5) {
+            interpolated.push(el2);
+          }
+        }
+
+        // Frame synchron im Canvas zeichnen
+        this.drawCallback(interpolated, kf1.arrows);
+
+        // Frame in CCapture einspeisen
+        capturer.capture(targetCanvas);
+        frame++;
+
+        setTimeout(captureStep, 5);
+      };
+
+      captureStep();
+    });
   }
 
   updateUI(playing) {

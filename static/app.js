@@ -1503,7 +1503,7 @@
     } else {
       if (btn2d) btn2d.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-blue-600 text-white shadow";
       if (btn3d) btn3d.className = "px-2 py-0.5 rounded text-[11px] font-medium text-slate-400 hover:text-white";
-      if (desc) desc.innerHTML = `<i class="fa-solid fa-server text-blue-400"></i> Serverseitiger 2D HD-Export (ffmpeg)`;
+      if (desc) desc.innerHTML = `<i class="fa-solid fa-video text-blue-400"></i> Frame-genauer 2D-Export mit CCapture.js`;
     }
   };
 
@@ -1511,7 +1511,67 @@
     if (window.currentExportVideoType === "3d") {
       window.trigger3DVideoRender();
     } else {
-      window.triggerServerVideoRender();
+      window.trigger2DVideoRender();
+    }
+  };
+
+  window.trigger2DVideoRender = async function () {
+    const s = S();
+    const btn = document.getElementById("btnRenderVideo");
+    const statusBox = document.getElementById("videoRenderStatus");
+    const statusText = document.getElementById("videoRenderStatusText");
+    const resultBox = document.getElementById("videoResultBox");
+
+    const currentEx = s.currentExercise;
+    if (!currentEx || !Array.isArray(currentEx.keyframes) || currentEx.keyframes.length < 2) {
+      window.showToast("Füge mindestens 2 Schritte hinzu, um ein Video aufzunehmen!", true);
+      return;
+    }
+
+    if (!playbackCtrl) {
+      window.showToast("Playback Controller nicht bereit.", true);
+      return;
+    }
+
+    if (btn) btn.disabled = true;
+    if (statusBox) statusBox.classList.remove("hidden");
+    if (statusText) statusText.innerText = "2D-Animation wird aufgezeichnet (0%)...";
+    if (resultBox) resultBox.classList.add("hidden");
+
+    try {
+      const speed = (typeof s.currentSpeed === "number" && s.currentSpeed > 0) ? s.currentSpeed : 1.0;
+      const stepDuration = 2000 / speed;
+
+      const result = await playbackCtrl.recordAnimationVideo({
+        durationPerStep: stepDuration,
+        fps: 30,
+        canvas: canvas,
+        onProgress: (p) => {
+          if (statusText) statusText.innerText = `2D-Animation wird aufgezeichnet (${Math.round(p * 100)}%)...`;
+        }
+      });
+
+      const videoBlob = result.blob;
+      window.currentExportVideoBlob = videoBlob;
+      const videoUrl = URL.createObjectURL(videoBlob);
+      window.currentExportVideoUrl = videoUrl;
+
+      const player = document.getElementById("exportVideoPlayer");
+      if (player) {
+        player.src = videoUrl;
+        player.load();
+      }
+      const btnGif = document.getElementById("btnExportGif");
+      if (btnGif) btnGif.classList.add("hidden"); // WebM direkt abspielbar
+      if (resultBox) resultBox.classList.remove("hidden");
+      window.showToast("🎬 2D-Video erfolgreich mit CCapture.js generiert!");
+    } catch (e) {
+      console.warn("Client-seitiger 2D-Render fehlgeschlagen, Fallback zu Server-Render:", e);
+      // Automatischer Fallback auf Python ffmpeg Server falls WebM / CCapture im Browser fehlschlägt
+      await window.triggerServerVideoRender();
+    } finally {
+      if (btn) btn.disabled = false;
+      if (statusBox) statusBox.classList.add("hidden");
     }
   };
 
