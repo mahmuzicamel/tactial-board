@@ -335,9 +335,47 @@ function rotatePitch() {
   updateActionPopupPosition();
 }
 
+// Fallback functions in case module is not loaded yet
+function drawPitchBackgroundFallback(c, pitchType) {
+  const w = VIRTUAL_WIDTH;
+  const h = VIRTUAL_HEIGHT;
+  const stripes = 12;
+  const sw = (w + 400) / stripes;
+  for (let i = 0; i < stripes; i++) {
+    c.fillStyle = (i % 2 === 0) ? "#2d6a4f" : "#285d45";
+    c.fillRect(-200 + i * sw, -200, sw, h + 400);
+  }
+  if (pitchType === "plain") return;
+  const mx = 30;
+  const my = 25;
+  const pw = w - 2 * mx;
+  const ph = h - 2 * my;
+  c.strokeStyle = "#ffffff";
+  c.lineWidth = 4;
+  c.strokeRect(mx, my, pw, ph);
+  if (pitchType === "full") {
+    const midX = mx + pw / 2;
+    c.beginPath();
+    c.moveTo(midX, my);
+    c.lineTo(midX, my + ph);
+    c.stroke();
+    c.beginPath();
+    c.arc(midX, my + ph / 2, 75, 0, Math.PI * 2);
+    c.stroke();
+    c.strokeRect(mx, my + (ph - 280) / 2, 140, 280);
+    c.strokeRect(mx + pw - 140, my + (ph - 280) / 2, 140, 280);
+  } else if (pitchType === "half") {
+    c.strokeRect(mx, my + (ph - 360) / 2, 220, 360);
+    c.strokeRect(mx, my + (ph - 180) / 2, 80, 180);
+    c.beginPath();
+    c.arc(mx + pw, my + ph / 2, 120, Math.PI * 0.5, Math.PI * 1.5);
+    c.stroke();
+  }
+}
+
 // Aliases for modules from window.TacticalCoach
 const pitch = {
-  drawPitchBackground: (c, type) => (window.TacticalCoach?.pitch?.drawPitchBackground || drawPitchBackground)(c, type)
+  drawPitchBackground: (c, type) => (window.TacticalCoach?.pitch?.drawPitchBackground || drawPitchBackgroundFallback)(c, type)
 };
 const elemModule = {
   drawElementOnCanvas: (c, el, sel, rot, sc) => (window.TacticalCoach?.elements?.drawElementOnCanvas || drawElementOnCanvas)(c, el, sel, rot, sc)
