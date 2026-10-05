@@ -861,6 +861,33 @@
     window.recordHistory();
   };
 
+  window.scaleSelectedElement = function (delta = 0.15) {
+    const s = S();
+    const kf = TC().getCurrentKeyframe();
+    if (!kf) return;
+    const factor = 1 + delta;
+    const items = s.selectedElementIds.length > 0
+      ? kf.elements.filter(it => s.selectedElementIds.includes(it.id))
+      : (s.selectedElementId ? [kf.elements.find(it => it.id === s.selectedElementId)].filter(Boolean) : []);
+
+    items.forEach(el => {
+      if (el.type === "zone_rect") {
+        el.width = Math.max(30, Math.min(800, Math.round((el.width || 120) * factor)));
+        el.height = Math.max(20, Math.min(600, Math.round((el.height || 80) * factor)));
+      } else if (el.type === "zone_circle") {
+        el.radius = Math.max(15, Math.min(400, Math.round((el.radius || 50) * factor)));
+      } else if (el.type === "zone_triangle") {
+        el.size = Math.max(25, Math.min(500, Math.round((el.size || 70) * factor)));
+      } else {
+        el.scale = Math.max(0.4, Math.min(3.0, (el.scale || 1.0) * factor));
+      }
+    });
+
+    window.drawScene();
+    window.updateActionPopupPosition();
+    window.recordHistory();
+  };
+
   window.toggleFocusSelectedElement = function () {
     const s = S();
     const kf = TC().getCurrentKeyframe();

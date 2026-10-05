@@ -87,6 +87,64 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
     }
   }
 
+  // 1c. Check if clicked a resize handle of a selected zone element
+  if (state.selectedElementId) {
+    const selEl = kf.elements.find(it => it.id === state.selectedElementId);
+    if (selEl && (selEl.type === "zone_rect" || selEl.type === "zone_circle" || selEl.type === "zone_triangle")) {
+      const zHitR = Math.max(22, 28 / Math.sqrt(state.viewScale));
+      if (selEl.type === "zone_rect") {
+        const w = selEl.width || 120;
+        const h = selEl.height || 80;
+        const corners = [
+          { name: "tl", x: selEl.x - w/2, y: selEl.y - h/2 },
+          { name: "tr", x: selEl.x + w/2, y: selEl.y - h/2 },
+          { name: "br", x: selEl.x + w/2, y: selEl.y + h/2 },
+          { name: "bl", x: selEl.x - w/2, y: selEl.y + h/2 }
+        ];
+        const hitCorner = corners.find(c => Math.hypot(c.x - x, c.y - y) <= zHitR);
+        if (hitCorner) {
+          state.isResizingZone = true;
+          state.resizeZoneId = selEl.id;
+          state.resizeZoneCorner = hitCorner.name;
+          state.resizeInitialState = { x: selEl.x, y: selEl.y, width: w, height: h };
+          return;
+        }
+      } else if (selEl.type === "zone_circle") {
+        const radius = selEl.radius || 50;
+        const handles = [
+          { name: "r", x: selEl.x + radius, y: selEl.y },
+          { name: "b", x: selEl.x, y: selEl.y + radius },
+          { name: "l", x: selEl.x - radius, y: selEl.y },
+          { name: "t", x: selEl.x, y: selEl.y - radius }
+        ];
+        const hitHandle = handles.find(h => Math.hypot(h.x - x, h.y - y) <= zHitR);
+        if (hitHandle) {
+          state.isResizingZone = true;
+          state.resizeZoneId = selEl.id;
+          state.resizeZoneCorner = hitHandle.name;
+          state.resizeInitialState = { x: selEl.x, y: selEl.y, radius };
+          return;
+        }
+      } else if (selEl.type === "zone_triangle") {
+        const size = selEl.size || 70;
+        const h = size * 0.866;
+        const tips = [
+          { name: "top", x: selEl.x, y: selEl.y - h * 0.6 },
+          { name: "br", x: selEl.x + size * 0.5, y: selEl.y + h * 0.4 },
+          { name: "bl", x: selEl.x - size * 0.5, y: selEl.y + h * 0.4 }
+        ];
+        const hitTip = tips.find(t => Math.hypot(t.x - x, t.y - y) <= zHitR);
+        if (hitTip) {
+          state.isResizingZone = true;
+          state.resizeZoneId = selEl.id;
+          state.resizeZoneCorner = hitTip.name;
+          state.resizeInitialState = { x: selEl.x, y: selEl.y, size };
+          return;
+        }
+      }
+    }
+  }
+
   // 2. Check if clicked an element
   const effectiveElScale = Math.max(0.6, state.globalElementScale || 1.0);
   const baseHitRadius = Math.max(26 * effectiveElScale, (34 * effectiveElScale) / Math.sqrt(state.viewScale));
@@ -264,6 +322,32 @@ export function handleCanvasPointerMove(e, canvas, getCanvasCoords, callbacks = 
     updateCurveDrag(x, y, state.activeCurveDrag);
     drawScene();
     return;
+  }
+
+  // Zone resize drag
+  if (state.isResizingZone && state.resizeZoneId) {
+    const kf = getCurrentKeyframe();
+    const el = kf?.elements?.find(it => it.id === state.resizeZoneId);
+    if (el && state.resizeInitialState) {
+      if (el.type === "zone_rect") {
+        const init = state.resizeInitialState;
+        const corner = state.resizeZoneCorner;
+        // Bei Rect: Eckpunkt x,y bestimmt Breite und Höhe symmetrisch oder frei ab Mittelpunkt
+        const halfW = Math.max(15, Math.abs(x - el.x));
+        const halfH = Math.max(10, Math.abs(y - el.y));
+        el.width = Math.round(halfW * 2);
+        el.height = Math.round(halfH * 2);
+      } else if (el.type === "zone_circle") {
+        const dist = Math.hypot(x - el.x, y - el.y);
+        el.radius = Math.max(15, Math.round(dist));
+      } else if (el.type === "zone_triangle") {
+        const dist = Math.hypot(x - el.x, y - el.y);
+        el.size = Math.max(25, Math.round(dist * 1.2));
+      }
+      drawScene();
+      updateActionPopupPosition();
+      return;
+    }
   }
 
   if (state.isDragging || state.isDraggingArrow) {
@@ -473,6 +557,16 @@ export function handleCanvasPointerUp(e, canvas, callbacks = {}) {
     if (el) showInspector(el);
   } else if (state.selectedElementIds.length > 1) {
     showGroupInspector(state.selectedElementIds.length);
+  }
+
+  // Zone resizing finalize
+  if (state.isResizingZone) {
+    state.isResizingZone = false;
+    state.resizeZoneId = null;
+    state.resizeZoneCorner = null;
+    state.resizeInitialState = null;
+    recordHistory();
+    updateActionPopupPosition();
   }
 
   // Arrow drawing finalize

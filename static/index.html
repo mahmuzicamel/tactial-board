@@ -323,7 +323,7 @@
 
     <!-- Sidebar Footer -->
     <div class="p-3 border-t border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-[11px] text-slate-400">
-      <span>Tactical Coach v105</span>
+      <span>Tactical Coach v106</span>
       <button onclick="closeSidebarMenu()" class="text-emerald-400 hover:underline font-medium">Zurück zum Board</button>
     </div>
   </aside>
@@ -333,8 +333,15 @@
     
     <!-- Quick Context Popup Action Menu for Selected Element or Arrow (Directly above the Object) -->
     <div id="elementActionPopup" class="hidden absolute z-30 pointer-events-auto flex items-center gap-1 p-1 bg-slate-900/95 backdrop-blur-md border border-slate-600 rounded-xl shadow-2xl transition-all duration-150 transform -translate-x-1/2 -translate-y-full">
-      <!-- Element-only action buttons (Rotate, Spotlight) -->
+      <!-- Element-only action buttons (Rotate, Spotlight, Resize) -->
       <div id="actionPopupElementControls" class="flex items-center gap-1">
+        <!-- Scale / Resize Buttons (Zone or Element) -->
+        <button onclick="scaleSelectedElement(-0.15)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-90 text-sky-400 flex items-center justify-center text-xs transition" title="Verkleinern (-)">
+          <i class="fa-solid fa-compress"></i>
+        </button>
+        <button onclick="scaleSelectedElement(0.15)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-90 text-sky-400 flex items-center justify-center text-xs transition" title="Vergrößern (+)">
+          <i class="fa-solid fa-expand"></i>
+        </button>
         <!-- Rotate Left (-45°) -->
         <button onclick="rotateSelectedElement(-45)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-90 text-emerald-400 flex items-center justify-center text-xs transition" title="Nach links drehen (-45°)">
           <i class="fa-solid fa-rotate-left"></i>
@@ -1067,7 +1074,7 @@
     <span id="toastMsg">Mitteilung</span>
   </div>
 
-  <script type="module" src="/static/js/app-module.js?v=105"></script>
-  <script src="/static/app.js?v=105"></script>
+  <script type="module" src="/static/js/app-module.js?v=106"></script>
+  <script src="/static/app.js?v=106"></script>
 </body>
 </html>

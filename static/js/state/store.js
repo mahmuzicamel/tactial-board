@@ -65,6 +65,12 @@ export const state = {
   shapeCurrentY: 0,
   selectedShapeType: "rect", // 'rect', 'circle', 'triangle'
 
+  // Zone Resizing
+  isResizingZone: false,
+  resizeZoneId: null,
+  resizeZoneCorner: null,
+  resizeInitialState: null,
+
   // Playback & Animation
   isPlaying: false,
   isLoopMode: true,

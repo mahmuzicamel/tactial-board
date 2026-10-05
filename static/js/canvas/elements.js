@@ -314,6 +314,26 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
       ctx.fillText(el.label, 0, 0);
     }
 
+    // Wenn selektiert: Deutliche Resize-Handles an den 4 Ecken rendern
+    if (isSelected) {
+      const handleR = 5;
+      const corners = [
+        { x: -w/2, y: -h/2 },
+        { x: w/2, y: -h/2 },
+        { x: w/2, y: h/2 },
+        { x: -w/2, y: h/2 }
+      ];
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      corners.forEach(c => {
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, handleR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+    }
+
   } else if (el.type === "zone_circle") {
     // Taktik-Zone / Kreis (z.B. Druckzone, Passkreis)
     const radius = el.radius || 50;
@@ -346,6 +366,22 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
       ctx.fillText(el.label, 0, 0);
     }
 
+    // Wenn selektiert: Resize-Handle am Kreisrand rendern
+    if (isSelected) {
+      const handleR = 5;
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].forEach(angle => {
+        const hx = Math.cos(angle) * radius;
+        const hy = Math.sin(angle) * radius;
+        ctx.beginPath();
+        ctx.arc(hx, hy, handleR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+    }
+
   } else if (el.type === "zone_triangle") {
     // Taktik-Zone / Dreieck (z.B. Passdreieck / Deckungsschatten)
     const size = el.size || 70;
@@ -373,6 +409,25 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(el.label, 0, h * 0.1);
+    }
+
+    // Wenn selektiert: Resize-Handles an den 3 Spitzen rendern
+    if (isSelected) {
+      const handleR = 5;
+      const tips = [
+        { x: 0, y: -h * 0.6 },
+        { x: size * 0.5, y: h * 0.4 },
+        { x: -size * 0.5, y: h * 0.4 }
+      ];
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      tips.forEach(t => {
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, handleR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
     }
   }
 
