@@ -852,7 +852,7 @@ export class View3DManager {
     });
   }
 
-  // Nimmt eine vollständige Animation als Video via WebGL/Canvas MediaRecorder auf
+  // Nimmt eine vollständige Animation als Video via CCapture.js frame-by-frame auf (100% flüssig, keine Framedrops)
   async recordAnimationVideo({ durationPerStep = 2000, fps = 30, onProgress = null }) {
     if (!this.renderer || !this.scene || !this.camera) {
       throw new Error("3D Ansicht ist nicht initialisiert.");
@@ -863,11 +863,117 @@ export class View3DManager {
     }
 
     const canvas = this.renderer.domElement;
-    if (!canvas.captureStream) {
-      throw new Error("MediaRecorder captureStream wird von diesem Browser nicht unterstützt.");
+    const totalSteps = currentEx.keyframes.length;
+    const totalDuration = (totalSteps - 1) * durationPerStep;
+    const totalFrames = Math.max(2, Math.round((totalDuration / 1000) * fps));
+
+    const TC_REF = window.TacticalCoach || (typeof TC === "function" ? TC() : null);
+
+    // Nutzen von CCapture falls geladen
+    if (typeof window.CCapture !== "undefined") {
+      const capturer = new window.CCapture({
+        format: "webm",
+        framerate: fps,
+        quality: 95,
+        verbose: false
+      });
+
+      capturer.start();
+
+      return new Promise((resolve, reject) => {
+        let frame = 0;
+
+        const captureStep = () => {
+          if (frame > totalFrames) {
+            if (onProgress) onProgress(1.0);
+            capturer.stop();
+            capturer.save((blob) => {
+              resolve({ blob: blob, mimeType: "video/webm" });
+            });
+            return;
+          }
+
+          const progress = frame / totalFrames;
+          if (onProgress) onProgress(progress);
+
+          const elapsed = (frame / fps) * 1000;
+          const stepIdx = Math.min(totalSteps - 2, Math.floor(elapsed / durationPerStep));
+          const stepProgress = Math.min(1.0, (elapsed % durationPerStep) / durationPerStep);
+          const smoothT = 0.5 - 0.5 * Math.cos(Math.PI * stepProgress);
+
+          const kf1 = currentEx.keyframes[stepIdx] || { elements: [], arrows: [] };
+          const kf2 = currentEx.keyframes[stepIdx + 1] || { elements: [], arrows: [] };
+
+          const map1 = new Map((kf1.elements || []).map(e => [e.id, e]));
+          const map2 = new Map((kf2.elements || []).map(e => [e.id, e]));
+          const interpolated = [];
+          const allIds = new Set([...map1.keys(), ...map2.keys()]);
+
+          for (const id of allIds) {
+            const el1 = map1.get(id);
+            const el2 = map2.get(id);
+            if (el1 && el2) {
+              let posX, posY;
+              if ((el2.cp1_dx !== undefined || el2.cp1_dy !== undefined || el2.cp2_dx !== undefined || el2.cp2_dy !== undefined) && TC_REF && TC_REF.geometry) {
+                const { p1, p2 } = TC_REF.geometry.getEffectiveCurveControlPoints(el1, el2);
+                const pt = TC_REF.geometry.getCubicBezierPoint(smoothT, el1, p1, p2, el2);
+                posX = pt.x;
+                posY = pt.y;
+              } else {
+                posX = el1.x + (el2.x - el1.x) * smoothT;
+                posY = el1.y + (el2.y - el1.y) * smoothT;
+              }
+
+              // Drehung (Rotation) interpolieren (kürzester Winkel)
+              const rot1 = el1.rotation || 0;
+              const rot2 = el2.rotation !== undefined ? el2.rotation : rot1;
+              let diffRot = (rot2 - rot1) % 360;
+              if (diffRot > 180) diffRot -= 360;
+              if (diffRot < -180) diffRot += 360;
+              const currentRot = rot1 + diffRot * smoothT;
+
+              let scaleMult = 1.0;
+              let jumpOffset = 0;
+              if (el2.jump) {
+                const jumpFactor = Math.sin(smoothT * Math.PI);
+                scaleMult = 1.0 + jumpFactor * 0.45;
+                jumpOffset = jumpFactor;
+              }
+              interpolated.push({
+                ...el1,
+                ...el2,
+                x: posX,
+                y: posY,
+                rotation: currentRot,
+                scaleMultiplier: scaleMult,
+                jumpProgress: jumpOffset
+              });
+            } else if (el1) {
+              interpolated.push(el1);
+            } else if (el2 && smoothT > 0.5) {
+              interpolated.push(el2);
+            }
+          }
+
+          this.syncScene(interpolated, kf1.arrows);
+
+          if (this.controls) this.controls.update();
+          if (this.renderer && this.scene && this.camera) {
+            this.renderer.render(this.scene, this.camera);
+          }
+
+          capturer.capture(canvas);
+          frame++;
+
+          // Kleines Timeout, um dem UI/Mainthread Luft zu geben und Fortschritt anzuzeigen
+          setTimeout(captureStep, 5);
+        };
+
+        captureStep();
+      });
     }
 
-    // Passenden MimeType ermitteln
+    // Fallback: MediaRecorder captureStream
     let mimeType = "video/webm;codecs=vp9";
     if (window.MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")) {
       mimeType = "video/mp4;codecs=avc1";
@@ -882,7 +988,7 @@ export class View3DManager {
     const stream = canvas.captureStream(fps);
     const recorder = new window.MediaRecorder(stream, {
       mimeType: mimeType,
-      videoBitsPerSecond: 6000000 // 6 Mbps für gestochen scharfes 3D
+      videoBitsPerSecond: 6000000
     });
 
     const chunks = [];
@@ -897,10 +1003,7 @@ export class View3DManager {
         resolve({ blob: finalBlob, mimeType: mimeType });
       };
 
-      const totalSteps = currentEx.keyframes.length;
-      const totalDuration = (totalSteps - 1) * durationPerStep;
       const startTime = performance.now();
-
       recorder.start();
 
       const renderLoop = () => {
@@ -908,7 +1011,6 @@ export class View3DManager {
         const progress = Math.min(1.0, elapsed / totalDuration);
         if (onProgress) onProgress(progress);
 
-        // Frame interpolieren & rendern
         const stepIdx = Math.min(totalSteps - 2, Math.floor(elapsed / durationPerStep));
         const stepProgress = Math.min(1.0, (elapsed % durationPerStep) / durationPerStep);
         const smoothT = 0.5 - 0.5 * Math.cos(Math.PI * stepProgress);
@@ -926,9 +1028,9 @@ export class View3DManager {
           const el2 = map2.get(id);
           if (el1 && el2) {
             let posX, posY;
-            if (el2.cp1_dx !== undefined || el2.cp1_dy !== undefined || el2.cp2_dx !== undefined || el2.cp2_dy !== undefined) {
-              const { p1, p2 } = window.TC ? window.TC().geometry.getEffectiveCurveControlPoints(el1, el2) : { p1: el1, p2: el2 };
-              const pt = window.TC ? window.TC().geometry.getCubicBezierPoint(smoothT, el1, p1, p2, el2) : { x: el1.x, y: el1.y };
+            if ((el2.cp1_dx !== undefined || el2.cp1_dy !== undefined || el2.cp2_dx !== undefined || el2.cp2_dy !== undefined) && TC_REF && TC_REF.geometry) {
+              const { p1, p2 } = TC_REF.geometry.getEffectiveCurveControlPoints(el1, el2);
+              const pt = TC_REF.geometry.getCubicBezierPoint(smoothT, el1, p1, p2, el2);
               posX = pt.x;
               posY = pt.y;
             } else {
@@ -936,7 +1038,6 @@ export class View3DManager {
               posY = el1.y + (el2.y - el1.y) * smoothT;
             }
 
-            // Drehung (Rotation) interpolieren (kürzester Winkel)
             const rot1 = el1.rotation || 0;
             const rot2 = el2.rotation !== undefined ? el2.rotation : rot1;
             let diffRot = (rot2 - rot1) % 360;
@@ -969,7 +1070,6 @@ export class View3DManager {
 
         this.syncScene(interpolated, kf1.arrows);
 
-        // Sanfte dynamische Kameraführung während des Spielzugs
         if (this.controls) this.controls.update();
         if (this.renderer && this.scene && this.camera) {
           this.renderer.render(this.scene, this.camera);
@@ -978,7 +1078,6 @@ export class View3DManager {
         if (elapsed < totalDuration) {
           requestAnimationFrame(renderLoop);
         } else {
-          // Kleiner Puffer am Ende für sauberen Ausklang
           setTimeout(() => {
             recorder.stop();
           }, 350);
