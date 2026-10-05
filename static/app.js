@@ -496,8 +496,8 @@
   window.toggleViewControls = function () {
     const drawer = document.getElementById("viewControlsDrawer");
     if (!drawer) return;
-    isViewControlsOpen = !isViewControlsOpen;
-    drawer.classList.toggle("hidden", !isViewControlsOpen);
+    const isHidden = drawer.classList.contains("hidden");
+    drawer.classList.toggle("hidden", !isHidden);
   };
 
   window.changePitchType = function (type) {

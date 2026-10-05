@@ -198,6 +198,14 @@ export function initGlobalClickDismiss() {
       }
     }
 
+    const viewDrawer = document.getElementById("viewControlsDrawer");
+    const viewBtn = document.getElementById("viewControlsToggleBtn");
+    if (viewDrawer && !viewDrawer.classList.contains("hidden")) {
+      if (!viewDrawer.contains(e.target) && !viewBtn?.contains(e.target)) {
+        viewDrawer.classList.add("hidden");
+      }
+    }
+
     const lineModeModal = document.getElementById("lineModeMenuModal");
     const lineModeBtn = document.getElementById("lineModeMenuBtn");
     if (lineModeModal && !lineModeModal.classList.contains("hidden")) {
