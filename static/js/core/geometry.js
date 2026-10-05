@@ -113,6 +113,66 @@ export function simplifyPathRDP(points, epsilon = 2.5) {
   }
 }
 
+// Chaikin's Corner-Cutting Algorithmus (macht harte Winkel & Zickzack-Kanten extrem glatt und rund)
+export function chaikinSmooth(points, iterations = 2) {
+  if (!points || points.length <= 2) return points ? [...points] : [];
+  let current = [...points];
+
+  for (let iter = 0; iter < iterations; iter++) {
+    const next = [current[0]];
+    for (let i = 0; i < current.length - 1; i++) {
+      const p0 = current[i];
+      const p1 = current[i + 1];
+      // 25% und 75% Punkte
+      next.push({
+        x: p0.x * 0.75 + p1.x * 0.25,
+        y: p0.y * 0.75 + p1.y * 0.25
+      });
+      next.push({
+        x: p0.x * 0.25 + p1.x * 0.75,
+        y: p0.y * 0.25 + p1.y * 0.75
+      });
+    }
+    next.push(current[current.length - 1]);
+    current = next;
+  }
+  return current;
+}
+
+// Resampling entlang der Bogenlänge mit festem Schrittmaß für gleichmäßige Stützpunkte
+export function resamplePath(points, spacing = 20) {
+  if (!points || points.length < 2) return points ? [...points] : [];
+  const res = [points[0]];
+  let prev = points[0];
+  let acc = 0;
+
+  for (let i = 1; i < points.length; i++) {
+    const curr = points[i];
+    const d = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+    if (acc + d >= spacing) {
+      const remain = spacing - acc;
+      const ratio = remain / d;
+      const np = {
+        x: prev.x + (curr.x - prev.x) * ratio,
+        y: prev.y + (curr.y - prev.y) * ratio
+      };
+      res.push(np);
+      prev = np;
+      acc = 0;
+      i--; // Punkt nochmals verwerten falls Segment lang genug
+    } else {
+      acc += d;
+      prev = curr;
+    }
+  }
+
+  const lastPt = points[points.length - 1];
+  if (Math.hypot(res[res.length - 1].x - lastPt.x, res[res.length - 1].y - lastPt.y) > 5) {
+    res.push(lastPt);
+  }
+  return res;
+}
+
 // Catmull-Rom Spline zu zusammengesetzten kubischen Bézier-Segmenten (GoodNotes / Notability Standard)
 export function catmullRomToBezier(points, tension = 0.5) {
   if (!points || points.length < 2) return [];
@@ -158,24 +218,20 @@ export function catmullRomToBezier(points, tension = 0.5) {
   return segments;
 }
 
-// Wandelt Stroke-Punkte mittels RDP + Catmull-Rom in eine geglättete, feine Punktreihe um (für perfektes Rendering)
-export function fitCatmullRomPoints(rawPoints, epsilon = 2.0, samplesPerSegment = 10) {
+// Perfekt geglätteter Laufweg: RDP Entrauschen -> Äquidistantes Resampling -> Chaikin Rundung -> Stützpunkte
+export function fitCatmullRomPoints(rawPoints, epsilon = 6.0, spacing = 22) {
   if (!rawPoints || rawPoints.length < 2) return rawPoints ? [...rawPoints] : [];
+
+  // Schritt 1: RDP filtert Maus-/Finger-Zittern und irrelevante Ausreißer
   const simplified = simplifyPathRDP(rawPoints, epsilon);
-  if (simplified.length < 2) return [...rawPoints];
+  if (simplified.length < 3) return simplified;
 
-  const beziers = catmullRomToBezier(simplified);
-  const smoothed = [];
+  // Schritt 2: Resampling sorgt für harmonische Kurvenstützpunkte ohne Dichte-Unwuchten
+  const resampled = resamplePath(simplified, spacing);
+  if (resampled.length < 3) return simplified;
 
-  beziers.forEach((seg, sIdx) => {
-    const steps = samplesPerSegment;
-    const startStep = (sIdx === 0) ? 0 : 1;
-    for (let step = startStep; step <= steps; step++) {
-      const t = step / steps;
-      smoothed.push(getCubicBezierPoint(t, seg.p0, seg.cp1, seg.cp2, seg.p3));
-    }
-  });
-
+  // Schritt 3: Chaikin schneidet harte Kanten ab und erzeugt seidenweiche Rundungen
+  const smoothed = chaikinSmooth(resampled, 2);
   return smoothed;
 }
 
