@@ -63,6 +63,29 @@ export function handleCurvePointerDown(x, y, kf, prevKf, handleHitRadius) {
     }
   }
 
+  // 3. Fallback: Auch wenn kein Pfeil vor-selektiert ist, Kontrollpunkte aller gekrümmten Pfeile prüfen
+  if (kf.arrows && kf.arrows.length > 0) {
+    for (let i = kf.arrows.length - 1; i >= 0; i--) {
+      if (i === state.selectedArrowIndex) continue;
+      const arr = kf.arrows[i];
+      const { p1, p2 } = getArrowCurveControlPoints(arr);
+      const pMid = getCubicBezierPoint(0.5, { x: arr.x1, y: arr.y1 }, p1, p2, { x: arr.x2, y: arr.y2 });
+
+      if (Math.hypot(x - p1.x, y - p1.y) <= handleHitRadius) {
+        state.selectedArrowIndex = i;
+        return { arrowIndex: i, handle: "p1", arrow: arr };
+      }
+      if (Math.hypot(x - p2.x, y - p2.y) <= handleHitRadius) {
+        state.selectedArrowIndex = i;
+        return { arrowIndex: i, handle: "p2", arrow: arr };
+      }
+      if (Math.hypot(x - pMid.x, y - pMid.y) <= handleHitRadius) {
+        state.selectedArrowIndex = i;
+        return { arrowIndex: i, handle: "mid", arrow: arr };
+      }
+    }
+  }
+
   return null;
 }
 

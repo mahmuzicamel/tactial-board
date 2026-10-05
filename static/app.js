@@ -264,7 +264,8 @@
         (otherKf.arrows || []).forEach(arr => {
           if (arr.persistent) {
             const isSel = (idx === s.selectedArrowPersistentKfIdx && arr === s.selectedArrowPersistentObj);
-            TC().arrows.drawArrow(ctx, arr.x1, arr.y1, arr.x2, arr.y2, arr.type, arr.color, isSel, null, arr.cp1_dx !== undefined ? { x: arr.x1 + arr.cp1_dx, y: arr.y1 + arr.cp1_dy } : null, arr.cp2_dx !== undefined ? { x: arr.x2 + arr.cp2_dx, y: arr.y2 + arr.cp2_dy } : null, arr.raw_points);
+            const { p1, p2 } = TC().geometry.getArrowCurveControlPoints(arr);
+            TC().arrows.drawArrow(ctx, arr.x1, arr.y1, arr.x2, arr.y2, arr.type, arr.color, isSel, null, p1, p2, arr.raw_points);
           }
         });
       });
@@ -274,9 +275,8 @@
     const nowTime = performance.now() / 1000;
     arrows.forEach((arr, idx) => {
       const isSel = (s.selectedArrowIndex === idx);
-      const cp1 = arr.cp1_dx !== undefined ? { x: arr.x1 + arr.cp1_dx, y: arr.y1 + arr.cp1_dy } : null;
-      const cp2 = arr.cp2_dx !== undefined ? { x: arr.x2 + arr.cp2_dx, y: arr.y2 + arr.cp2_dy } : null;
-      TC().arrows.drawArrow(ctx, arr.x1, arr.y1, arr.x2, arr.y2, arr.type, arr.color, isSel, arr.type === "guide" ? nowTime : null, cp1, cp2, arr.raw_points);
+      const { p1, p2 } = TC().geometry.getArrowCurveControlPoints(arr);
+      TC().arrows.drawArrow(ctx, arr.x1, arr.y1, arr.x2, arr.y2, arr.type, arr.color, isSel, arr.type === "guide" ? nowTime : null, p1, p2, arr.raw_points);
     });
 
     // 5. In-flight Arrow Drawing
@@ -521,10 +521,9 @@
       if (arrowControls) arrowControls.classList.add("hidden");
     } else if (s.selectedArrowIndex !== null && kf.arrows && kf.arrows[s.selectedArrowIndex]) {
       const arr = kf.arrows[s.selectedArrowIndex];
-      const { p1, p2 } = TC().geometry.getArrowCurveControlPoints(arr);
-      const mid = TC().geometry.getCubicBezierPoint(0.5, { x: arr.x1, y: arr.y1 }, p1, p2, { x: arr.x2, y: arr.y2 });
-      const sp = TC().viewport.getScreenCoords(canvas, mid.x, mid.y);
-      posX = sp.x; posY = sp.y - 32;
+      // Popup am Endpunkt (Pfeilspitze) platzieren mit genügend Abstand, damit keine Kurven-Griffe verdeckt werden
+      const sp = TC().viewport.getScreenCoords(canvas, arr.x2, arr.y2);
+      posX = sp.x; posY = sp.y - 48;
       if (elControls) elControls.classList.add("hidden");
       if (arrowControls) arrowControls.classList.remove("hidden");
       window.updateArrowPersistentButtonState(arr);
