@@ -839,7 +839,7 @@ export class View3DManager {
     if (!this.renderer || !this.scene || !this.camera) {
       throw new Error("3D Ansicht ist nicht initialisiert.");
     }
-    const currentEx = this.getExercise();
+    const currentEx = (typeof this.getCurrentExercise === "function") ? this.getCurrentExercise() : (this.state && this.state.currentExercise);
     if (!currentEx || !Array.isArray(currentEx.keyframes) || currentEx.keyframes.length < 2) {
       throw new Error("Mindestens 2 Schritte erforderlich für Video.");
     }
