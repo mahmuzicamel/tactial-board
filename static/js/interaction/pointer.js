@@ -93,9 +93,9 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
     if (selEl && (selEl.type === "zone_rect" || selEl.type === "zone_circle" || selEl.type === "zone_triangle")) {
       const zHitR = Math.max(30, 38 / Math.sqrt(state.viewScale));
 
-      // Berücksichtige die Gesamtrotation der Zone auf dem Canvas:
-      // In elements.js: translate(x,y) -> rotate(-fieldRotation) -> rotate(el.rotation)
-      const totalRotDeg = ((selEl.rotation || 0) - (state.fieldRotation || 0));
+      // Bei Zonen (Rechteck, Kreis, Dreieck) rotiert das Element mit dem Spielfeld mit (kein Counter-Rotate)
+      // Daher ist die Ausrichtung auf dem Canvas gleich el.rotation (ohne -fieldRotation)
+      const totalRotDeg = selEl.rotation || 0;
       const totalRotRad = (totalRotDeg * Math.PI) / 180;
       const cosA = Math.cos(totalRotRad);
       const sinA = Math.sin(totalRotRad);

@@ -9,7 +9,9 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
   ctx.translate(x, y);
 
   // Counter-rotate element around its own center so numbers, text, goals & cones stay upright and legible
-  if (fieldRotation !== 0) {
+  // Zonen (Rechteck, Kreis, Dreieck) bleiben dagegen am Rasen verankert, es sei denn sie haben eine eigene Drehung
+  const isZone = (el.type === "zone_rect" || el.type === "zone_circle" || el.type === "zone_triangle");
+  if (fieldRotation !== 0 && !isZone) {
     ctx.rotate((-fieldRotation * Math.PI) / 180);
   }
 
@@ -23,7 +25,6 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
   const elScale = (globalElementScale || 1.0) * jumpScale;
   ctx.scale(elScale, elScale);
 
-  const isZone = (el.type === "zone_rect" || el.type === "zone_circle" || el.type === "zone_triangle");
   if (isSelected && !isZone) {
     ctx.strokeStyle = "#38bdf8";
     ctx.lineWidth = 3;
