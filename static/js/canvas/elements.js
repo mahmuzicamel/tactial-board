@@ -23,7 +23,8 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
   const elScale = (globalElementScale || 1.0) * jumpScale;
   ctx.scale(elScale, elScale);
 
-  if (isSelected) {
+  const isZone = (el.type === "zone_rect" || el.type === "zone_circle" || el.type === "zone_triangle");
+  if (isSelected && !isZone) {
     ctx.strokeStyle = "#38bdf8";
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -316,7 +317,7 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
 
     // Wenn selektiert: Deutliche Resize-Handles an den 4 Ecken und 4 Kantenmitten rendern
     if (isSelected) {
-      const handleR = 5;
+      const handleR = 7; // Größere, gut greifbare Griffe (Bubbles)
       const handles = [
         // 4 Ecken
         { x: -w/2, y: -h/2 },
@@ -329,14 +330,27 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
         { x: 0, y: h/2 },  // Unten
         { x: -w/2, y: 0 }  // Links
       ];
-      ctx.fillStyle = "#ffffff";
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
+
+      // Dezente Verbindungs-Glow für Handles
       handles.forEach(c => {
+        // Weißer Button mit farbigem Rand und Schlagschatten für optimale Touch-Sichtbarkeit
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+        ctx.shadowBlur = 4;
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.arc(c.x, c.y, handleR, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
+
+        // Innerer kleiner Akzent-Punkt
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       });
     }
 
@@ -374,17 +388,25 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
 
     // Wenn selektiert: Resize-Handle am Kreisrand rendern
     if (isSelected) {
-      const handleR = 5;
-      ctx.fillStyle = "#ffffff";
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
+      const handleR = 7;
       [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].forEach(angle => {
         const hx = Math.cos(angle) * radius;
         const hy = Math.sin(angle) * radius;
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+        ctx.shadowBlur = 4;
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.arc(hx, hy, handleR, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(hx, hy, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       });
     }
 
@@ -419,20 +441,28 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
 
     // Wenn selektiert: Resize-Handles an den 3 Spitzen rendern
     if (isSelected) {
-      const handleR = 5;
+      const handleR = 7;
       const tips = [
         { x: 0, y: -h * 0.6 },
         { x: size * 0.5, y: h * 0.4 },
         { x: -size * 0.5, y: h * 0.4 }
       ];
-      ctx.fillStyle = "#ffffff";
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
       tips.forEach(t => {
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+        ctx.shadowBlur = 4;
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.arc(t.x, t.y, handleR, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       });
     }
   }

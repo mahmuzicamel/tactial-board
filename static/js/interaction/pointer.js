@@ -91,37 +91,53 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
   if (state.selectedElementId) {
     const selEl = kf.elements.find(it => it.id === state.selectedElementId);
     if (selEl && (selEl.type === "zone_rect" || selEl.type === "zone_circle" || selEl.type === "zone_triangle")) {
-      const zHitR = Math.max(22, 28 / Math.sqrt(state.viewScale));
+      const zHitR = Math.max(30, 38 / Math.sqrt(state.viewScale));
+
+      // Berücksichtige die Gesamtrotation der Zone auf dem Canvas:
+      // In elements.js: translate(x,y) -> rotate(-fieldRotation) -> rotate(el.rotation)
+      const totalRotDeg = ((selEl.rotation || 0) - (state.fieldRotation || 0));
+      const totalRotRad = (totalRotDeg * Math.PI) / 180;
+      const cosA = Math.cos(totalRotRad);
+      const sinA = Math.sin(totalRotRad);
+
+      const toWorldCoord = (lx, ly) => ({
+        x: selEl.x + (lx * cosA - ly * sinA),
+        y: selEl.y + (lx * sinA + ly * cosA)
+      });
+
       if (selEl.type === "zone_rect") {
         const w = selEl.width || 120;
         const h = selEl.height || 80;
-        // 4 Ecken + 4 Kanten
-        const handles = [
+        // 4 Ecken + 4 Kantenmitten in lokalen Koordinaten
+        const localHandles = [
           // Ecken
-          { name: "tl", x: selEl.x - w/2, y: selEl.y - h/2 },
-          { name: "tr", x: selEl.x + w/2, y: selEl.y - h/2 },
-          { name: "br", x: selEl.x + w/2, y: selEl.y + h/2 },
-          { name: "bl", x: selEl.x - w/2, y: selEl.y + h/2 },
+          { name: "tl", lx: -w/2, ly: -h/2 },
+          { name: "tr", lx: w/2, ly: -h/2 },
+          { name: "br", lx: w/2, ly: h/2 },
+          { name: "bl", lx: -w/2, ly: h/2 },
           // Kantenmitten (jede Seite einzeln)
-          { name: "t", x: selEl.x, y: selEl.y - h/2 },
-          { name: "r", x: selEl.x + w/2, y: selEl.y },
-          { name: "b", x: selEl.x, y: selEl.y + h/2 },
-          { name: "l", x: selEl.x - w/2, y: selEl.y }
+          { name: "t", lx: 0, ly: -h/2 },
+          { name: "r", lx: w/2, ly: 0 },
+          { name: "b", lx: 0, ly: h/2 },
+          { name: "l", lx: -w/2, ly: 0 }
         ];
+
+        const handles = localHandles.map(hItem => {
+          const wPos = toWorldCoord(hItem.lx, hItem.ly);
+          return { name: hItem.name, x: wPos.x, y: wPos.y, lx: hItem.lx, ly: hItem.ly };
+        });
+
         const hitHandle = handles.find(c => Math.hypot(c.x - x, c.y - y) <= zHitR);
         if (hitHandle) {
           state.isResizingZone = true;
           state.resizeZoneId = selEl.id;
           state.resizeZoneCorner = hitHandle.name;
           state.resizeInitialState = {
-            x: selEl.x,
-            y: selEl.y,
+            centerX: selEl.x,
+            centerY: selEl.y,
             width: w,
             height: h,
-            left: selEl.x - w/2,
-            right: selEl.x + w/2,
-            top: selEl.y - h/2,
-            bottom: selEl.y + h/2,
+            totalRotRad: totalRotRad,
             startMouseX: x,
             startMouseY: y
           };
@@ -129,13 +145,17 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
         }
       } else if (selEl.type === "zone_circle") {
         const radius = selEl.radius || 50;
-        const handles = [
-          { name: "r", x: selEl.x + radius, y: selEl.y },
-          { name: "b", x: selEl.x, y: selEl.y + radius },
-          { name: "l", x: selEl.x - radius, y: selEl.y },
-          { name: "t", x: selEl.x, y: selEl.y - radius }
+        const localHandles = [
+          { name: "r", lx: radius, ly: 0 },
+          { name: "b", lx: 0, ly: radius },
+          { name: "l", lx: -radius, ly: 0 },
+          { name: "t", lx: 0, ly: -radius }
         ];
-        const hitHandle = handles.find(h => Math.hypot(h.x - x, h.y - y) <= zHitR);
+        const handles = localHandles.map(hItem => {
+          const wPos = toWorldCoord(hItem.lx, hItem.ly);
+          return { name: hItem.name, x: wPos.x, y: wPos.y };
+        });
+        const hitHandle = handles.find(hItem => Math.hypot(hItem.x - x, hItem.y - y) <= zHitR);
         if (hitHandle) {
           state.isResizingZone = true;
           state.resizeZoneId = selEl.id;
@@ -145,13 +165,17 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
         }
       } else if (selEl.type === "zone_triangle") {
         const size = selEl.size || 70;
-        const h = size * 0.866;
-        const tips = [
-          { name: "top", x: selEl.x, y: selEl.y - h * 0.6 },
-          { name: "br", x: selEl.x + size * 0.5, y: selEl.y + h * 0.4 },
-          { name: "bl", x: selEl.x - size * 0.5, y: selEl.y + h * 0.4 }
+        const triH = size * 0.866;
+        const localTips = [
+          { name: "top", lx: 0, ly: -triH * 0.6 },
+          { name: "br", lx: size * 0.5, ly: triH * 0.4 },
+          { name: "bl", lx: -size * 0.5, ly: triH * 0.4 }
         ];
-        const hitTip = tips.find(t => Math.hypot(t.x - x, t.y - y) <= zHitR);
+        const tips = localTips.map(tItem => {
+          const wPos = toWorldCoord(tItem.lx, tItem.ly);
+          return { name: tItem.name, x: wPos.x, y: wPos.y };
+        });
+        const hitTip = tips.find(tItem => Math.hypot(tItem.x - x, tItem.y - y) <= zHitR);
         if (hitTip) {
           state.isResizingZone = true;
           state.resizeZoneId = selEl.id;
@@ -351,38 +375,54 @@ export function handleCanvasPointerMove(e, canvas, getCanvasCoords, callbacks = 
         const init = state.resizeInitialState;
         const corner = state.resizeZoneCorner;
 
-        let left = init.left;
-        let right = init.right;
-        let top = init.top;
-        let bottom = init.bottom;
+        // Transformiere aktuellen Mauszeiger (x, y) in den lokalen Koordinatenraum der Zone
+        const totalRotRad = init.totalRotRad || 0;
+        const cosA = Math.cos(totalRotRad);
+        const sinA = Math.sin(totalRotRad);
 
-        // Jede Seite einzeln ziehbar (ohne dass sich die Gegenseite mitbewegt!)
+        const dxWorld = x - init.centerX;
+        const dyWorld = y - init.centerY;
+        const localMouseX = dxWorld * cosA + dyWorld * sinA;
+        const localMouseY = -dxWorld * sinA + dyWorld * cosA;
+
+        let left = -init.width / 2;
+        let right = init.width / 2;
+        let top = -init.height / 2;
+        let bottom = init.height / 2;
+
+        // Jede Seite einzeln ziehbar im lokalen Koordinatensystem
         if (corner === "l") {
-          left = Math.min(x, right - 20);
+          left = Math.min(localMouseX, right - 20);
         } else if (corner === "r") {
-          right = Math.max(x, left + 20);
+          right = Math.max(localMouseX, left + 20);
         } else if (corner === "t") {
-          top = Math.min(y, bottom - 20);
+          top = Math.min(localMouseY, bottom - 20);
         } else if (corner === "b") {
-          bottom = Math.max(y, top + 20);
+          bottom = Math.max(localMouseY, top + 20);
         } else if (corner === "tl") {
-          left = Math.min(x, right - 20);
-          top = Math.min(y, bottom - 20);
+          left = Math.min(localMouseX, right - 20);
+          top = Math.min(localMouseY, bottom - 20);
         } else if (corner === "tr") {
-          right = Math.max(x, left + 20);
-          top = Math.min(y, bottom - 20);
+          right = Math.max(localMouseX, left + 20);
+          top = Math.min(localMouseY, bottom - 20);
         } else if (corner === "bl") {
-          left = Math.min(x, right - 20);
-          bottom = Math.max(y, top + 20);
+          left = Math.min(localMouseX, right - 20);
+          bottom = Math.max(localMouseY, top + 20);
         } else if (corner === "br") {
-          right = Math.max(x, left + 20);
-          bottom = Math.max(y, top + 20);
+          right = Math.max(localMouseX, left + 20);
+          bottom = Math.max(localMouseY, top + 20);
         }
 
-        el.width = Math.round(right - left);
-        el.height = Math.round(bottom - top);
-        el.x = Math.round((left + right) / 2);
-        el.y = Math.round((top + bottom) / 2);
+        const newW = Math.round(right - left);
+        const newH = Math.round(bottom - top);
+        const localCenterShiftX = (left + right) / 2;
+        const localCenterShiftY = (top + bottom) / 2;
+
+        // Verschiebe Mittelpunkt zurück in Weltkoordinaten
+        el.x = Math.round(init.centerX + (localCenterShiftX * cosA - localCenterShiftY * sinA));
+        el.y = Math.round(init.centerY + (localCenterShiftX * sinA + localCenterShiftY * cosA));
+        el.width = newW;
+        el.height = newH;
       } else if (el.type === "zone_circle") {
         const dist = Math.hypot(x - el.x, y - el.y);
         el.radius = Math.max(15, Math.round(dist));
