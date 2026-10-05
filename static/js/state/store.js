@@ -80,6 +80,7 @@ export const state = {
   currentSpeed: 1.0,
 
   // Viewport Transform
+  is3DMode: false,
   viewScale: 1.0,
   viewPanX: 0,
   viewPanY: 0,

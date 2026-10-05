@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tactical-coach-v117';
+const CACHE_NAME = 'tactical-coach-v118';
 const ASSETS_TO_CACHE = [
   '/',
   '/static/index.html',
@@ -12,7 +12,10 @@ const ASSETS_TO_CACHE = [
   '/static/js/canvas/elements.js',
   '/static/js/canvas/arrows.js',
   '/static/js/canvas/viewport.js',
+  '/static/js/canvas/view3d.js',
   '/static/js/canvas/playback.js',
+  '/static/vendor/three.min.js',
+  '/static/vendor/OrbitControls.js',
   '/static/js/ui/popovers.js',
   '/static/js/ui/hud.js',
   '/static/js/ui/inspectors.js',

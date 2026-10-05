@@ -177,6 +177,12 @@
   window.drawScene = function (customElements = null, customArrows = null, customTitle = null) {
     if (!ctx || !canvas || !TC()) return;
     const s = S();
+
+    // 3D Scene Synchronisation, wenn aktiv
+    if (s.is3DMode && view3dManager && view3dManager.isActive) {
+      view3dManager.syncScene(customElements, customArrows);
+    }
+
     const kf = TC().getCurrentKeyframe();
     const elements = customElements || kf.elements || [];
     const arrows = customArrows || kf.arrows || [];
@@ -487,9 +493,61 @@
 
   // Playback Controller Bridge
   let playbackCtrl = null;
+  let view3dManager = null;
   window.togglePlayAnimation = function () { if (playbackCtrl) playbackCtrl.toggle(); };
   window.startAnimation = function () { if (playbackCtrl) playbackCtrl.start(); };
   window.stopAnimation = function () { if (playbackCtrl) playbackCtrl.stop(); };
+
+  // 3D View Bridge
+  window.toggle3DView = function () {
+    const s = S();
+    s.is3DMode = !s.is3DMode;
+
+    const btn = document.getElementById("view3dToggleBtn");
+    const lbl = document.getElementById("view3dToggleLabel");
+    const hud = document.getElementById("view3dHud");
+    const c2d = document.getElementById("tacticCanvas");
+
+    if (!view3dManager && TC().View3DManager) {
+      const wrapper = document.getElementById("canvasWrapper");
+      view3dManager = new (TC().View3DManager)(wrapper, s, () => s.currentExercise);
+      window.view3dManager = view3dManager;
+    }
+
+    if (s.is3DMode) {
+      if (btn) {
+        btn.className = "ml-1 px-2 py-1 bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white rounded-lg flex items-center gap-1.5 text-[11px] font-bold border border-cyan-400 transition shadow-md shadow-cyan-500/30";
+      }
+      if (lbl) lbl.innerText = "2D";
+      if (hud) hud.classList.remove("hidden");
+      if (c2d) c2d.style.opacity = "0.05"; // 2D im Hintergrund schwach halten
+
+      // Schließe 2D Selektions-Popups
+      window.deselectElement();
+
+      if (view3dManager) {
+        view3dManager.show();
+      }
+    } else {
+      if (btn) {
+        btn.className = "ml-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-cyan-400 hover:text-cyan-300 rounded-lg flex items-center gap-1.5 text-[11px] font-bold border border-slate-700 transition shadow-sm";
+      }
+      if (lbl) lbl.innerText = "3D";
+      if (hud) hud.classList.add("hidden");
+      if (c2d) c2d.style.opacity = "1";
+
+      if (view3dManager) {
+        view3dManager.hide();
+      }
+      window.drawScene();
+    }
+  };
+
+  window.set3DCameraPreset = function (preset) {
+    if (view3dManager) {
+      view3dManager.setCameraPreset(preset);
+    }
+  };
 
   window.toggleLoopMode = function () {
     const s = S();
