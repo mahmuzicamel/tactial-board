@@ -23,43 +23,43 @@ export function closePlaybackSettingsMenu() {
 
 export function toggleLineModeMenu(event) {
   if (event) event.stopPropagation();
-  const popup = document.getElementById("lineModeMenuPopup");
-  if (!popup) return;
-  const isHidden = popup.classList.contains("hidden");
+  const modal = document.getElementById("lineModeMenuModal");
+  if (!modal) return;
+  const isHidden = modal.classList.contains("hidden");
   closeEquipmentMenu();
   closePlaybackSettingsMenu();
   if (isHidden) {
-    popup.classList.remove("hidden");
+    modal.classList.remove("hidden");
   } else {
-    popup.classList.add("hidden");
+    modal.classList.add("hidden");
   }
 }
 
 export function closeLineModeMenu() {
-  const popup = document.getElementById("lineModeMenuPopup");
-  if (popup && !popup.classList.contains("hidden")) {
-    popup.classList.add("hidden");
+  const modal = document.getElementById("lineModeMenuModal");
+  if (modal && !modal.classList.contains("hidden")) {
+    modal.classList.add("hidden");
   }
 }
 
 export function toggleEquipmentMenu(event) {
   if (event) event.stopPropagation();
-  const popup = document.getElementById("equipmentMenuPopup");
-  if (!popup) return;
-  const isHidden = popup.classList.contains("hidden");
+  const modal = document.getElementById("equipmentMenuModal");
+  if (!modal) return;
+  const isHidden = modal.classList.contains("hidden");
   closePlaybackSettingsMenu();
   closeLineModeMenu();
   if (isHidden) {
-    popup.classList.remove("hidden");
+    modal.classList.remove("hidden");
   } else {
-    popup.classList.add("hidden");
+    modal.classList.add("hidden");
   }
 }
 
 export function closeEquipmentMenu() {
-  const popup = document.getElementById("equipmentMenuPopup");
-  if (popup && !popup.classList.contains("hidden")) {
-    popup.classList.add("hidden");
+  const modal = document.getElementById("equipmentMenuModal");
+  if (modal && !modal.classList.contains("hidden")) {
+    modal.classList.add("hidden");
   }
 }
 
@@ -73,19 +73,19 @@ export function initGlobalClickDismiss() {
       }
     }
 
-    const equipPopup = document.getElementById("equipmentMenuPopup");
+    const equipModal = document.getElementById("equipmentMenuModal");
     const equipBtn = document.getElementById("equipmentMenuBtn");
-    if (equipPopup && !equipPopup.classList.contains("hidden")) {
-      if (!equipPopup.contains(e.target) && !equipBtn?.contains(e.target)) {
-        equipPopup.classList.add("hidden");
+    if (equipModal && !equipModal.classList.contains("hidden")) {
+      if (e.target === equipModal) {
+        equipModal.classList.add("hidden");
       }
     }
 
-    const lineModePopup = document.getElementById("lineModeMenuPopup");
+    const lineModeModal = document.getElementById("lineModeMenuModal");
     const lineModeBtn = document.getElementById("lineModeMenuBtn");
-    if (lineModePopup && !lineModePopup.classList.contains("hidden")) {
-      if (!lineModePopup.contains(e.target) && !lineModeBtn?.contains(e.target)) {
-        lineModePopup.classList.add("hidden");
+    if (lineModeModal && !lineModeModal.classList.contains("hidden")) {
+      if (e.target === lineModeModal) {
+        lineModeModal.classList.add("hidden");
       }
     }
   });

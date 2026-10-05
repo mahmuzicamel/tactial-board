@@ -68,7 +68,7 @@ let activeTool = "select"; // 'select', 'pass', 'run', 'guide'
 let idlePulseReqId = null; // Animation frame loop for pulsing guide lines when editor is idle
 const EQUIPMENT_TYPES = ["cone", "pole", "ladder", "minigoal", "goal_5m", "dummy", "ring", "hurdle"];
 function isEquipment(type) {
-  return EQUIPMENT_TYPES.includes(type);
+  return window.TacticalCoach?.constants?.isEquipment ? window.TacticalCoach.constants.isEquipment(type) : EQUIPMENT_TYPES.includes(type);
 }
 let selectedElementId = null;
 let selectedElementIds = []; // Multi-selection for grouped elements
@@ -334,6 +334,34 @@ function rotatePitch() {
   drawScene();
   updateActionPopupPosition();
 }
+
+// Aliases for modules from window.TacticalCoach
+const pitch = {
+  drawPitchBackground: (c, type) => (window.TacticalCoach?.pitch?.drawPitchBackground || drawPitchBackground)(c, type)
+};
+const elemModule = {
+  drawElementOnCanvas: (c, el, sel, rot, sc) => (window.TacticalCoach?.elements?.drawElementOnCanvas || drawElementOnCanvas)(c, el, sel, rot, sc)
+};
+const arrowModule = {
+  drawArrow: (...args) => (window.TacticalCoach?.arrows?.drawArrow || drawArrow)(...args)
+};
+const geomModule = {
+  distToSegment: (...args) => (window.TacticalCoach?.geometry?.distToSegment || distToSegment)(...args),
+  distToPolyline: (...args) => (window.TacticalCoach?.geometry?.distToPolyline || distToPolyline)(...args),
+  pointInPolygon: (...args) => (window.TacticalCoach?.geometry?.pointInPolygon || pointInPolygon)(...args),
+  getCubicBezierPoint: (...args) => (window.TacticalCoach?.geometry?.getCubicBezierPoint || getCubicBezierPoint)(...args),
+  distToCubicBezier: (...args) => (window.TacticalCoach?.geometry?.distToCubicBezier || distToCubicBezier)(...args),
+  getEffectiveCurveControlPoints: (...args) => (window.TacticalCoach?.geometry?.getEffectiveCurveControlPoints || getEffectiveCurveControlPoints)(...args),
+  getArrowCurveControlPoints: (...args) => (window.TacticalCoach?.geometry?.getArrowCurveControlPoints || getArrowCurveControlPoints)(...args),
+  fitCubicBezierToStroke: (...args) => (window.TacticalCoach?.geometry?.fitCubicBezierToStroke || fitCubicBezierToStroke)(...args)
+};
+const vpModule = {
+  getDisplayDimensions: (c) => (window.TacticalCoach?.viewport?.getDisplayDimensions || getDisplayDimensions)(c),
+  getScreenCoords: (c, vx, vy) => (window.TacticalCoach?.viewport?.getScreenCoords || getScreenCoords)(c, vx, vy),
+  getCanvasCoords: (c, evt) => (window.TacticalCoach?.viewport?.getCanvasCoords || getCanvasCoords)(c, evt),
+  zoomAt: (...args) => (window.TacticalCoach?.viewport?.zoomAt || zoomAt)(...args),
+  updateZoomUI: () => (window.TacticalCoach?.viewport?.updateZoomUI || updateZoomUI)()
+};
 
 function toggleTopMenu() {
   const drawer = document.getElementById("topDrawerMenu");
@@ -640,7 +668,7 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
   ctx.translate(-VIRTUAL_WIDTH / 2, -VIRTUAL_HEIGHT / 2);
 
   // 1. Draw Pitch (always on 1000x700 coordinate system)
-  drawPitchBackground(pitchType);
+  pitch.drawPitchBackground(ctx, pitchType);
 
   // 1.5. Draw Ghost / Onion Skinning Layer (previous keyframes) when editing and ghost mode is enabled
   if (isGhostMode !== "off" && !isPlaying && currentKeyframeIndex > 0) {
@@ -776,13 +804,13 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
       // Pfeile des Geister-Schritts
       for (const pArrow of (gKf.arrows || [])) {
         const { p1: pArr1, p2: pArr2 } = getArrowCurveControlPoints(pArrow);
-        drawArrow(pArrow.x1, pArrow.y1, pArrow.x2, pArrow.y2, pArrow.type, pArrow.color || "#94a3b8", false, null, pArr1, pArr2, pArrow.raw_points);
+        arrowModule.drawArrow(pArrow.x1, pArrow.y1, pArrow.x2, pArrow.y2, pArrow.type, pArrow.color || "#94a3b8", false, null, pArr1, pArr2, pArrow.raw_points);
       }
 
       // Elemente des Geister-Schritts
       const sortedGhostElements = [...(gKf.elements || [])].sort((a, b) => (prevOrder[a.type] || 2) - (prevOrder[b.type] || 2));
       for (const pEl of sortedGhostElements) {
-        drawElementOnCanvas(pEl, false);
+  elemModule.drawElementOnCanvas(ctx, pEl, false, fieldRotation, globalElementScale);
       }
 
       ctx.restore();
@@ -838,7 +866,7 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
     const arrow = arrows[i];
     const isSelected = (selectedArrowIndex === i && selectedElementId === null);
     const { p1, p2 } = getArrowCurveControlPoints(arrow);
-    drawArrow(arrow.x1, arrow.y1, arrow.x2, arrow.y2, arrow.type, arrow.color || (arrow.type === "guide" ? "#fbbf24" : "#facc15"), isSelected, nowSec, p1, p2, arrow.raw_points);
+    arrowModule.drawArrow(arrow.x1, arrow.y1, arrow.x2, arrow.y2, arrow.type, arrow.color || (arrow.type === "guide" ? "#fbbf24" : "#facc15"), isSelected, nowSec, p1, p2, arrow.raw_points);
   }
 
   // Draw arrow in progress (live freehand trail or fitted preview)
@@ -881,7 +909,7 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
       ctx.fill();
       ctx.restore();
     } else {
-      drawArrow(arrowStartX, arrowStartY, arrowCurrentX, arrowCurrentY, aType, col, false, nowSec);
+      arrowModule.drawArrow(arrowStartX, arrowStartY, arrowCurrentX, arrowCurrentY, aType, col, false, nowSec);
     }
   }
 
@@ -891,7 +919,7 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
 
   for (const el of sorted) {
     const isSelected = (el.id === selectedElementId) || selectedElementIds.includes(el.id);
-    drawElementOnCanvas(el, isSelected);
+    elemModule.drawElementOnCanvas(ctx, el, isSelected, fieldRotation, globalElementScale);
   }
 
   // 4. Draw Lasso Selection Outline if currently lassoing
@@ -960,775 +988,43 @@ function checkGuidePulseLoop() {
 }
 
 function drawPitchBackground(pitchType) {
-  const w = VIRTUAL_WIDTH;
-  const h = VIRTUAL_HEIGHT;
-
-  // Dynamic stripes covering virtual field + margins
-  const stripes = 12;
-  const sw = (w + 400) / stripes;
-  for (let i = 0; i < stripes; i++) {
-    ctx.fillStyle = (i % 2 === 0) ? "#2d6a4f" : "#285d45";
-    ctx.fillRect(-200 + i * sw, -200, sw, h + 400);
-  }
-
-  // If "plain" / grass only without lines:
-  if (pitchType === "plain") {
-    return;
-  }
-
-  // Pitch boundary lines
-  const mx = 30;
-  const my = 25;
-  const pw = w - 2 * mx;
-  const ph = h - 2 * my;
-
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 4;
-  ctx.strokeRect(mx, my, pw, ph);
-
-  if (pitchType === "full") {
-    const midX = mx + pw / 2;
-    ctx.beginPath();
-    ctx.moveTo(midX, my);
-    ctx.lineTo(midX, my + ph);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(midX, my + ph / 2, 75, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Penalty areas
-    ctx.strokeRect(mx, my + (ph - 280) / 2, 140, 280);
-    ctx.strokeRect(mx + pw - 140, my + (ph - 280) / 2, 140, 280);
-  } else if (pitchType === "half") {
-    // Goal & penalty area on left
-    ctx.strokeRect(mx, my + (ph - 360) / 2, 220, 360);
-    ctx.strokeRect(mx, my + (ph - 180) / 2, 80, 180);
-    // Center circle arc
-    ctx.beginPath();
-    ctx.arc(mx + pw, my + ph / 2, 120, Math.PI * 0.5, Math.PI * 1.5);
-    ctx.stroke();
-  } else if (pitchType === "funino") {
-    // Center line
-    const midX = mx + pw / 2;
-    ctx.beginPath();
-    ctx.moveTo(midX, my);
-    ctx.lineTo(midX, my + ph);
-    ctx.stroke();
-
-    // 6m shooting lines (dashed)
-    ctx.setLineDash([8, 8]);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-    ctx.beginPath();
-    ctx.moveTo(mx + 120, my);
-    ctx.lineTo(mx + 120, my + ph);
-    ctx.moveTo(mx + pw - 120, my);
-    ctx.lineTo(mx + pw - 120, my + ph);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.strokeStyle = "#ffffff";
-
-    // 4 Minigoals
-    ctx.fillStyle = "rgba(231, 76, 60, 0.6)";
-    ctx.fillRect(mx - 15, my + 60, 15, 50);
-    ctx.fillRect(mx - 15, my + ph - 110, 15, 50);
-    ctx.fillStyle = "rgba(52, 152, 219, 0.6)";
-    ctx.fillRect(mx + pw, my + 60, 15, 50);
-    ctx.fillRect(mx + pw, my + ph - 110, 15, 50);
-  } else if (pitchType === "rondo") {
-    ctx.strokeStyle = "#facc15";
-    ctx.lineWidth = 3;
-    const rmx = mx + 100;
-    const rmy = my + 50;
-    const rw = pw - 200;
-    const rh = ph - 100;
-    ctx.strokeRect(rmx, rmy, rw, rh);
-    ctx.beginPath();
-    ctx.moveTo(rmx + rw / 2, rmy);
-    ctx.lineTo(rmx + rw / 2, rmy + rh);
-    ctx.moveTo(rmx, rmy + rh / 2);
-    ctx.lineTo(rmx + rw, rmy + rh / 2);
-    ctx.stroke();
-  }
+  pitch.drawPitchBackground(ctx, pitchType);
 }
 
 function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected = false, animTime = null, cp1 = null, cp2 = null, rawPoints = null) {
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const dist = Math.hypot(dx, dy);
-  if (dist < 5 && !(rawPoints && rawPoints.length >= 2)) return;
-
-  const isRaw = (rawPoints && rawPoints.length >= 2);
-  const isCurved = (!isRaw && cp1 && cp2 && (Math.hypot(cp1.x - (x1 + dx * (1 / 3)), cp1.y - (y1 + dy * (1 / 3))) > 1 || Math.hypot(cp2.x - (x1 + dx * (2 / 3)), cp2.y - (y1 + dy * (2 / 3))) > 1));
-
-  ctx.save();
-
-  // If selected, highlight glow background
-  if (isSelected) {
-    ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
-    ctx.lineWidth = 14;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    if (isRaw) {
-      ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
-      for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
-    } else {
-      ctx.moveTo(x1, y1);
-      if (isCurved) {
-        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
-      } else {
-        ctx.lineTo(x2, y2);
-      }
-    }
-    ctx.stroke();
-  }
-
-  // Calculate tangent angle at tip (t = 1) for the arrowhead
-  let tipAngle = Math.atan2(dy, dx);
-  if (isRaw) {
-    const pLast = rawPoints[rawPoints.length - 1];
-    const pPrev = rawPoints[Math.max(0, rawPoints.length - 4)];
-    const pdx = pLast.x - pPrev.x;
-    const pdy = pLast.y - pPrev.y;
-    if (Math.hypot(pdx, pdy) > 0.001) {
-      tipAngle = Math.atan2(pdy, pdx);
-    }
-  } else if (isCurved) {
-    // Tangent vector of cubic bezier at t = 1 is 3 * (p3 - p2)
-    const tdx = x2 - cp2.x;
-    const tdy = y2 - cp2.y;
-    if (Math.hypot(tdx, tdy) > 0.001) {
-      tipAngle = Math.atan2(tdy, tdx);
-    }
-  }
-
-  // Type: "guide" -> Blinking / Pulsing dashed Hilfslinie
-  if (type === "guide") {
-    const t = (animTime !== null) ? animTime : (performance.now() / 1000);
-    // Pulsing opacity between 0.35 and 1.0 (blinking rhythm ~2Hz)
-    const pulseAlpha = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(t * Math.PI * 3.5));
-    // Moving animated dash march
-    const dashOffset = -(t * 35) % 24;
-
-    ctx.save();
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    // Soft outer neon glow aura
-    ctx.strokeStyle = `rgba(245, 158, 11, ${pulseAlpha * 0.45})`;
-    ctx.lineWidth = 8;
-    ctx.setLineDash([12, 8]);
-    ctx.lineDashOffset = dashOffset;
-    ctx.beginPath();
-    if (isRaw) {
-      ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
-      for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
-    } else {
-      ctx.moveTo(x1, y1);
-      if (isCurved) {
-        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
-      } else {
-        ctx.lineTo(x2, y2);
-      }
-    }
-    ctx.stroke();
-
-    // Sharp bright core line (Amber/Gold or custom color)
-    ctx.strokeStyle = color || "#fbbf24";
-    ctx.fillStyle = color || "#fbbf24";
-    ctx.globalAlpha = pulseAlpha;
-    ctx.lineWidth = 3.5;
-    ctx.setLineDash([12, 8]);
-    ctx.lineDashOffset = dashOffset;
-    ctx.beginPath();
-    if (isRaw) {
-      ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
-      for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
-    } else {
-      ctx.moveTo(x1, y1);
-      if (isCurved) {
-        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
-      } else {
-        ctx.lineTo(x2, y2);
-      }
-    }
-    ctx.stroke();
-
-    // Symmetrical diamond / indicator at both endpoints
-    ctx.setLineDash([]);
-    ctx.beginPath();
-    ctx.arc(x1, y1, 5, 0, Math.PI * 2);
-    ctx.arc(x2, y2, 5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
-  } else {
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    ctx.lineWidth = 4;
-
-    if (type === "pass") {
-      ctx.setLineDash([10, 8]);
-      ctx.beginPath();
-      if (isRaw) {
-        ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
-        for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
-      } else {
-        ctx.moveTo(x1, y1);
-        if (isCurved) {
-          ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
-        } else {
-          ctx.lineTo(x2, y2);
-        }
-      }
-      ctx.stroke();
-    } else {
-      // Run / dribble solid line
-      ctx.beginPath();
-      if (isRaw) {
-        ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
-        for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
-      } else {
-        ctx.moveTo(x1, y1);
-        if (isCurved) {
-          ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
-        } else {
-          ctx.lineTo(x2, y2);
-        }
-      }
-      ctx.stroke();
-    }
-
-    // Arrow tip oriented along tipAngle
-    ctx.setLineDash([]);
-    const arrowSize = 14;
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - arrowSize * Math.cos(tipAngle - Math.PI / 6), y2 - arrowSize * Math.sin(tipAngle - Math.PI / 6));
-    ctx.lineTo(x2 - arrowSize * Math.cos(tipAngle + Math.PI / 6), y2 - arrowSize * Math.sin(tipAngle + Math.PI / 6));
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  // Draw interactive handle rings when selected
-  if (isSelected) {
-    // Start handle
-    ctx.fillStyle = "#38bdf8";
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(x1, y1, 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // End handle (tip)
-    ctx.beginPath();
-    ctx.arc(x2, y2, 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Interactive Curve Control Handles (mid, p1, p2)
-    if (cp1 && cp2) {
-      const p0 = { x: x1, y: y1 };
-      const p3 = { x: x2, y: y2 };
-      const pMid = getCubicBezierPoint(0.5, p0, cp1, cp2, p3);
-
-      // Dotted tangent arms
-      ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(cp1.x, cp1.y);
-      ctx.moveTo(x2, y2);
-      ctx.lineTo(cp2.x, cp2.y);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // P1 handle (cyan)
-      ctx.fillStyle = "#06b6d4";
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(cp1.x, cp1.y, 6.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // P2 handle (cyan)
-      ctx.beginPath();
-      ctx.arc(cp2.x, cp2.y, 6.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // Midpoint handle (Amber/Yellow curve crown handle)
-      ctx.fillStyle = "#f59e0b";
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(pMid.x, pMid.y, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
-  }
-
-  ctx.restore();
+  arrowModule.drawArrow(x1, y1, x2, y2, type, color, isSelected, animTime, cp1, cp2, rawPoints);
 }
 
 function drawElementOnCanvas(el, isSelected = false) {
-  const x = el.x;
-  const y = el.y;
-
-  ctx.save();
-  ctx.translate(x, y);
-
-  // Counter-rotate element around its own center so numbers, text, goals & cones stay upright and legible
-  if (fieldRotation !== 0) {
-    ctx.rotate((-fieldRotation * Math.PI) / 180);
-  }
-
-  // Apply element's own local rotation (in degrees)
-  if (el.rotation) {
-    ctx.rotate((el.rotation * Math.PI) / 180);
-  }
-
-  // Apply global element scale slider (resizes all players, cones, goals, balls) & optional Jump scale
-  const jumpScale = (el.scaleMultiplier !== undefined) ? el.scaleMultiplier : 1.0;
-  const elScale = (globalElementScale || 1.0) * jumpScale;
-  ctx.scale(elScale, elScale);
-
-  if (isSelected) {
-    ctx.strokeStyle = "#38bdf8";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(0, 0, 26, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  // Spotlight / Focus Highlighting (optischer Scheinwerfer & pulsierender Ring)
-  if (el.focus) {
-    // 1. Großflächiger weicher Schein (Spotlight Aura)
-    const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 48);
-    grad.addColorStop(0, "rgba(250, 204, 21, 0.45)"); // Warmer Gold-Schein
-    grad.addColorStop(0.6, "rgba(250, 204, 21, 0.2)");
-    grad.addColorStop(1, "rgba(250, 204, 21, 0)");
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(0, 0, 48, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 2. Markanter goldener Fokus-Ring mit Akzent
-    ctx.strokeStyle = "#facc15";
-    ctx.lineWidth = 3.5;
-    ctx.setLineDash([6, 3]);
-    ctx.beginPath();
-    ctx.arc(0, 0, 28, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // 3. Kleiner leuchtender Fokus-Stern/Badge oben rechts
-    ctx.fillStyle = "#facc15";
-    ctx.beginPath();
-    ctx.arc(18, -18, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#000000";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-
-  if (el.type === "player") {
-    const radius = 18;
-    let fill = "#2563eb";
-    let textCol = "#ffffff";
-    if (el.team === "red") fill = "#dc2626";
-    if (el.team === "yellow") { fill = "#eab308"; textCol = "#000000"; }
-    if (el.team === "green") fill = "#16a34a";
-
-    // Shadow
-    ctx.fillStyle = "rgba(0,0,0,0.3)";
-    ctx.beginPath();
-    ctx.arc(2, 3, radius, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Body
-    ctx.fillStyle = fill;
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    // Number (always readable upright for viewer!)
-    ctx.save();
-    if (el.rotation) {
-      ctx.rotate((-el.rotation * Math.PI) / 180);
-    }
-    ctx.fillStyle = textCol;
-    ctx.font = "bold 13px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(el.number || "1", 0, 0);
-
-    // Name label (upright below player)
-    if (el.name) {
-      ctx.fillStyle = "rgba(0,0,0,0.75)";
-      const nw = ctx.measureText(el.name).width + 8;
-      ctx.fillRect(-nw / 2, radius + 3, nw, 14);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "10px sans-serif";
-      ctx.fillText(el.name, 0, radius + 10);
-    }
-    ctx.restore();
-
-  } else if (el.type === "ball") {
-    const radius = 10;
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#111827";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.fillStyle = "#111827";
-    ctx.beginPath();
-    ctx.arc(0, 0, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-  } else if (el.type === "cone") {
-    ctx.fillStyle = "#f97316";
-    ctx.beginPath();
-    ctx.moveTo(0, -14);
-    ctx.lineTo(14, 14);
-    ctx.lineTo(-14, 14);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-  } else if (el.type === "pole") {
-    ctx.fillStyle = "#eab308";
-    ctx.fillRect(-3, -24, 6, 32);
-    ctx.fillStyle = "#000000";
-    ctx.beginPath();
-    ctx.arc(0, 8, 6, 0, Math.PI * 2);
-    ctx.fill();
-
-  } else if (el.type === "minigoal") {
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(-18, -11, 36, 22);
-    ctx.fillStyle = "rgba(255,255,255,0.2)";
-    ctx.fillRect(-18, -11, 36, 22);
-
-  } else if (el.type === "goal_5m") {
-    // 5m x 2m Jugendtor (E-Jugend / Kleinfeldtor)
-    const gw = 70;
-    const gh = 30;
-    // Goal net background
-    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-    ctx.fillRect(-gw / 2, -gh / 2, gw, gh);
-    // Net pattern (cross hatch)
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
-    ctx.lineWidth = 1;
-    for (let gx = -gw / 2 + 10; gx < gw / 2; gx += 10) {
-      ctx.beginPath();
-      ctx.moveTo(gx, -gh / 2);
-      ctx.lineTo(gx, gh / 2);
-      ctx.stroke();
-    }
-    for (let gy = -gh / 2 + 10; gy < gh / 2; gy += 10) {
-      ctx.beginPath();
-      ctx.moveTo(-gw / 2, gy);
-      ctx.lineTo(gw / 2, gy);
-      ctx.stroke();
-    }
-    // Goal frame (post and crossbar)
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 4;
-    ctx.strokeRect(-gw / 2, -gh / 2, gw, gh);
-    // Post markings
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(-gw / 2 - 3, -gh / 2 - 3, 6, 6);
-    ctx.fillRect(gw / 2 - 3, -gh / 2 - 3, 6, 6);
-    // Label "5m Tor" inside net (always upright for viewer)
-    ctx.save();
-    if (el.rotation) {
-      ctx.rotate((-el.rotation * Math.PI) / 180);
-    }
-    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-    ctx.font = "bold 10px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("5m Tor", 0, 0);
-    ctx.restore();
-
-  } else if (el.type === "ladder") {
-    ctx.strokeStyle = "#facc15";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-40, -10, 80, 20);
-    for (let i = 1; i < 5; i++) {
-      ctx.beginPath();
-      ctx.moveTo(-40 + i * 16, -10);
-      ctx.lineTo(-40 + i * 16, 10);
-      ctx.stroke();
-    }
-
-  } else if (el.type === "dummy") {
-    // Freistoß-Dummy / Trainingsfigur (Silhouette mit breiter Brust & Standfuß)
-    // Standfuß
-    ctx.fillStyle = "rgba(0,0,0,0.45)";
-    ctx.beginPath();
-    ctx.ellipse(0, 16, 14, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Körper / Torso (Gelb/Schwarz)
-    ctx.fillStyle = "#eab308";
-    ctx.strokeStyle = "#000000";
-    ctx.lineWidth = 2;
-
-    // Schultern/Torso Schild
-    ctx.beginPath();
-    ctx.roundRect(-12, -10, 24, 24, [4, 4, 8, 8]);
-    ctx.fill();
-    ctx.stroke();
-
-    // Dummy Kopf
-    ctx.beginPath();
-    ctx.arc(0, -16, 7, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Brust-Rippen / Muster
-    ctx.strokeStyle = "rgba(0,0,0,0.6)";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(-8, -4);
-    ctx.lineTo(8, -4);
-    ctx.moveTo(-8, 2);
-    ctx.lineTo(8, 2);
-    ctx.moveTo(-6, 8);
-    ctx.lineTo(6, 8);
-    ctx.stroke();
-
-  } else if (el.type === "ring") {
-    // Koordinationsring / Agility Ring (Durchmesser ca. 36px)
-    ctx.strokeStyle = "#06b6d4"; // Cyan / leuchtend
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(0, 0, 16, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Innen transparenter leichter Schein
-    ctx.fillStyle = "rgba(6, 182, 212, 0.15)";
-    ctx.fill();
-
-  } else if (el.type === "hurdle") {
-    // Agility-Hürde / Mini-Hürde
-    // Schatten
-    ctx.fillStyle = "rgba(0,0,0,0.3)";
-    ctx.fillRect(-22, 1, 44, 4);
-
-    // Füße / Standkufen
-    ctx.fillStyle = "#1e293b";
-    ctx.fillRect(-22, -6, 5, 12);
-    ctx.fillRect(17, -6, 5, 12);
-
-    // Hürden-Querbalken (Signal-Orange / Neon-Gelb gestreift)
-    ctx.fillStyle = "#f97316";
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 1;
-    ctx.fillRect(-20, -3, 40, 6);
-    ctx.strokeRect(-20, -3, 40, 6);
-
-    // Reflektor-Streifen
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(-8, -3, 4, 6);
-    ctx.fillRect(4, -3, 4, 6);
-  }
-
-  ctx.restore();
+  elemModule.drawElementOnCanvas(ctx, el, isSelected, fieldRotation, globalElementScale);
 }
 
-// Point in Polygon algorithm (Ray-Casting) to detect elements inside lasso loop
+// Geometry & Bezier calculations (delegated to static/js/core/geometry.js)
 function pointInPolygon(point, vs) {
-  const x = point.x, y = point.y;
-  let inside = false;
-  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const xi = vs[i].x, yi = vs[i].y;
-    const xj = vs[j].x, yj = vs[j].y;
-    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-    if (intersect) inside = !inside;
-  }
-  return inside;
+  return geomModule.pointInPolygon(point, vs);
 }
-
-// Distance from point (px, py) to a polyline points array
 function distToPolyline(px, py, points) {
-  if (!points || points.length < 2) return Infinity;
-  let minDist = Infinity;
-  for (let i = 1; i < points.length; i++) {
-    const d = distToSegment(px, py, points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
-    if (d < minDist) minDist = d;
-  }
-  return minDist;
+  return geomModule.distToPolyline(px, py, points);
 }
-
-// Helper to calculate distance from point (px, py) to line segment (x1, y1)-(x2, y2)
 function distToSegment(px, py, x1, y1, x2, y2) {
-  const l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
-  if (l2 === 0) return Math.hypot(px - x1, py - y1);
-  let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
-  t = Math.max(0, Math.min(1, t));
-  const projX = x1 + t * (x2 - x1);
-  const projY = y1 + t * (y2 - y1);
-  return Math.hypot(px - projX, py - projY);
+  return geomModule.distToSegment(px, py, x1, y1, x2, y2);
 }
-
-// Distance from point (px, py) to a cubic bezier curve sampled with 20 segments
 function distToCubicBezier(px, py, p0, p1, p2, p3) {
-  let minDist = Infinity;
-  let prevPt = p0;
-  const samples = 20;
-  for (let i = 1; i <= samples; i++) {
-    const t = i / samples;
-    const currPt = getCubicBezierPoint(t, p0, p1, p2, p3);
-    const d = distToSegment(px, py, prevPt.x, prevPt.y, currPt.x, currPt.y);
-    if (d < minDist) minDist = d;
-    prevPt = currPt;
-  }
-  return minDist;
+  return geomModule.distToCubicBezier(px, py, p0, p1, p2, p3);
 }
-
-// Calculate coordinates on a cubic bezier curve given P0, P1, P2, P3 at parameter t (0 <= t <= 1)
 function getCubicBezierPoint(t, p0, p1, p2, p3) {
-  const u = 1 - t;
-  const tt = t * t;
-  const uu = u * u;
-  const uuu = uu * u;
-  const ttt = tt * t;
-
-  return {
-    x: uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
-    y: uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y
-  };
+  return geomModule.getCubicBezierPoint(t, p0, p1, p2, p3);
 }
-
-// Convert curve control offsets { cp1_dx, cp1_dy, cp2_dx, cp2_dy } into absolute control points P1, P2
 function getEffectiveCurveControlPoints(fromEl, toEl) {
-  const dx = toEl.x - fromEl.x;
-  const dy = toEl.y - fromEl.y;
-
-  // Defaults: 1/3 and 2/3 along straight line if no curve offset is set
-  const p1 = {
-    x: fromEl.x + dx * (1 / 3) + (toEl.cp1_dx || 0),
-    y: fromEl.y + dy * (1 / 3) + (toEl.cp1_dy || 0)
-  };
-  const p2 = {
-    x: fromEl.x + dx * (2 / 3) + (toEl.cp2_dx || 0),
-    y: fromEl.y + dy * (2 / 3) + (toEl.cp2_dy || 0)
-  };
-  return { p1, p2 };
+  return geomModule.getEffectiveCurveControlPoints(fromEl, toEl);
 }
-
-// Control points for explicit arrow / line objects
 function getArrowCurveControlPoints(arr) {
-  const dx = arr.x2 - arr.x1;
-  const dy = arr.y2 - arr.y1;
-  const p1 = {
-    x: arr.x1 + dx * (1 / 3) + (arr.cp1_dx || 0),
-    y: arr.y1 + dy * (1 / 3) + (arr.cp1_dy || 0)
-  };
-  const p2 = {
-    x: arr.x1 + dx * (2 / 3) + (arr.cp2_dx || 0),
-    y: arr.y1 + dy * (2 / 3) + (arr.cp2_dy || 0)
-  };
-  return { p1, p2 };
+  return geomModule.getArrowCurveControlPoints(arr);
 }
-
-// Fit a smooth cubic Bezier curve to a sequence of recorded stroke points
 function fitCubicBezierToStroke(points) {
-  if (!points || points.length < 3) return null;
-  const p0 = points[0];
-  const p3 = points[points.length - 1];
-  const chordDx = p3.x - p0.x;
-  const chordDy = p3.y - p0.y;
-  const chordLen = Math.hypot(chordDx, chordDy);
-  if (chordLen < 15) return null;
-
-  // Compute cumulative distances along stroke
-  const cumDists = [0];
-  for (let i = 1; i < points.length; i++) {
-    cumDists.push(cumDists[i - 1] + Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y));
-  }
-  const totalStrokeLen = cumDists[cumDists.length - 1];
-  if (totalStrokeLen < 15) return null;
-
-  // Check if stroke deviates meaningfully from a straight line
-  let maxDeviation = 0;
-  for (let i = 1; i < points.length - 1; i++) {
-    const dev = distToSegment(points[i].x, points[i].y, p0.x, p0.y, p3.x, p3.y);
-    if (dev > maxDeviation) maxDeviation = dev;
-  }
-
-  // If nearly straight (deviation < 6% of length or < 8px), keep it as clean straight line
-  if (maxDeviation < 8 || maxDeviation / chordLen < 0.05) {
-    return { cp1_dx: 0, cp1_dy: 0, cp2_dx: 0, cp2_dy: 0 };
-  }
-
-  // Least-squares fit for cubic bezier control points P1 and P2:
-  // P(t) = (1-t)^3 * P0 + 3(1-t)^2*t * P1 + 3(1-t)*t^2 * P2 + t^3 * P3
-  // Let B1(t) = 3*(1-t)^2*t and B2(t) = 3*(1-t)*t^2
-  // We want to minimize sum || B1*P1 + B2*P2 - (P(t) - (1-t)^3*P0 - t^3*P3) ||^2
-  let c11 = 0, c12 = 0, c22 = 0;
-  let rx1 = 0, ry1 = 0, rx2 = 0, ry2 = 0;
-
-  for (let i = 0; i < points.length; i++) {
-    const t = Math.max(0.001, Math.min(0.999, cumDists[i] / totalStrokeLen));
-    const u = 1 - t;
-    const b0 = u * u * u;
-    const b1 = 3 * u * u * t;
-    const b2 = 3 * u * t * t;
-    const b3 = t * t * t;
-
-    const targetX = points[i].x - b0 * p0.x - b3 * p3.x;
-    const targetY = points[i].y - b0 * p0.y - b3 * p3.y;
-
-    c11 += b1 * b1;
-    c12 += b1 * b2;
-    c22 += b2 * b2;
-
-    rx1 += b1 * targetX;
-    ry1 += b1 * targetY;
-    rx2 += b2 * targetX;
-    ry2 += b2 * targetY;
-  }
-
-  const det = c11 * c22 - c12 * c12;
-  if (Math.abs(det) < 1e-6) {
-    return { cp1_dx: 0, cp1_dy: 0, cp2_dx: 0, cp2_dy: 0 };
-  }
-
-  const fitP1X = (c22 * rx1 - c12 * rx2) / det;
-  const fitP1Y = (c22 * ry1 - c12 * ry2) / det;
-  const fitP2X = (c11 * rx2 - c12 * rx1) / det;
-  const fitP2Y = (c11 * ry2 - c12 * ry1) / det;
-
-  // Default straight 1/3 and 2/3 positions along chord
-  const defaultP1X = p0.x + chordDx * (1 / 3);
-  const defaultP1Y = p0.y + chordDy * (1 / 3);
-  const defaultP2X = p0.x + chordDx * (2 / 3);
-  const defaultP2Y = p0.y + chordDy * (2 / 3);
-
-  return {
-    cp1_dx: Math.round(fitP1X - defaultP1X),
-    cp1_dy: Math.round(fitP1Y - defaultP1Y),
-    cp2_dx: Math.round(fitP2X - defaultP2X),
-    cp2_dy: Math.round(fitP2Y - defaultP2Y)
-  };
+  return geomModule.fitCubicBezierToStroke(points);
 }
+
 
 // Convert Virtual Coordinates (1000x700) to Canvas Screen/DOM Pixels
 function getScreenCoords(vx, vy) {
@@ -3104,71 +2400,70 @@ function duplicateSelectedElement() {
 }
 
 function showGroupInspector(count) {
-  const bar = document.getElementById("floatingElementBar");
-  const nameLabel = document.getElementById("floatingElementName");
-  const numInput = document.getElementById("floatingPropNumber");
-  const nameInput = document.getElementById("floatingPropName");
-
-  if (!bar) return;
-  if (!isMovingElement) {
-    bar.classList.remove("hidden");
+  if (window.TacticalCoach?.inspectors?.showGroupInspector) {
+    window.TacticalCoach.inspectors.showGroupInspector(count);
   } else {
-    bar.classList.add("hidden");
-  }
-  nameLabel.textContent = `Gruppe (${count} Objekte)`;
-  numInput.classList.add("hidden");
-  nameInput.classList.add("hidden");
-}
-
-// Inspector for selected item (Floating Action Bar)
-function showInspector(el) {
-  const bar = document.getElementById("floatingElementBar");
-  const nameLabel = document.getElementById("floatingElementName");
-  const numInput = document.getElementById("floatingPropNumber");
-  const nameInput = document.getElementById("floatingPropName");
-
-  if (!bar) return;
-  if (!isMovingElement) {
-    bar.classList.remove("hidden");
-  } else {
-    bar.classList.add("hidden");
-  }
-
-  if (el.type === "player") {
-    nameLabel.textContent = (el.team === "blue" ? "Blau" : el.team === "red" ? "Rot" : "Joker");
-    numInput.classList.remove("hidden");
-    nameInput.classList.remove("hidden");
-    numInput.value = el.number || "";
-    nameInput.value = el.name || "";
-  } else {
-    nameLabel.textContent = el.type === "ball" ? "Ball" : el.type === "cone" ? "Hütchen" : el.type === "minigoal" ? "Minitor" : el.type === "goal_5m" ? "5m Tor (E-Jugend)" : el.type === "pole" ? "Stange" : el.type === "ladder" ? "Leiter" : el.type === "dummy" ? "Dummy" : el.type === "ring" ? "Ring" : el.type === "hurdle" ? "Hürde" : "Objekt";
+    const bar = document.getElementById("floatingElementBar");
+    const nameLabel = document.getElementById("floatingElementName");
+    const numInput = document.getElementById("floatingPropNumber");
+    const nameInput = document.getElementById("floatingPropName");
+    if (!bar) return;
+    if (!isMovingElement) bar.classList.remove("hidden"); else bar.classList.add("hidden");
+    nameLabel.textContent = `Gruppe (${count} Objekte)`;
     numInput.classList.add("hidden");
     nameInput.classList.add("hidden");
   }
 }
 
-function showArrowInspector(arr) {
-  const bar = document.getElementById("floatingElementBar");
-  const nameLabel = document.getElementById("floatingElementName");
-  const numInput = document.getElementById("floatingPropNumber");
-  const nameInput = document.getElementById("floatingPropName");
-
-  if (!bar) return;
-  if (!isMovingElement) {
-    bar.classList.remove("hidden");
+function showInspector(el) {
+  if (window.TacticalCoach?.inspectors?.showInspector) {
+    window.TacticalCoach.inspectors.showInspector(el);
   } else {
-    bar.classList.add("hidden");
+    const bar = document.getElementById("floatingElementBar");
+    const nameLabel = document.getElementById("floatingElementName");
+    const numInput = document.getElementById("floatingPropNumber");
+    const nameInput = document.getElementById("floatingPropName");
+    if (!bar) return;
+    if (!isMovingElement) bar.classList.remove("hidden"); else bar.classList.add("hidden");
+    if (el.type === "player") {
+      nameLabel.textContent = (el.team === "blue" ? "Blau" : el.team === "red" ? "Rot" : "Joker");
+      numInput.classList.remove("hidden");
+      nameInput.classList.remove("hidden");
+      numInput.value = el.number || "";
+      nameInput.value = el.name || "";
+    } else {
+      nameLabel.textContent = el.type === "ball" ? "Ball" : el.type === "cone" ? "Hütchen" : el.type === "minigoal" ? "Minitor" : el.type === "goal_5m" ? "5m Tor (E-Jugend)" : el.type === "pole" ? "Stange" : el.type === "ladder" ? "Leiter" : el.type === "dummy" ? "Dummy" : el.type === "ring" ? "Ring" : el.type === "hurdle" ? "Hürde" : "Objekt";
+      numInput.classList.add("hidden");
+      nameInput.classList.add("hidden");
+    }
   }
-  nameLabel.textContent = arr.type === "pass" ? "Passweg" : (arr.type === "guide" ? "Hilfslinie" : "Laufweg");
-  numInput.classList.add("hidden");
-  nameInput.classList.add("hidden");
+}
+
+function showArrowInspector(arr) {
+  if (window.TacticalCoach?.inspectors?.showArrowInspector) {
+    window.TacticalCoach.inspectors.showArrowInspector(arr);
+  } else {
+    const bar = document.getElementById("floatingElementBar");
+    const nameLabel = document.getElementById("floatingElementName");
+    const numInput = document.getElementById("floatingPropNumber");
+    const nameInput = document.getElementById("floatingPropName");
+    if (!bar) return;
+    if (!isMovingElement) bar.classList.remove("hidden"); else bar.classList.add("hidden");
+    nameLabel.textContent = arr.type === "pass" ? "Passweg" : (arr.type === "guide" ? "Hilfslinie" : "Laufweg");
+    numInput.classList.add("hidden");
+    nameInput.classList.add("hidden");
+  }
 }
 
 function hideInspector() {
-  const bar = document.getElementById("floatingElementBar");
-  if (bar) bar.classList.add("hidden");
-  const popup = document.getElementById("elementActionPopup");
-  if (popup) popup.classList.add("hidden");
+  if (window.TacticalCoach?.inspectors?.hideInspector) {
+    window.TacticalCoach.inspectors.hideInspector();
+  } else {
+    const bar = document.getElementById("floatingElementBar");
+    if (bar) bar.classList.add("hidden");
+    const popup = document.getElementById("elementActionPopup");
+    if (popup) popup.classList.add("hidden");
+  }
 }
 
 function deselectElement() {
@@ -3950,9 +3245,7 @@ function closeCatalogModal() {
 
 async function loadCatalogExercises(search = "") {
   try {
-    const url = search ? `/api/exercises?search=${encodeURIComponent(search)}` : "/api/exercises";
-    const res = await fetch(url);
-    const exercises = await res.json();
+    const exercises = await (window.TacticalCoach?.client?.fetchExercises ? window.TacticalCoach.client.fetchExercises(search) : fetch(search ? `/api/exercises?search=${encodeURIComponent(search)}` : "/api/exercises").then(r => r.json()));
     const container = document.getElementById("catalogList");
     container.innerHTML = "";
 
@@ -4006,11 +3299,10 @@ async function loadExerciseFromCatalog(id, updateUrl = true) {
       stopAnimation();
     }
 
-    const res = await fetch(`/api/exercises/${id}`);
-    if (!res.ok) {
-      throw new Error(`Übung mit ID "${id}" wurde nicht gefunden.`);
-    }
-    const data = await res.json();
+    const data = await (window.TacticalCoach?.client?.fetchExerciseById ? window.TacticalCoach.client.fetchExerciseById(id) : fetch(`/api/exercises/${id}`).then(r => {
+      if (!r.ok) throw new Error(`Übung mit ID "${id}" wurde nicht gefunden.`);
+      return r.json();
+    }));
     if (!data || !data.keyframes || data.keyframes.length === 0) {
       throw new Error("Ungültiges Übungsformat empfangen.");
     }
@@ -4043,7 +3335,11 @@ async function loadExerciseFromCatalog(id, updateUrl = true) {
 
 async function deleteExerciseFromCatalog(id) {
   if (confirm("Übung wirklich löschen?")) {
-    await fetch(`/api/exercises/${id}`, { method: "DELETE" });
+    if (window.TacticalCoach?.client?.deleteExercise) {
+      await window.TacticalCoach.client.deleteExercise(id);
+    } else {
+      await fetch(`/api/exercises/${id}`, { method: "DELETE" });
+    }
     await loadCatalogExercises();
     refreshExerciseBadge();
   }
@@ -4107,13 +3403,18 @@ async function triggerServerVideoRender() {
       currentExercise.id = saveData.id;
     }
 
-    // 2. Trigger synchronous render
-    const res = await fetch(`/api/exercises/${encodeURIComponent(currentExercise.id)}/render?sync=true`, { method: "POST" });
-    if (!res.ok) {
-      const errDetail = await res.text();
-      throw new Error(`Serverfehler (${res.status}): ${errDetail}`);
+    // 2. Trigger synchronous render via client module
+    let data;
+    if (window.TacticalCoach?.client?.renderExerciseVideo) {
+      data = await window.TacticalCoach.client.renderExerciseVideo(currentExercise.id);
+    } else {
+      const res = await fetch(`/api/exercises/${encodeURIComponent(currentExercise.id)}/render?sync=true`, { method: "POST" });
+      if (!res.ok) {
+        const errDetail = await res.text();
+        throw new Error(`Serverfehler (${res.status}): ${errDetail}`);
+      }
+      data = await res.json();
     }
-    const data = await res.json();
     
     statusBox.classList.add("hidden");
     if (data.status === "ok" && data.exercise) {
@@ -4428,190 +3729,6 @@ function setLineDrawMode(mode) {
   showMobileSelectionHUD(modeTitles[mode] || "Linienmodus", modeSubtitles[mode] || "", modeIcons[mode] || "");
 }
 
-// Bottom Dock Horizontal Scroll Indicator Helpers
-function updateBottomDockScrollHints() {
-  const container = document.getElementById("bottomDockScrollContainer");
-  const leftHint = document.getElementById("dockScrollLeftHint");
-  const rightHint = document.getElementById("dockScrollRightHint");
-  if (!container || !leftHint || !rightHint) return;
+// Bottom Dock, HUD & Tooltip helpers now provided by ESM module (static/js/ui/hud.js)
 
-  const scrollLeft = container.scrollLeft;
-  const maxScroll = container.scrollWidth - container.clientWidth;
-
-  // Only show hints when content is actually overflowing/scrollable
-  if (maxScroll > 6) {
-    if (scrollLeft > 6) {
-      leftHint.classList.remove("opacity-0", "pointer-events-none");
-      leftHint.classList.add("opacity-100", "pointer-events-auto");
-    } else {
-      leftHint.classList.add("opacity-0", "pointer-events-none");
-      leftHint.classList.remove("opacity-100", "pointer-events-auto");
-    }
-
-    if (scrollLeft < maxScroll - 6) {
-      rightHint.classList.remove("opacity-0", "pointer-events-none");
-      rightHint.classList.add("opacity-100", "pointer-events-auto");
-    } else {
-      rightHint.classList.add("opacity-0", "pointer-events-none");
-      rightHint.classList.remove("opacity-100", "pointer-events-auto");
-    }
-  } else {
-    leftHint.classList.add("opacity-0", "pointer-events-none");
-    rightHint.classList.add("opacity-0", "pointer-events-none");
-  }
-}
-
-function scrollBottomDock(direction) {
-  const container = document.getElementById("bottomDockScrollContainer");
-  if (!container) return;
-  const amount = container.clientWidth * 0.65;
-  if (direction === "left") {
-    container.scrollBy({ left: -amount, behavior: "smooth" });
-  } else {
-    container.scrollBy({ left: amount, behavior: "smooth" });
-  }
-}
-
-// Mobile Center Selection HUD / Feedback
-let mobileHudTimer = null;
-
-function showMobileSelectionHUD(title, subtitle = "", iconHtml = "") {
-  // Nur auf Touch- / Mobilgeräten anzeigen (z. B. Smartphone/Tablet oder Viewport < 768px)
-  const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-  if (!isMobile) return;
-
-  const hud = document.getElementById("mobileSelectionHud");
-  const titleEl = document.getElementById("mobileSelectionTitle");
-  const subtitleEl = document.getElementById("mobileSelectionSubtitle");
-  const iconEl = document.getElementById("mobileSelectionIcon");
-  if (!hud || !titleEl) return;
-
-  titleEl.textContent = title;
-  if (subtitleEl) {
-    subtitleEl.textContent = subtitle;
-    subtitleEl.style.display = subtitle ? "block" : "none";
-  }
-  if (iconEl) {
-    iconEl.innerHTML = iconHtml;
-    iconEl.style.display = iconHtml ? "block" : "none";
-  }
-
-  // Animation einblenden
-  hud.classList.remove("opacity-0", "pointer-events-none", "scale-90");
-  hud.classList.add("opacity-100", "scale-100");
-
-  clearTimeout(mobileHudTimer);
-  mobileHudTimer = setTimeout(() => {
-    hud.classList.remove("opacity-100", "scale-100");
-    hud.classList.add("opacity-0", "pointer-events-none", "scale-90");
-  }, 950);
-}
-
-// Mobile Tooltip Handling (Long-press / Hold on touch screens)
-let mobileTooltipTimer = null;
-let activeTooltipEl = null;
-
-function showMobileTooltip(text, x, y) {
-  const tooltip = document.getElementById("mobileTooltip");
-  const textEl = document.getElementById("mobileTooltipText");
-  if (!tooltip || !textEl || !text) return;
-
-  textEl.textContent = text;
-  tooltip.style.left = `${Math.max(60, Math.min(window.innerWidth - 60, x))}px`;
-  tooltip.style.top = `${Math.max(40, y - 10)}px`;
-  tooltip.classList.remove("opacity-0", "pointer-events-none");
-  tooltip.classList.add("opacity-100");
-}
-
-function hideMobileTooltip() {
-  clearTimeout(mobileTooltipTimer);
-  mobileTooltipTimer = null;
-  activeTooltipEl = null;
-  const tooltip = document.getElementById("mobileTooltip");
-  if (tooltip) {
-    tooltip.classList.add("opacity-0", "pointer-events-none");
-    tooltip.classList.remove("opacity-100");
-  }
-}
-
-function setupMobileTooltips() {
-  // Delegate touch events globally for all elements having a title or data-title
-  document.addEventListener("touchstart", (e) => {
-    const target = e.target.closest("[title], [data-title]");
-    if (!target) {
-      hideMobileTooltip();
-      return;
-    }
-
-    const titleText = target.getAttribute("title") || target.getAttribute("data-title");
-    if (!titleText) return;
-
-    // Prevent standard native browser tooltip on long-press
-    if (target.hasAttribute("title")) {
-      target.setAttribute("data-title", titleText);
-      target.removeAttribute("title");
-    }
-
-    const touch = e.touches[0];
-    const clientX = touch.clientX;
-    const clientY = touch.clientY;
-
-    clearTimeout(mobileTooltipTimer);
-    activeTooltipEl = target;
-
-    // Show tooltip after 450ms long press
-    mobileTooltipTimer = setTimeout(() => {
-      showMobileTooltip(titleText, clientX, clientY);
-      // Auto-hide after 2.5 seconds
-      setTimeout(hideMobileTooltip, 2500);
-    }, 450);
-  }, { passive: true });
-
-  document.addEventListener("touchmove", () => {
-    // If finger moves significantly, cancel long press
-    hideMobileTooltip();
-  }, { passive: true });
-
-  document.addEventListener("touchend", () => {
-    // Restore title attribute when touch ends (with small delay so click handlers still work)
-    clearTimeout(mobileTooltipTimer);
-    setTimeout(() => {
-      if (activeTooltipEl && activeTooltipEl.hasAttribute("data-title") && !activeTooltipEl.hasAttribute("title")) {
-        activeTooltipEl.setAttribute("title", activeTooltipEl.getAttribute("data-title"));
-      }
-    }, 100);
-    setTimeout(hideMobileTooltip, 1200);
-  }, { passive: true });
-
-  document.addEventListener("touchcancel", hideMobileTooltip, { passive: true });
-}
-
-// Global click-listener to auto-dismiss open popovers / modals when clicking outside
-document.addEventListener("pointerdown", (e) => {
-  const playbackPopup = document.getElementById("playbackSettingsPopup");
-  const playbackBtn = document.getElementById("playbackSettingsBtn");
-  if (playbackPopup && !playbackPopup.classList.contains("hidden")) {
-    if (!playbackPopup.contains(e.target) && !playbackBtn?.contains(e.target)) {
-      playbackPopup.classList.add("hidden");
-    }
-  }
-
-  const equipModal = document.getElementById("equipmentMenuModal");
-  const equipBtn = document.getElementById("equipmentMenuBtn");
-  if (equipModal && !equipModal.classList.contains("hidden")) {
-    // If click is on the modal backdrop itself (not inside the dialog container)
-    if (e.target === equipModal) {
-      closeEquipmentMenu();
-    }
-  }
-
-  const lineModeModal = document.getElementById("lineModeMenuModal");
-  const lineModeBtn = document.getElementById("lineModeMenuBtn");
-  if (lineModeModal && !lineModeModal.classList.contains("hidden")) {
-    // If click is on the modal backdrop itself
-    if (e.target === lineModeModal) {
-      closeLineModeMenu();
-    }
-  }
-});
 

@@ -1,7 +1,7 @@
 // core/constants.js - Geometrie, Spielfeld-Definitionen und Farben
 
-export const VIRTUAL_WIDTH = 1050;
-export const VIRTUAL_HEIGHT = 680;
+export const VIRTUAL_WIDTH = 1000;
+export const VIRTUAL_HEIGHT = 700;
 
 export const EQUIPMENT_TYPES = [
   "cone", "pole", "ladder", "minigoal", "goal_5m", "dummy", "ring", "hurdle"
@@ -9,6 +9,10 @@ export const EQUIPMENT_TYPES = [
 
 export function isEquipment(type) {
   return EQUIPMENT_TYPES.includes(type);
+}
+
+export function isMobileScreen() {
+  return typeof window !== "undefined" && (window.innerWidth <= 768 || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
 }
 
 export const COLORS = {

@@ -9,6 +9,7 @@ import * as arrows from "./canvas/arrows.js";
 import * as viewport from "./canvas/viewport.js";
 import { PlaybackController } from "./canvas/playback.js";
 import * as popovers from "./ui/popovers.js";
+import * as hud from "./ui/hud.js";
 import * as inspectors from "./ui/inspectors.js";
 import * as timeline from "./ui/timeline.js";
 import * as tools from "./interaction/tools.js";
@@ -26,6 +27,14 @@ window.closeEquipmentMenu = popovers.closeEquipmentMenu;
 window.toggleLineModeMenu = popovers.toggleLineModeMenu;
 window.closeLineModeMenu = popovers.closeLineModeMenu;
 window.setLineDrawMode = popovers.setLineDrawMode;
+
+// Expose HUD and Bottom dock helpers globally
+window.showMobileSelectionHUD = hud.showMobileSelectionHUD;
+window.updateBottomDockScrollHints = hud.updateBottomDockScrollHints;
+window.scrollBottomDock = hud.scrollBottomDock;
+window.setupMobileTooltips = hud.setupMobileTooltips;
+window.showMobileTooltip = hud.showMobileTooltip;
+window.hideMobileTooltip = hud.hideMobileTooltip;
 
 // Attach modules to window.TacticalCoach namespace for debugging & gradual migration
 window.TacticalCoach = {

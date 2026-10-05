@@ -85,7 +85,11 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Number (always readable upright!)
+    // Number (always readable upright for viewer!)
+    ctx.save();
+    if (el.rotation) {
+      ctx.rotate((-el.rotation * Math.PI) / 180);
+    }
     ctx.fillStyle = textCol;
     ctx.font = "bold 13px sans-serif";
     ctx.textAlign = "center";
@@ -101,6 +105,7 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
       ctx.font = "10px sans-serif";
       ctx.fillText(el.name, 0, radius + 10);
     }
+    ctx.restore();
 
   } else if (el.type === "ball") {
     const radius = 10;
@@ -174,12 +179,17 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(-gw / 2 - 3, -gh / 2 - 3, 6, 6);
     ctx.fillRect(gw / 2 - 3, -gh / 2 - 3, 6, 6);
-    // Label "5m Tor" inside net
+    // Label "5m Tor" inside net (always upright for viewer)
+    ctx.save();
+    if (el.rotation) {
+      ctx.rotate((-el.rotation * Math.PI) / 180);
+    }
     ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
     ctx.font = "bold 10px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("5m Tor", 0, 0);
+    ctx.restore();
 
   } else if (el.type === "ladder") {
     ctx.strokeStyle = "#facc15";
