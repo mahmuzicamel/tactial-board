@@ -412,6 +412,12 @@ export function handleCanvasPointerUp(e, canvas, callbacks = {}) {
     state.lassoPoints = [];
     drawScene();
     updateActionPopupPosition();
+  } else if (state.selectedElementId) {
+    const kf = getCurrentKeyframe();
+    const el = kf?.elements?.find(it => it.id === state.selectedElementId);
+    if (el) showInspector(el);
+  } else if (state.selectedElementIds.length > 1) {
+    showGroupInspector(state.selectedElementIds.length);
   }
 
   // Arrow drawing finalize

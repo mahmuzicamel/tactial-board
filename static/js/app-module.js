@@ -20,6 +20,8 @@ import { state, getCurrentKeyframe, getCurrentExercise, setCurrentExercise } fro
 import { HistoryManager } from "./state/history.js";
 
 // Make popover functions globally callable for HTML inline handlers
+window.toggleTopMenu = popovers.toggleTopMenu;
+window.closeSidebarMenu = popovers.closeSidebarMenu;
 window.togglePlaybackSettingsMenu = popovers.togglePlaybackSettingsMenu;
 window.closePlaybackSettingsMenu = popovers.closePlaybackSettingsMenu;
 window.toggleEquipmentMenu = popovers.toggleEquipmentMenu;
@@ -30,6 +32,9 @@ if (typeof popovers.setLineDrawMode === "function") {
   window.setLineDrawMode = popovers.setLineDrawMode;
 }
 
+// Make tools functions globally callable
+window.setActiveTool = tools.setActiveTool;
+
 // Expose HUD and Bottom dock helpers globally
 window.showMobileSelectionHUD = hud.showMobileSelectionHUD;
 window.updateBottomDockScrollHints = hud.updateBottomDockScrollHints;
@@ -39,6 +44,7 @@ window.showMobileTooltip = hud.showMobileTooltip;
 window.hideMobileTooltip = hud.hideMobileTooltip;
 
 // Attach modules to window.TacticalCoach namespace for debugging & gradual migration
+window.state = state;
 window.TacticalCoach = {
   constants,
   geometry,

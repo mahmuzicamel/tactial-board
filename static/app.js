@@ -11,6 +11,21 @@
   // Global references for backwards compatibility & window exposure
   window.canvas = null;
   window.ctx = null;
+  Object.defineProperty(window, "currentExercise", {
+    get: () => S()?.currentExercise,
+    set: (val) => { if (S()) S().currentExercise = val; },
+    configurable: true
+  });
+  Object.defineProperty(window, "currentKeyframeIndex", {
+    get: () => S()?.currentKeyframeIndex,
+    set: (val) => { if (S()) S().currentKeyframeIndex = val; },
+    configurable: true
+  });
+  Object.defineProperty(window, "selectedElementId", {
+    get: () => S()?.selectedElementId,
+    set: (val) => { if (S()) S().selectedElementId = val; },
+    configurable: true
+  });
 
   // Helper: Toast Notifications
   window.showToast = function (message, isError = false) {
@@ -553,12 +568,27 @@
     }
   };
 
+  function getForwardOffset(distance = 45) {
+    const s = S();
+    const rad = ((s.fieldRotation || 0) * Math.PI) / 180;
+    const dx = -distance * Math.sin(rad);
+    const dy = -distance * Math.cos(rad);
+    return { dx: Math.round(dx), dy: Math.round(dy) };
+  }
+
   // Element Actions
   window.spawnElement = function (type, options = {}) {
     const s = S();
     const kf = TC().getCurrentKeyframe();
     let x = 500, y = 350;
-    if (type === "player") {
+    if (s.selectedElementId) {
+      const prevEl = kf.elements.find(it => it.id === s.selectedElementId);
+      if (prevEl) {
+        const offset = getForwardOffset(45);
+        x = Math.max(30, Math.min(970, (prevEl.x || 500) + offset.dx));
+        y = Math.max(30, Math.min(670, (prevEl.y || 350) + offset.dy));
+      }
+    } else if (type === "player") {
       const existing = kf.elements.filter(e => e.type === "player" && e.team === (options.team || "blue"));
       x = 350 + (existing.length % 5) * 60;
       y = 200 + Math.floor(existing.length / 5) * 70;
@@ -581,6 +611,19 @@
     s.selectedElementId = newEl.id;
     s.selectedElementIds = [];
     s.selectedArrowIndex = null;
+
+    // Stationary Training Equipment propagates to ALL keyframes in the exercise!
+    if (TC().constants.isEquipment(type) && s.currentExercise && Array.isArray(s.currentExercise.keyframes)) {
+      s.currentExercise.keyframes.forEach((otherKf, idx) => {
+        if (idx !== s.currentKeyframeIndex) {
+          const exists = otherKf.elements.some(it => it.id === newEl.id);
+          if (!exists) {
+            otherKf.elements.push(JSON.parse(JSON.stringify(newEl)));
+          }
+        }
+      });
+    }
+
     TC().inspectors.showInspector(newEl);
     window.drawScene();
     window.updateActionPopupPosition();
@@ -591,13 +634,15 @@
     const s = S();
     const kf = TC().getCurrentKeyframe();
     if (!kf) return;
+    const offset = getForwardOffset(45);
     if (s.selectedElementIds.length > 0) {
       const newIds = [];
       kf.elements.forEach(el => {
         if (s.selectedElementIds.includes(el.id)) {
           const clone = JSON.parse(JSON.stringify(el));
           clone.id = "el_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
-          clone.x += 35; clone.y += 35;
+          clone.x = Math.max(30, Math.min(970, clone.x + offset.dx));
+          clone.y = Math.max(30, Math.min(670, clone.y + offset.dy));
           kf.elements.push(clone);
           newIds.push(clone.id);
         }
@@ -614,7 +659,8 @@
       if (el) {
         const clone = JSON.parse(JSON.stringify(el));
         clone.id = "el_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
-        clone.x += 35; clone.y += 35;
+        clone.x = Math.max(30, Math.min(970, clone.x + offset.dx));
+        clone.y = Math.max(30, Math.min(670, clone.y + offset.dy));
         if (clone.type === "player" && clone.number) {
           const num = parseInt(clone.number, 10);
           if (!isNaN(num)) clone.number = (num + 1).toString();
@@ -634,11 +680,24 @@
     const kf = TC().getCurrentKeyframe();
     if (!kf) return;
     if (s.selectedElementIds.length > 0) {
-      kf.elements = kf.elements.filter(el => !s.selectedElementIds.includes(el.id));
+      const idsToDelete = [...s.selectedElementIds];
+      kf.elements = kf.elements.filter(el => !idsToDelete.includes(el.id));
+      if (s.currentExercise && Array.isArray(s.currentExercise.keyframes)) {
+        s.currentExercise.keyframes.forEach(otherKf => {
+          otherKf.elements = otherKf.elements.filter(el => !(idsToDelete.includes(el.id) && TC().constants.isEquipment(el.type)));
+        });
+      }
       s.selectedElementIds = [];
       s.selectedElementId = null;
     } else if (s.selectedElementId) {
-      kf.elements = kf.elements.filter(el => el.id !== s.selectedElementId);
+      const idToDelete = s.selectedElementId;
+      const elToDelete = kf.elements.find(el => el.id === idToDelete);
+      kf.elements = kf.elements.filter(el => el.id !== idToDelete);
+      if (elToDelete && TC().constants.isEquipment(elToDelete.type) && s.currentExercise && Array.isArray(s.currentExercise.keyframes)) {
+        s.currentExercise.keyframes.forEach(otherKf => {
+          otherKf.elements = otherKf.elements.filter(el => el.id !== idToDelete);
+        });
+      }
       s.selectedElementId = null;
     } else if (s.selectedArrowIndex !== null) {
       kf.arrows.splice(s.selectedArrowIndex, 1);
