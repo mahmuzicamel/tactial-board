@@ -249,6 +249,12 @@
               ctx.arc(fromEl.x, fromEl.y, 3.5, 0, Math.PI * 2);
               ctx.fill();
 
+              // Zeichne die Ghost-Silhouette des Elements am Startpunkt (fromKf)
+              ctx.save();
+              ctx.globalAlpha = Math.max(0.2, trailAlpha * 0.45);
+              TC().elements.drawElementOnCanvas(ctx, fromEl, false, s.fieldRotation, s.globalElementScale);
+              ctx.restore();
+
               const angle = Math.atan2(toEl.y - p2.y, toEl.x - p2.x);
               const headLen = Math.max(7, 10 - stepsAgo * 1.0);
               const offsetR = toEl.type === "ball" ? 14 : 20;
