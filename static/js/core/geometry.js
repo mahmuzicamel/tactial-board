@@ -387,109 +387,53 @@ export function fitCubicBezierToStroke(points) {
     if (dev > maxDeviation) maxDeviation = dev;
   }
 
-  if (maxDeviation < 6 || maxDeviation / chordLen < 0.04) {
+  if (maxDeviation < 8 || maxDeviation / chordLen < 0.05) {
     return { cp1_dx: 0, cp1_dy: 0, cp2_dx: 0, cp2_dy: 0 };
   }
 
-  // Tangenten an den Enden (Start und Ende) robust schätzen
-  const n = points.length;
-  const kStart = Math.min(n - 1, Math.max(2, Math.floor(n * 0.18)));
-  const kEnd = Math.max(0, Math.min(n - 3, Math.floor(n * 0.82)));
+  let c11 = 0, c12 = 0, c22 = 0;
+  let rx1 = 0, ry1 = 0, rx2 = 0, ry2 = 0;
 
-  let t1x = points[kStart].x - p0.x;
-  let t1y = points[kStart].y - p0.y;
-  const t1Len = Math.hypot(t1x, t1y);
-  if (t1Len > 0.001) { t1x /= t1Len; t1y /= t1Len; } else { t1x = chordDx / chordLen; t1y = chordDy / chordLen; }
+  for (let i = 0; i < points.length; i++) {
+    const t = Math.max(0.001, Math.min(0.999, cumDists[i] / totalStrokeLen));
+    const u = 1 - t;
+    const b0 = u * u * u;
+    const b1 = 3 * u * u * t;
+    const b2 = 3 * u * t * t;
+    const b3 = t * t * t;
 
-  let t2x = p3.x - points[kEnd].x;
-  let t2y = p3.y - points[kEnd].y;
-  const t2Len = Math.hypot(t2x, t2y);
-  if (t2Len > 0.001) { t2x /= t2Len; t2y /= t2Len; } else { t2x = chordDx / chordLen; t2y = chordDy / chordLen; }
+    const targetX = points[i].x - b0 * p0.x - b3 * p3.x;
+    const targetY = points[i].y - b0 * p0.y - b3 * p3.y;
 
-  // Initiales t-Array basierend auf Bogenlänge
-  let uArr = points.map((_, i) => Math.max(0.001, Math.min(0.999, cumDists[i] / totalStrokeLen)));
+    c11 += b1 * b1;
+    c12 += b1 * b2;
+    c22 += b2 * b2;
 
-  let bestFit = null;
-
-  // 2 Iterationen: Least Squares Fit + Newton-Raphson Reparametrisierung
-  for (let iter = 0; iter < 2; iter++) {
-    let c11 = 0, c12 = 0, c22 = 0;
-    let rx1 = 0, ry1 = 0, rx2 = 0, ry2 = 0;
-
-    for (let i = 0; i < points.length; i++) {
-      const t = uArr[i];
-      const u = 1 - t;
-      const b0 = u * u * u;
-      const b1 = 3 * u * u * t;
-      const b2 = 3 * u * t * t;
-      const b3 = t * t * t;
-
-      const targetX = points[i].x - b0 * p0.x - b3 * p3.x;
-      const targetY = points[i].y - b0 * p0.y - b3 * p3.y;
-
-      c11 += b1 * b1;
-      c12 += b1 * b2;
-      c22 += b2 * b2;
-
-      rx1 += b1 * targetX;
-      ry1 += b1 * targetY;
-      rx2 += b2 * targetX;
-      ry2 += b2 * targetY;
-    }
-
-    const det = c11 * c22 - c12 * c12;
-    if (Math.abs(det) < 1e-6) break;
-
-    let fitP1X = (c22 * rx1 - c12 * rx2) / det;
-    let fitP1Y = (c22 * ry1 - c12 * ry2) / det;
-    let fitP2X = (c11 * rx2 - c12 * rx1) / det;
-    let fitP2Y = (c11 * ry2 - c12 * ry1) / det;
-
-    bestFit = {
-      p1: { x: fitP1X, y: fitP1Y },
-      p2: { x: fitP2X, y: fitP2Y }
-    };
-
-    if (iter === 0) {
-      // Reparametrisiere uArr mit Newton-Raphson für engere Annäherung
-      uArr = points.map((pt, i) => {
-        let u = uArr[i];
-        for (let step = 0; step < 2; step++) {
-          const om = 1 - u;
-          // P(u)
-          const px = om * om * om * p0.x + 3 * om * om * u * fitP1X + 3 * om * u * u * fitP2X + u * u * u * p3.x;
-          const py = om * om * om * p0.y + 3 * om * om * u * fitP1Y + 3 * om * u * u * fitP2Y + u * u * u * p3.y;
-          // P'(u)
-          const dpx = 3 * om * om * (fitP1X - p0.x) + 6 * om * u * (fitP2X - fitP1X) + 3 * u * u * (p3.x - fitP2X);
-          const dpy = 3 * om * om * (fitP1Y - p0.y) + 6 * om * u * (fitP2Y - fitP1Y) + 3 * u * u * (p3.y - fitP2Y);
-          const num = (px - pt.x) * dpx + (py - pt.y) * dpy;
-          const denom = dpx * dpx + dpy * dpy;
-          if (Math.abs(denom) < 1e-6) break;
-          u = Math.max(0.001, Math.min(0.999, u - num / denom));
-        }
-        return u;
-      });
-    }
+    rx1 += b1 * targetX;
+    ry1 += b1 * targetY;
+    rx2 += b2 * targetX;
+    ry2 += b2 * targetY;
   }
 
-  if (!bestFit) {
+  const det = c11 * c22 - c12 * c12;
+  if (Math.abs(det) < 1e-6) {
     return { cp1_dx: 0, cp1_dy: 0, cp2_dx: 0, cp2_dy: 0 };
   }
 
-  // Endtangenten-Schutz: Verhindere unnatürliches Überschlagen am Pfeilende
-  const p1 = bestFit.p1;
-  const p2 = bestFit.p2;
+  const fitP1X = (c22 * rx1 - c12 * rx2) / det;
+  const fitP1Y = (c22 * ry1 - c12 * ry2) / det;
+  const fitP2X = (c11 * rx2 - c12 * rx1) / det;
+  const fitP2Y = (c11 * ry2 - c12 * ry1) / det;
 
-  // Begrenze maximale Auslenkung auf das 2-fache der Sehnenlänge
   const defaultP1X = p0.x + chordDx * (1 / 3);
   const defaultP1Y = p0.y + chordDy * (1 / 3);
   const defaultP2X = p0.x + chordDx * (2 / 3);
   const defaultP2Y = p0.y + chordDy * (2 / 3);
 
   return {
-    cp1_dx: Math.round(p1.x - defaultP1X),
-    cp1_dy: Math.round(p1.y - defaultP1Y),
-    cp2_dx: Math.round(p2.x - defaultP2X),
-    cp2_dy: Math.round(p2.y - defaultP2Y)
+    cp1_dx: Math.round(fitP1X - defaultP1X),
+    cp1_dy: Math.round(fitP1Y - defaultP1Y),
+    cp2_dx: Math.round(fitP2X - defaultP2X),
+    cp2_dy: Math.round(fitP2Y - defaultP2Y)
   };
 }

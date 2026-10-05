@@ -463,23 +463,13 @@ export function handleCanvasPointerUp(e, canvas, callbacks = {}) {
       if (state.lineDrawMode === "raw_freehand" && state.arrowDrawStrokePoints.length >= 2) {
         rawPoints = state.arrowDrawStrokePoints.map(p => ({ x: Math.round(p.x), y: Math.round(p.y) }));
       } else if (state.lineDrawMode === "freehand" && state.arrowDrawStrokePoints.length >= 3) {
-        // 3-Punkte-Kurve mit Scheitelpunkt (getPeakPoint) -> exakt berechnete quadratische/kubische Bézier-Kontrollpunkte
-        const curve3p = fitTo3PointCurve(state.arrowDrawStrokePoints);
-        if (curve3p) {
-          cp1_dx = Math.round(curve3p.cp1_dx);
-          cp1_dy = Math.round(curve3p.cp1_dy);
-          cp2_dx = Math.round(curve3p.cp2_dx);
-          cp2_dy = Math.round(curve3p.cp2_dy);
-        } else {
-          const fitted = fitCubicBezierToStroke(state.arrowDrawStrokePoints);
-          if (fitted) {
-            cp1_dx = Math.round(fitted.cp1_dx);
-            cp1_dy = Math.round(fitted.cp1_dy);
-            cp2_dx = Math.round(fitted.cp2_dx);
-            cp2_dy = Math.round(fitted.cp2_dy);
-          }
+        const fitted = fitCubicBezierToStroke(state.arrowDrawStrokePoints);
+        if (fitted) {
+          cp1_dx = Math.round(fitted.cp1_dx);
+          cp1_dy = Math.round(fitted.cp1_dy);
+          cp2_dx = Math.round(fitted.cp2_dx);
+          cp2_dy = Math.round(fitted.cp2_dy);
         }
-        // Keine raw_points für "freehand", damit die Kurve durch Bézier-Handles direkt interaktiv modifizierbar ist!
         rawPoints = null;
       }
 
