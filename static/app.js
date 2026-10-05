@@ -495,9 +495,28 @@
   let isViewControlsOpen = false;
   window.toggleViewControls = function () {
     const drawer = document.getElementById("viewControlsDrawer");
+    const btn = document.getElementById("viewControlsToggleBtn");
     if (!drawer) return;
     const isHidden = drawer.classList.contains("hidden");
-    drawer.classList.toggle("hidden", !isHidden);
+    if (isHidden) {
+      drawer.classList.remove("hidden");
+      // Intelligente Positionierung: prüfe ob das Popup rechts oder links überläuft
+      const rect = btn ? btn.getBoundingClientRect() : null;
+      if (rect) {
+        const drawerWidth = 288; // w-72 = 18rem = 288px
+        const screenWidth = window.innerWidth;
+        // Wenn links nicht genug Platz ist oder rechts abgeschnitten wird:
+        if (rect.left + drawerWidth > screenWidth - 10) {
+          drawer.style.left = "auto";
+          drawer.style.right = "0px";
+        } else {
+          drawer.style.left = "0px";
+          drawer.style.right = "auto";
+        }
+      }
+    } else {
+      drawer.classList.add("hidden");
+    }
   };
 
   window.changePitchType = function (type) {
