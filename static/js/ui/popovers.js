@@ -1,7 +1,56 @@
 // ui/popovers.js - Steuerung von Popover-Menüs (Material-Drawer, Linien-Modus, Settings)
 
+export function toggleTopMenu() {
+  const drawer = document.getElementById("topDrawerMenu");
+  const overlay = document.getElementById("sidebarOverlay");
+  if (!drawer) return;
+  const isCollapsed = drawer.classList.contains("collapsed");
+  if (isCollapsed) {
+    drawer.classList.remove("collapsed");
+    if (overlay) overlay.classList.remove("collapsed");
+  } else {
+    closeSidebarMenu();
+  }
+}
+
+export function closeSidebarMenu() {
+  const drawer = document.getElementById("topDrawerMenu");
+  const overlay = document.getElementById("sidebarOverlay");
+  if (drawer) drawer.classList.add("collapsed");
+  if (overlay) overlay.classList.add("collapsed");
+}
+
+export function openExportModal() {
+  const modal = document.getElementById("exportModal");
+  if (modal) modal.classList.remove("hidden");
+}
+
+export function closeExportModal() {
+  const modal = document.getElementById("exportModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+export function openExerciseCatalog() {
+  const modal = document.getElementById("catalogModal");
+  if (modal) modal.classList.remove("hidden");
+}
+
+export function closeCatalogModal() {
+  const modal = document.getElementById("catalogModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+export function openClearConfirmModal() {
+  const modal = document.getElementById("clearConfirmModal");
+  if (modal) modal.classList.remove("hidden");
+}
+
+export function closeClearConfirmModal() {
+  const modal = document.getElementById("clearConfirmModal");
+  if (modal) modal.classList.add("hidden");
+}
+
 export function togglePlaybackSettingsMenu(event) {
-  if (event) event.stopPropagation();
   const popup = document.getElementById("playbackSettingsPopup");
   if (!popup) return;
   const isHidden = popup.classList.contains("hidden");

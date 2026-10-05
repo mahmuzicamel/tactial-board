@@ -10,7 +10,7 @@ export function getDisplayDimensions(canvas) {
   };
 }
 
-// Convert Virtual Coordinates (1050x680) to Canvas Screen/DOM Pixels
+// Convert Virtual Coordinates (1000x700) to Canvas Screen/DOM Pixels
 export function getScreenCoords(canvas, vx, vy) {
   const rect = canvas.getBoundingClientRect();
   const dispW = rect.width;
@@ -21,11 +21,9 @@ export function getScreenCoords(canvas, vx, vy) {
   const effectiveVH = isRotated90 ? VIRTUAL_WIDTH : VIRTUAL_HEIGHT;
   const baseScale = Math.min(dispW / effectiveVW, dispH / effectiveVH);
 
-  // Scaled coordinates from virtual center (525, 340)
   let sx = (vx - VIRTUAL_WIDTH / 2) * baseScale;
   let sy = (vy - VIRTUAL_HEIGHT / 2) * baseScale;
 
-  // Rotation
   if (state.fieldRotation !== 0) {
     const rad = (state.fieldRotation * Math.PI) / 180;
     const cosA = Math.cos(rad);
@@ -36,13 +34,12 @@ export function getScreenCoords(canvas, vx, vy) {
     sy = ry;
   }
 
-  // Zoom & Pan from display center
   const centerX = dispW / 2;
   const centerY = dispH / 2;
-  const screenX = centerX + state.viewPanX + sx * state.viewScale;
-  const screenY = centerY + state.viewPanY + sy * state.viewScale;
-
-  return { x: screenX, y: screenY };
+  return {
+    x: centerX + state.viewPanX + sx * state.viewScale,
+    y: centerY + state.viewPanY + sy * state.viewScale
+  };
 }
 
 // Convert Screen/Event Coordinates to Virtual Coordinates (1050x680)

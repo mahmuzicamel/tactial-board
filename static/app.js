@@ -364,6 +364,12 @@ const vpModule = {
 };
 
 function toggleTopMenu() {
+  if (window.TacticalCoach?.popovers?.toggleTopMenu) {
+    window.TacticalCoach.popovers.toggleTopMenu();
+    refreshExerciseBadge();
+    loadCatalogExercises();
+    return;
+  }
   const drawer = document.getElementById("topDrawerMenu");
   const overlay = document.getElementById("sidebarOverlay");
   if (!drawer) return;
@@ -379,6 +385,10 @@ function toggleTopMenu() {
 }
 
 function closeSidebarMenu() {
+  if (window.TacticalCoach?.popovers?.closeSidebarMenu) {
+    window.TacticalCoach.popovers.closeSidebarMenu();
+    return;
+  }
   const drawer = document.getElementById("topDrawerMenu");
   const overlay = document.getElementById("sidebarOverlay");
   if (drawer) drawer.classList.add("collapsed");
@@ -1028,20 +1038,18 @@ function fitCubicBezierToStroke(points) {
 
 // Convert Virtual Coordinates (1000x700) to Canvas Screen/DOM Pixels
 function getScreenCoords(vx, vy) {
+  if (window.TacticalCoach?.viewport?.getScreenCoords) {
+    return window.TacticalCoach.viewport.getScreenCoords(canvas, vx, vy);
+  }
   const rect = canvas.getBoundingClientRect();
   const dispW = rect.width;
   const dispH = rect.height;
-
   const isRotated90 = (fieldRotation === 90 || fieldRotation === 270);
   const effectiveVW = isRotated90 ? VIRTUAL_HEIGHT : VIRTUAL_WIDTH;
   const effectiveVH = isRotated90 ? VIRTUAL_WIDTH : VIRTUAL_HEIGHT;
   const baseScale = Math.min(dispW / effectiveVW, dispH / effectiveVH);
-
-  // Scaled coordinates from virtual center (500, 350)
   let sx = (vx - VIRTUAL_WIDTH / 2) * baseScale;
   let sy = (vy - VIRTUAL_HEIGHT / 2) * baseScale;
-
-  // Rotation
   if (fieldRotation !== 0) {
     const rad = (fieldRotation * Math.PI) / 180;
     const cosA = Math.cos(rad);
@@ -1051,22 +1059,19 @@ function getScreenCoords(vx, vy) {
     sx = rx;
     sy = ry;
   }
-
-  // Zoom & Pan from display center
   const centerX = dispW / 2;
   const centerY = dispH / 2;
-  const screenX = centerX + viewPanX + sx * viewScale;
-  const screenY = centerY + viewPanY + sy * viewScale;
-
-  return { x: screenX, y: screenY };
+  return { x: centerX + viewPanX + sx * viewScale, y: centerY + viewPanY + sy * viewScale };
 }
 
 // Interaction & Mouse / Touch Handling
 function getCanvasCoords(evt) {
+  if (window.TacticalCoach?.viewport?.getCanvasCoords) {
+    return window.TacticalCoach.viewport.getCanvasCoords(canvas, evt);
+  }
   const rect = canvas.getBoundingClientRect();
   const dispW = rect.width;
   const dispH = rect.height;
-
   let clientX, clientY;
   if (evt.touches && evt.touches.length > 0) {
     clientX = evt.touches[0].clientX;
@@ -1075,19 +1080,12 @@ function getCanvasCoords(evt) {
     clientX = evt.clientX;
     clientY = evt.clientY;
   }
-
-  // Base canvas coordinate relative to CSS display size (0 to dispW, 0 to dispH)
   const cx = clientX - rect.left;
   const cy = clientY - rect.top;
-
-  // Invert Zoom & Pan around center of display
   const centerX = dispW / 2;
   const centerY = dispH / 2;
-
   let unpannedX = (cx - centerX - viewPanX) / viewScale;
   let unpannedY = (cy - centerY - viewPanY) / viewScale;
-
-  // Invert rotation around center
   if (fieldRotation !== 0) {
     const rad = (-fieldRotation * Math.PI) / 180;
     const cosA = Math.cos(rad);
@@ -1097,13 +1095,10 @@ function getCanvasCoords(evt) {
     unpannedX = rx;
     unpannedY = ry;
   }
-
-  // Invert virtual fit scale
   const isRotated90 = (fieldRotation === 90 || fieldRotation === 270);
   const effectiveVW = isRotated90 ? VIRTUAL_HEIGHT : VIRTUAL_WIDTH;
   const effectiveVH = isRotated90 ? VIRTUAL_WIDTH : VIRTUAL_HEIGHT;
   const baseScale = Math.min(dispW / effectiveVW, dispH / effectiveVH);
-
   return {
     x: unpannedX / baseScale + VIRTUAL_WIDTH / 2,
     y: unpannedY / baseScale + VIRTUAL_HEIGHT / 2
@@ -1125,7 +1120,6 @@ function zoomAt(targetScale, clientPoint = null) {
     cy = clientPoint.y - rect.top;
   }
 
-  // Preserve anchor point during zoom
   const worldX = (cx - centerX - viewPanX) / viewScale + centerX;
   const worldY = (cy - centerY - viewPanY) / viewScale + centerY;
 
@@ -1155,9 +1149,11 @@ function resetZoom() {
 }
 
 function updateZoomUI() {
-  const badge = document.getElementById("zoomLevelText");
-  if (badge) {
-    badge.textContent = `${Math.round(viewScale * 100)}%`;
+  if (window.TacticalCoach?.viewport?.updateZoomUI) {
+    window.TacticalCoach.viewport.updateZoomUI();
+  } else {
+    const badge = document.getElementById("zoomLevelText");
+    if (badge) badge.textContent = `${Math.round(viewScale * 100)}%`;
   }
 }
 
@@ -2750,100 +2746,13 @@ function executeClearCurrentCanvas() {
 let draggedKfIndex = null;
 
 function renderKeyframeTabs() {
-  const list = document.getElementById("keyframesList");
-  list.innerHTML = "";
-
-  currentExercise.keyframes.forEach((kf, idx) => {
-    const container = document.createElement("div");
-    const isActive = idx === currentKeyframeIndex;
-    container.draggable = true;
-    container.className = `rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1 px-1.5 py-0.5 cursor-grab active:cursor-grabbing ${
-      isActive
-        ? "bg-emerald-600 text-white shadow ring-1 ring-emerald-400"
-        : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
-    }`;
-
-    // Drag and Drop events to reorder steps
-    container.ondragstart = (e) => {
-      draggedKfIndex = idx;
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", idx);
-      container.classList.add("opacity-50");
-    };
-
-    container.ondragend = () => {
-      draggedKfIndex = null;
-      container.classList.remove("opacity-50");
-    };
-
-    container.ondragover = (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      container.classList.add("ring-2", "ring-cyan-400");
-    };
-
-    container.ondragleave = () => {
-      container.classList.remove("ring-2", "ring-cyan-400");
-    };
-
-    container.ondrop = (e) => {
-      e.preventDefault();
-      container.classList.remove("ring-2", "ring-cyan-400");
-      if (draggedKfIndex !== null && draggedKfIndex !== idx) {
-        moveKeyframeToIndex(draggedKfIndex, idx);
-      }
-    };
-
-    // Move Left Button
-    if (idx > 0) {
-      const moveLeftBtn = document.createElement("button");
-      moveLeftBtn.className = "text-[9px] px-0.5 text-slate-400 hover:text-white transition";
-      moveLeftBtn.title = "Schritt nach links verschieben";
-      moveLeftBtn.innerHTML = `<i class="fa-solid fa-chevron-left"></i>`;
-      moveLeftBtn.onclick = (e) => {
-        e.stopPropagation();
-        moveKeyframeToIndex(idx, idx - 1);
-      };
-      container.appendChild(moveLeftBtn);
-    }
-
-    // Clickable Tab Button (Double click to rename as well)
-    const btn = document.createElement("button");
-    btn.className = "flex items-center gap-1 outline-none py-0.5";
-    btn.innerHTML = `<span class="max-w-[105px] truncate" title="${kf.title || 'Schritt ' + (idx + 1)}">${kf.title || "Schritt " + (idx + 1)}</span>`;
-    btn.onclick = () => selectKeyframe(idx);
-    btn.ondblclick = (e) => {
-      e.stopPropagation();
-      editKeyframeTitle(idx);
-    };
-    container.appendChild(btn);
-
-    // Edit Title Button (Pen Icon)
-    const editBtn = document.createElement("button");
-    editBtn.className = `p-0.5 rounded hover:bg-black/20 ${isActive ? "text-emerald-100 hover:text-white" : "text-slate-400 hover:text-slate-200"}`;
-    editBtn.title = "Schrittname umbenennen";
-    editBtn.innerHTML = `<i class="fa-solid fa-pen text-[9px]"></i>`;
-    editBtn.onclick = (e) => {
-      e.stopPropagation();
-      editKeyframeTitle(idx);
-    };
-    container.appendChild(editBtn);
-
-    // Move Right Button
-    if (idx < currentExercise.keyframes.length - 1) {
-      const moveRightBtn = document.createElement("button");
-      moveRightBtn.className = "text-[9px] px-0.5 text-slate-400 hover:text-white transition";
-      moveRightBtn.title = "Schritt nach rechts verschieben";
-      moveRightBtn.innerHTML = `<i class="fa-solid fa-chevron-right"></i>`;
-      moveRightBtn.onclick = (e) => {
-        e.stopPropagation();
-        moveKeyframeToIndex(idx, idx + 1);
-      };
-      container.appendChild(moveRightBtn);
-    }
-
-    list.appendChild(container);
-  });
+  if (window.TacticalCoach?.timeline?.renderKeyframeTabs) {
+    window.TacticalCoach.timeline.renderKeyframeTabs(
+      (idx) => selectKeyframe(idx),
+      (idx) => editKeyframeTitle(idx),
+      (fromIdx, toIdx) => moveKeyframeToIndex(fromIdx, toIdx)
+    );
+  }
 }
 
 function moveKeyframeToIndex(fromIdx, toIdx) {
@@ -3234,13 +3143,21 @@ function createNewExercise() {
 }
 
 // Catalog Modal
-async function openExerciseCatalog() {
-  document.getElementById("catalogModal").classList.remove("hidden");
-  await loadCatalogExercises();
+function openExerciseCatalog() {
+  if (window.TacticalCoach?.popovers?.openExerciseCatalog) {
+    window.TacticalCoach.popovers.openExerciseCatalog();
+  } else {
+    document.getElementById("catalogModal").classList.remove("hidden");
+  }
+  loadCatalogExercises();
 }
 
 function closeCatalogModal() {
-  document.getElementById("catalogModal").classList.add("hidden");
+  if (window.TacticalCoach?.popovers?.closeCatalogModal) {
+    window.TacticalCoach.popovers.closeCatalogModal();
+  } else {
+    document.getElementById("catalogModal").classList.add("hidden");
+  }
 }
 
 async function loadCatalogExercises(search = "") {
