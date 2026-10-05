@@ -4,7 +4,7 @@ export const VIRTUAL_WIDTH = 1000;
 export const VIRTUAL_HEIGHT = 700;
 
 export const EQUIPMENT_TYPES = [
-  "cone", "pole", "ladder", "minigoal", "goal_5m", "dummy", "ring", "hurdle",
+  "cone", "pole", "ladder", "minigoal", "goal_mini", "goal_5m", "goal_large", "dummy", "ring", "hurdle",
   "zone_rect", "zone_circle", "zone_triangle"
 ];
 

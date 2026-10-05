@@ -752,8 +752,8 @@
 
     if (focusBtn) focusBtn.classList.toggle("hidden", !!isZone);
     if (jumpBtn) jumpBtn.classList.toggle("hidden", !!isZone);
-    if (rotateLeftBtn) rotateLeftBtn.classList.toggle("hidden", !!isZone);
-    if (rotateRightBtn) rotateRightBtn.classList.toggle("hidden", !!isZone);
+    if (rotateLeftBtn) rotateLeftBtn.classList.remove("hidden");
+    if (rotateRightBtn) rotateRightBtn.classList.remove("hidden");
 
     const halfW = (popup.offsetWidth || 220) / 2;
     const clampedX = Math.max(halfW + 10, Math.min(window.innerWidth - halfW - 10, posX));
@@ -1015,6 +1015,28 @@
     sub.classList.toggle("hidden");
   };
 
+  // Helper to sync equipment properties (rotation, scale, color, position) across all keyframes
+  function syncEquipmentElementAcrossAllKeyframes(element) {
+    if (!element || !TC().constants.isEquipment(element.type)) return;
+    const ex = S().currentExercise;
+    if (!ex || !Array.isArray(ex.keyframes)) return;
+    ex.keyframes.forEach(otherKf => {
+      const match = (otherKf.elements || []).find(it => it.id === element.id);
+      if (match) {
+        match.x = element.x;
+        match.y = element.y;
+        if (element.rotation !== undefined) match.rotation = element.rotation;
+        if (element.scale !== undefined) match.scale = element.scale;
+        if (element.width !== undefined) match.width = element.width;
+        if (element.height !== undefined) match.height = element.height;
+        if (element.radius !== undefined) match.radius = element.radius;
+        if (element.size !== undefined) match.size = element.size;
+        if (element.color !== undefined) match.color = element.color;
+        if (element.fillColor !== undefined) match.fillColor = element.fillColor;
+      }
+    });
+  }
+
   window.setSelectedZoneColor = function (colorHex) {
     const s = S();
     const kf = TC().getCurrentKeyframe();
@@ -1027,6 +1049,7 @@
       if (el.type === "zone_rect" || el.type === "zone_circle" || el.type === "zone_triangle") {
         el.color = colorHex;
         el.fillColor = hexToRgba(colorHex, 0.2);
+        syncEquipmentElementAcrossAllKeyframes(el);
       }
     });
 
@@ -1044,11 +1067,17 @@
     if (!kf) return;
     if (s.selectedElementIds.length > 0) {
       kf.elements.forEach(it => {
-        if (s.selectedElementIds.includes(it.id)) it.rotation = ((it.rotation || 0) + deltaDeg + 360) % 360;
+        if (s.selectedElementIds.includes(it.id)) {
+          it.rotation = ((it.rotation || 0) + deltaDeg + 360) % 360;
+          syncEquipmentElementAcrossAllKeyframes(it);
+        }
       });
     } else if (s.selectedElementId) {
       const el = kf.elements.find(it => it.id === s.selectedElementId);
-      if (el) el.rotation = ((el.rotation || 0) + deltaDeg + 360) % 360;
+      if (el) {
+        el.rotation = ((el.rotation || 0) + deltaDeg + 360) % 360;
+        syncEquipmentElementAcrossAllKeyframes(el);
+      }
     }
     window.drawScene();
     window.recordHistory();
@@ -1074,6 +1103,7 @@
       } else {
         el.scale = Math.max(0.4, Math.min(3.0, (el.scale || 1.0) * factor));
       }
+      syncEquipmentElementAcrossAllKeyframes(el);
     });
 
     window.drawScene();
