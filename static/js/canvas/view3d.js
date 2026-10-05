@@ -52,7 +52,7 @@ export class View3DManager {
     this.scene.background = new window.THREE.Color(0x0f172a); // Slate-900 Stadium-Look
 
     // 2. Camera
-    this.camera = new window.THREE.PerspectiveCamera(45, width / height, 1, 8000);
+    this.camera = new window.THREE.PerspectiveCamera(45, width / height, 1, 5000);
     // Standard-Perspektive: Erhöhte Trainerbank / Haupttribüne
     this.camera.position.set(0, 520, 680);
 
@@ -82,13 +82,10 @@ export class View3DManager {
     // 5. Lighting (Flutlicht & Atmosphäre)
     this.setupLighting();
 
-    // 6. Reusable Geometries & Materials (zuerst initialisieren, damit getMaterialForColor bereitsteht!)
+    // 6. Reusable Geometries & Materials
     this.initSharedResources();
 
-    // 7. Skybox / 360° Spherical Environment (Panorama)
-    this.createSkyDome();
-
-    // 8. Spielfeld & Stadion-Boden (nutzt getMaterialForColor für den Zaun)
+    // 7. Spielfeld & Stadion-Boden (cleaner Taktik-Look)
     this.createPitch();
 
     window.addEventListener("resize", () => this.onResize(), { passive: true });
@@ -122,30 +119,6 @@ export class View3DManager {
     this.scene.add(floodLight2);
   }
 
-  createSkyDome() {
-    // 360° Panorama Sphere (Himmelskugel)
-    const T = window.THREE;
-    const loader = new T.TextureLoader();
-    loader.load('/static/textures/sky_panorama.png', (texture) => {
-      texture.mapping = T.EquirectangularReflectionMapping || 303;
-      texture.anisotropy = 8;
-
-      // Große Himmelskuppel (Radius 4500)
-      const skyGeo = new T.SphereGeometry(4500, 48, 32);
-      const skyMat = new T.MeshBasicMaterial({
-        map: texture,
-        side: T.BackSide
-      });
-
-      const skyMesh = new T.Mesh(skyGeo, skyMat);
-      // Horizont absenken: Die Bäume und der Horizont beginnen am echten Bodenrand in weiter Ferne
-      skyMesh.position.set(0, -220, 0);
-      skyMesh.rotation.y = Math.PI / 1.35;
-      this.scene.add(skyMesh);
-      this.skyMesh = skyMesh;
-    });
-  }
-
   createPitch() {
     const T = window.THREE;
     // 2D-Textur aus unserer vorhandenen pitch.js Zeichenlogik rendern!
@@ -172,78 +145,17 @@ export class View3DManager {
     this.pitchMesh.receiveShadow = true;
     this.scene.add(this.pitchMesh);
 
-    // 2. Direkter Rasen-Auslauf mit Markierung & Tartan-Rand (1160 x 860)
-    const runoutGeo = new T.PlaneGeometry(VIRTUAL_WIDTH + 160, VIRTUAL_HEIGHT + 160);
-    const runoutMat = new T.MeshStandardMaterial({
-      color: 0x1e4a36, // Dunkler Kunstrasen-Auslauf
-      roughness: 0.9
+    // 2. Äußere Rasen-Auslauffläche (dunkler edler Kunstrasen-Rand)
+    const outerGeo = new T.PlaneGeometry(VIRTUAL_WIDTH + 300, VIRTUAL_HEIGHT + 300);
+    const outerMat = new T.MeshStandardMaterial({
+      color: 0x1b4332,
+      roughness: 0.95
     });
-    const runoutMesh = new T.Mesh(runoutGeo, runoutMat);
-    runoutMesh.rotation.x = -Math.PI / 2;
-    runoutMesh.position.y = 0.1;
-    runoutMesh.receiveShadow = true;
-    this.scene.add(runoutMesh);
-
-    // 3. Sportplatz-Bande / Zaun um die Auslaufzone
-    const fenceMat = this.getMaterialForColor(0x94a3b8, 0.4); // Verzinktes Geländer / Barriere
-    const fenceH = 22;
-    const fw = VIRTUAL_WIDTH + 170;
-    const fh = VIRTUAL_HEIGHT + 170;
-    const barGeoW = new T.CylinderGeometry(1.6, 1.6, fw, 12);
-    const barGeoH = new T.CylinderGeometry(1.6, 1.6, fh, 12);
-
-    // Horizontale Handläufe
-    const fTop1 = new T.Mesh(barGeoW, fenceMat);
-    fTop1.rotation.z = Math.PI / 2;
-    fTop1.position.set(0, fenceH, -fh / 2);
-    this.scene.add(fTop1);
-
-    const fTop2 = new T.Mesh(barGeoW, fenceMat);
-    fTop2.rotation.z = Math.PI / 2;
-    fTop2.position.set(0, fenceH, fh / 2);
-    this.scene.add(fTop2);
-
-    const fSide1 = new T.Mesh(barGeoH, fenceMat);
-    fSide1.rotation.x = Math.PI / 2;
-    fSide1.position.set(-fw / 2, fenceH, 0);
-    this.scene.add(fSide1);
-
-    const fSide2 = new T.Mesh(barGeoH, fenceMat);
-    fSide2.rotation.x = Math.PI / 2;
-    fSide2.position.set(fw / 2, fenceH, 0);
-    this.scene.add(fSide2);
-
-    // Zaunpfosten alle 180 Einheiten
-    const postGeo = new T.CylinderGeometry(1.8, 1.8, fenceH, 10);
-    for (let x = -fw / 2; x <= fw / 2 + 5; x += 195) {
-      const p1 = new T.Mesh(postGeo, fenceMat);
-      p1.position.set(x, fenceH / 2, -fh / 2);
-      this.scene.add(p1);
-      const p2 = new T.Mesh(postGeo, fenceMat);
-      p2.position.set(x, fenceH / 2, fh / 2);
-      this.scene.add(p2);
-    }
-    for (let z = -fh / 2 + 195; z < fh / 2 - 10; z += 195) {
-      const p1 = new T.Mesh(postGeo, fenceMat);
-      p1.position.set(-fw / 2, fenceH / 2, z);
-      this.scene.add(p1);
-      const p2 = new T.Mesh(postGeo, fenceMat);
-      p2.position.set(fw / 2, fenceH / 2, z);
-      this.scene.add(p2);
-    }
-
-    // 4. Weite landschaftliche Bodenfläche bis zum Horizont (kein schwarzes/fliegendes Loch mehr!)
-    const groundGeo = new T.PlaneGeometry(8000, 8000);
-    const groundMat = new T.MeshStandardMaterial({
-      color: 0x143324, // Sattes Naturgrün / Waldwiese
-      roughness: 0.98,
-      metalness: 0.02
-    });
-    const groundMesh = new T.Mesh(groundGeo, groundMat);
-    groundMesh.rotation.x = -Math.PI / 2;
-    groundMesh.position.y = 0.0;
-    groundMesh.receiveShadow = true;
-    this.scene.add(groundMesh);
+    const outerMesh = new T.Mesh(outerGeo, outerMat);
+    outerMesh.rotation.x = -Math.PI / 2;
+    outerMesh.position.y = -0.4;
+    outerMesh.receiveShadow = true;
+    this.scene.add(outerMesh);
   }
 
   updatePitchTexture() {
