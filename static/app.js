@@ -416,6 +416,17 @@ function drawElementOnCanvasFallback(c, el, isSelected = false, fRot = 0, gScale
       c.textBaseline = "middle";
       c.fillText(el.number, 0, 1);
     }
+
+    if (el.name) {
+      c.fillStyle = "rgba(0,0,0,0.75)";
+      const nw = c.measureText(el.name).width + 8;
+      c.fillRect(-nw / 2, radius + 3, nw, 14);
+      c.fillStyle = "#ffffff";
+      c.font = "10px sans-serif";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+      c.fillText(el.name, 0, radius + 10);
+    }
   } else if (el.type === "ball") {
     const radius = 10;
     c.fillStyle = "#ffffff";
