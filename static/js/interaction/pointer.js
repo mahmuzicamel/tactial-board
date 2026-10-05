@@ -95,18 +95,36 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
       if (selEl.type === "zone_rect") {
         const w = selEl.width || 120;
         const h = selEl.height || 80;
-        const corners = [
+        // 4 Ecken + 4 Kanten
+        const handles = [
+          // Ecken
           { name: "tl", x: selEl.x - w/2, y: selEl.y - h/2 },
           { name: "tr", x: selEl.x + w/2, y: selEl.y - h/2 },
           { name: "br", x: selEl.x + w/2, y: selEl.y + h/2 },
-          { name: "bl", x: selEl.x - w/2, y: selEl.y + h/2 }
+          { name: "bl", x: selEl.x - w/2, y: selEl.y + h/2 },
+          // Kantenmitten (jede Seite einzeln)
+          { name: "t", x: selEl.x, y: selEl.y - h/2 },
+          { name: "r", x: selEl.x + w/2, y: selEl.y },
+          { name: "b", x: selEl.x, y: selEl.y + h/2 },
+          { name: "l", x: selEl.x - w/2, y: selEl.y }
         ];
-        const hitCorner = corners.find(c => Math.hypot(c.x - x, c.y - y) <= zHitR);
-        if (hitCorner) {
+        const hitHandle = handles.find(c => Math.hypot(c.x - x, c.y - y) <= zHitR);
+        if (hitHandle) {
           state.isResizingZone = true;
           state.resizeZoneId = selEl.id;
-          state.resizeZoneCorner = hitCorner.name;
-          state.resizeInitialState = { x: selEl.x, y: selEl.y, width: w, height: h };
+          state.resizeZoneCorner = hitHandle.name;
+          state.resizeInitialState = {
+            x: selEl.x,
+            y: selEl.y,
+            width: w,
+            height: h,
+            left: selEl.x - w/2,
+            right: selEl.x + w/2,
+            top: selEl.y - h/2,
+            bottom: selEl.y + h/2,
+            startMouseX: x,
+            startMouseY: y
+          };
           return;
         }
       } else if (selEl.type === "zone_circle") {
@@ -332,11 +350,39 @@ export function handleCanvasPointerMove(e, canvas, getCanvasCoords, callbacks = 
       if (el.type === "zone_rect") {
         const init = state.resizeInitialState;
         const corner = state.resizeZoneCorner;
-        // Bei Rect: Eckpunkt x,y bestimmt Breite und Höhe symmetrisch oder frei ab Mittelpunkt
-        const halfW = Math.max(15, Math.abs(x - el.x));
-        const halfH = Math.max(10, Math.abs(y - el.y));
-        el.width = Math.round(halfW * 2);
-        el.height = Math.round(halfH * 2);
+
+        let left = init.left;
+        let right = init.right;
+        let top = init.top;
+        let bottom = init.bottom;
+
+        // Jede Seite einzeln ziehbar (ohne dass sich die Gegenseite mitbewegt!)
+        if (corner === "l") {
+          left = Math.min(x, right - 20);
+        } else if (corner === "r") {
+          right = Math.max(x, left + 20);
+        } else if (corner === "t") {
+          top = Math.min(y, bottom - 20);
+        } else if (corner === "b") {
+          bottom = Math.max(y, top + 20);
+        } else if (corner === "tl") {
+          left = Math.min(x, right - 20);
+          top = Math.min(y, bottom - 20);
+        } else if (corner === "tr") {
+          right = Math.max(x, left + 20);
+          top = Math.min(y, bottom - 20);
+        } else if (corner === "bl") {
+          left = Math.min(x, right - 20);
+          bottom = Math.max(y, top + 20);
+        } else if (corner === "br") {
+          right = Math.max(x, left + 20);
+          bottom = Math.max(y, top + 20);
+        }
+
+        el.width = Math.round(right - left);
+        el.height = Math.round(bottom - top);
+        el.x = Math.round((left + right) / 2);
+        el.y = Math.round((top + bottom) / 2);
       } else if (el.type === "zone_circle") {
         const dist = Math.hypot(x - el.x, y - el.y);
         el.radius = Math.max(15, Math.round(dist));

@@ -314,19 +314,25 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
       ctx.fillText(el.label, 0, 0);
     }
 
-    // Wenn selektiert: Deutliche Resize-Handles an den 4 Ecken rendern
+    // Wenn selektiert: Deutliche Resize-Handles an den 4 Ecken und 4 Kantenmitten rendern
     if (isSelected) {
       const handleR = 5;
-      const corners = [
+      const handles = [
+        // 4 Ecken
         { x: -w/2, y: -h/2 },
         { x: w/2, y: -h/2 },
         { x: w/2, y: h/2 },
-        { x: -w/2, y: h/2 }
+        { x: -w/2, y: h/2 },
+        // 4 Kantenmitten (jede Seite einzeln ziehbar)
+        { x: 0, y: -h/2 }, // Oben
+        { x: w/2, y: 0 },  // Rechts
+        { x: 0, y: h/2 },  // Unten
+        { x: -w/2, y: 0 }  // Links
       ];
       ctx.fillStyle = "#ffffff";
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
-      corners.forEach(c => {
+      handles.forEach(c => {
         ctx.beginPath();
         ctx.arc(c.x, c.y, handleR, 0, Math.PI * 2);
         ctx.fill();
