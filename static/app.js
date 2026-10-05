@@ -1343,8 +1343,8 @@
         item.className = "p-2.5 sm:p-3 bg-slate-800/90 hover:bg-slate-750 border border-slate-700/80 rounded-xl flex items-center justify-between gap-2 transition";
         item.innerHTML = `
           <div class="flex items-center gap-2.5 min-w-0 flex-1">
-            <div class="w-10 h-10 shrink-0 bg-emerald-950/70 rounded-lg border border-emerald-700/60 flex items-center justify-center text-emerald-400 font-bold text-[11px] leading-tight text-center px-1">
-              ${(ex.age_group || "").split(" ")[0] || "U"}
+            <div class="w-10 h-10 shrink-0 bg-emerald-950/70 rounded-lg border border-emerald-700/60 flex items-center justify-center text-emerald-400 font-bold text-base shadow-inner">
+              <i class="fa-solid fa-futbol text-emerald-400 text-lg"></i>
             </div>
             <div class="min-w-0 flex-1">
               <h4 class="text-xs font-bold text-white truncate" title="${ex.title}">${ex.title}</h4>
@@ -1437,8 +1437,8 @@
   window.switchSidebarTab = function (tab) {
     const tEx = document.getElementById("sidebarTabExercises");
     const tDet = document.getElementById("sidebarTabDetails");
-    const cEx = document.getElementById("sidebarContentExercises");
-    const cDet = document.getElementById("sidebarContentDetails");
+    const cEx = document.getElementById("sidebarViewExercises");
+    const cDet = document.getElementById("sidebarViewDetails");
     if (!tEx || !tDet || !cEx || !cDet) return;
     if (tab === "exercises") {
       tEx.className = "flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition bg-slate-800 text-emerald-400 shadow";
@@ -1451,6 +1451,7 @@
       tEx.className = "flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition text-slate-400 hover:text-white";
       cDet.classList.remove("hidden");
       cEx.classList.add("hidden");
+      window.updateFormFields();
     }
   };
 
