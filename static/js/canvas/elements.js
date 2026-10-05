@@ -5,8 +5,38 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
   const x = el.x;
   const y = el.y;
 
+  // 0. Hüpfeffekt: Dynamischer weicher Bodenschatten bei Höhensprung (Sonne von schräg oben-links)
+  if (el.jumpProgress && el.jumpProgress > 0.01) {
+    const jumpH = el.jumpProgress; // 0 bis 1
+    ctx.save();
+    // Der Schatten bleibt auf dem Rasen zurück, wandert mit zunehmender Höhe leicht nach rechts unten
+    const shadowOffsetX = 12 * jumpH;
+    const shadowOffsetY = 16 * jumpH;
+    ctx.translate(x + shadowOffsetX, y + shadowOffsetY);
+
+    // Schatten wird mit zunehmender Höhe etwas größer, flacher und transparenter
+    const baseRadius = (el.type === "ball" ? 10 : 18) * (globalElementScale || 1.0);
+    const sRadiusX = baseRadius * (1.0 + jumpH * 0.35);
+    const sRadiusY = baseRadius * 0.55 * (1.0 - jumpH * 0.15);
+    const shadowAlpha = Math.max(0.12, 0.42 * (1.0 - jumpH * 0.45));
+
+    // Weicher radialer Schattenverlauf
+    const sGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, sRadiusX);
+    sGrad.addColorStop(0, `rgba(0, 0, 0, ${shadowAlpha})`);
+    sGrad.addColorStop(0.65, `rgba(0, 0, 0, ${shadowAlpha * 0.7})`);
+    sGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+    ctx.fillStyle = sGrad;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, sRadiusX, sRadiusY, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   ctx.save();
-  ctx.translate(x, y);
+  // Wenn das Element hüpft, hebt es sich in Richtung POV/oben ab (-Y im lokalen Bezug)
+  const liftY = el.jumpProgress ? -el.jumpProgress * 18 : 0;
+  ctx.translate(x, y + liftY);
 
   // Counter-rotate element around its own center so numbers, text, goals & cones stay upright and legible
   // Zonen (Rechteck, Kreis, Dreieck) bleiben dagegen am Rasen verankert, es sei denn sie haben eine eigene Drehung

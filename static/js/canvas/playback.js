@@ -98,16 +98,19 @@ export class PlaybackController {
           }
 
           let scaleMult = 1.0;
+          let jumpOffset = 0;
           if (el2.jump) {
             const jumpFactor = Math.sin(smoothT * Math.PI);
             scaleMult = 1.0 + jumpFactor * 0.45;
+            jumpOffset = jumpFactor;
           }
 
           interpolatedElements.push({
             ...el1,
             x: posX,
             y: posY,
-            scaleMultiplier: scaleMult
+            scaleMultiplier: scaleMult,
+            jumpProgress: jumpOffset
           });
         } else if (el1) {
           interpolatedElements.push(el1);
