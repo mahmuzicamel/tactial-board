@@ -9,7 +9,8 @@ export function setActiveTool(tool, onToolChange = null) {
     { id: "toolSelectBtn", name: "select" },
     { id: "toolPassBtn", name: "pass" },
     { id: "toolRunBtn", name: "run" },
-    { id: "toolGuideBtn", name: "guide" }
+    { id: "toolGuideBtn", name: "guide" },
+    { id: "toolShapeBtn", name: "shape" }
   ];
 
   toolBtns.forEach(t => {

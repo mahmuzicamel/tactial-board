@@ -28,6 +28,7 @@ window.toggleEquipmentMenu = popovers.toggleEquipmentMenu;
 window.closeEquipmentMenu = popovers.closeEquipmentMenu;
 window.toggleZoneMenu = popovers.toggleZoneMenu;
 window.closeZoneMenu = popovers.closeZoneMenu;
+window.selectShapeTool = popovers.selectShapeTool;
 window.toggleLineModeMenu = popovers.toggleLineModeMenu;
 window.closeLineModeMenu = popovers.closeLineModeMenu;
 if (typeof popovers.setLineDrawMode === "function") {

@@ -94,6 +94,24 @@ export function closeLineModeMenu() {
   }
 }
 
+export function selectShapeTool(shapeType) {
+  if (window.state) {
+    window.state.selectedShapeType = shapeType;
+  }
+  if (typeof window.setActiveTool === "function") {
+    window.setActiveTool("shape");
+  }
+  closeZoneMenu();
+  const label = document.getElementById("toolShapeLabel");
+  const icon = document.getElementById("toolShapeIcon");
+  if (label) {
+    label.textContent = shapeType === "rect" ? "Rechteck" : shapeType === "circle" ? "Kreis" : "Dreieck";
+  }
+  if (icon) {
+    icon.className = shapeType === "rect" ? "fa-regular fa-square text-sky-400 text-[10px]" : shapeType === "circle" ? "fa-regular fa-circle text-amber-400 text-[10px]" : "fa-solid fa-play -rotate-90 text-purple-400 text-[10px]";
+  }
+}
+
 export function toggleZoneMenu(event) {
   if (event) event.stopPropagation();
   const modal = document.getElementById("zoneMenuModal");

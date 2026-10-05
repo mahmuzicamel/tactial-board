@@ -356,6 +356,57 @@
       }
     }
 
+    // 5b. In-flight Shape Drawing (Rectangle, Circle, Triangle)
+    if (s.isDrawingShape && s.activeTool === "shape") {
+      const shapeType = s.selectedShapeType || "rect";
+      const dx = s.shapeCurrentX - s.shapeStartX;
+      const dy = s.shapeCurrentY - s.shapeStartY;
+      const dist = Math.hypot(dx, dy);
+
+      ctx.save();
+      if (shapeType === "rect") {
+        const x = Math.min(s.shapeStartX, s.shapeCurrentX);
+        const y = Math.min(s.shapeStartY, s.shapeCurrentY);
+        const w = Math.abs(dx);
+        const h = Math.abs(dy);
+        ctx.fillStyle = "rgba(56, 189, 248, 0.22)";
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(x, y, w, h);
+      } else if (shapeType === "circle") {
+        const radius = dist / 2;
+        const cx = (s.shapeStartX + s.shapeCurrentX) / 2;
+        const cy = (s.shapeStartY + s.shapeCurrentY) / 2;
+        ctx.fillStyle = "rgba(234, 179, 8, 0.22)";
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#eab308";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.stroke();
+      } else if (shapeType === "triangle") {
+        const size = dist;
+        const cx = (s.shapeStartX + s.shapeCurrentX) / 2;
+        const cy = (s.shapeStartY + s.shapeCurrentY) / 2;
+        const h = size * 0.866;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - h * 0.6);
+        ctx.lineTo(cx + size * 0.5, cy + h * 0.4);
+        ctx.lineTo(cx - size * 0.5, cy + h * 0.4);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(168, 85, 247, 0.22)";
+        ctx.fill();
+        ctx.strokeStyle = "#a855f7";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     // 6. Draw Elements
     elements.forEach(el => {
       const isSel = (s.selectedElementId === el.id || s.selectedElementIds.includes(el.id));

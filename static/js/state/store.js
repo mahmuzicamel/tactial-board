@@ -57,6 +57,14 @@ export const state = {
   arrowDrawStrokePoints: [],
   lineDrawMode: "freehand", // 'raw_freehand', 'freehand', 'bezier', 'straight'
 
+  // In-flight Shape Drawing (Rectangle, Circle, Triangle)
+  isDrawingShape: false,
+  shapeStartX: 0,
+  shapeStartY: 0,
+  shapeCurrentX: 0,
+  shapeCurrentY: 0,
+  selectedShapeType: "rect", // 'rect', 'circle', 'triangle'
+
   // Playback & Animation
   isPlaying: false,
   isLoopMode: true,

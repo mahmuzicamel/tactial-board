@@ -197,6 +197,20 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
     state.isLassoSelecting = true;
     state.lassoPoints = [{ x, y }];
     drawScene();
+  } else if (state.activeTool === "shape") {
+    state.selectedElementId = null;
+    state.selectedElementIds = [];
+    state.selectedArrowIndex = null;
+    state.selectedArrowPart = null;
+    hideInspector();
+    updateActionPopupPosition();
+
+    state.isDrawingShape = true;
+    state.shapeStartX = x;
+    state.shapeStartY = y;
+    state.shapeCurrentX = x;
+    state.shapeCurrentY = y;
+    drawScene();
   } else {
     state.selectedElementId = null;
     state.selectedElementIds = [];
@@ -376,6 +390,10 @@ export function handleCanvasPointerMove(e, canvas, getCanvasCoords, callbacks = 
       state.arrowDrawStrokePoints.push({ x, y });
     }
     drawScene();
+  } else if (state.isDrawingShape) {
+    state.shapeCurrentX = x;
+    state.shapeCurrentY = y;
+    drawScene();
   }
 }
 
@@ -510,6 +528,79 @@ export function handleCanvasPointerUp(e, canvas, callbacks = {}) {
     }
 
     state.arrowDrawStrokePoints = [];
+    drawScene();
+    updateActionPopupPosition();
+  }
+
+  // Shape drawing finalize (Rectangle, Circle, Triangle)
+  if (state.isDrawingShape) {
+    state.isDrawingShape = false;
+    const dx = state.shapeCurrentX - state.shapeStartX;
+    const dy = state.shapeCurrentY - state.shapeStartY;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > 15) {
+      const kf = getCurrentKeyframe();
+      if (!kf.elements) kf.elements = [];
+
+      const shapeType = state.selectedShapeType || "rect";
+      let newEl = null;
+
+      if (shapeType === "rect") {
+        const w = Math.max(20, Math.round(Math.abs(dx)));
+        const h = Math.max(20, Math.round(Math.abs(dy)));
+        const cx = Math.round((state.shapeStartX + state.shapeCurrentX) / 2);
+        const cy = Math.round((state.shapeStartY + state.shapeCurrentY) / 2);
+        newEl = {
+          id: "el_zone_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+          type: "zone_rect",
+          x: cx,
+          y: cy,
+          width: w,
+          height: h,
+          color: "#38bdf8",
+          fillColor: "rgba(56, 189, 248, 0.18)",
+          rotation: 0
+        };
+      } else if (shapeType === "circle") {
+        const radius = Math.max(12, Math.round(dist / 2));
+        const cx = Math.round((state.shapeStartX + state.shapeCurrentX) / 2);
+        const cy = Math.round((state.shapeStartY + state.shapeCurrentY) / 2);
+        newEl = {
+          id: "el_zone_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+          type: "zone_circle",
+          x: cx,
+          y: cy,
+          radius: radius,
+          color: "#eab308",
+          fillColor: "rgba(234, 179, 8, 0.18)",
+          rotation: 0
+        };
+      } else if (shapeType === "triangle") {
+        const size = Math.max(20, Math.round(dist));
+        const cx = Math.round((state.shapeStartX + state.shapeCurrentX) / 2);
+        const cy = Math.round((state.shapeStartY + state.shapeCurrentY) / 2);
+        newEl = {
+          id: "el_zone_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+          type: "zone_triangle",
+          x: cx,
+          y: cy,
+          size: size,
+          color: "#a855f7",
+          fillColor: "rgba(168, 85, 247, 0.18)",
+          rotation: 0
+        };
+      }
+
+      if (newEl) {
+        kf.elements.push(newEl);
+        state.selectedElementId = newEl.id;
+        state.selectedElementIds = [];
+        state.selectedArrowIndex = null;
+        showInspector(newEl);
+      }
+    }
+
     drawScene();
     updateActionPopupPosition();
   }
