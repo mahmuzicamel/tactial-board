@@ -280,27 +280,46 @@
     });
 
     // 5. In-flight Arrow Drawing
-    if (s.isDrawingArrow) {
-      const strokePts = (s.lineDrawMode === "raw_freehand" || s.lineDrawMode === "freehand") ? s.arrowDrawStrokePoints : null;
-      let previewCp1 = null, previewCp2 = null;
-      if (s.lineDrawMode === "freehand" && strokePts && strokePts.length >= 3) {
-        const fitted = TC().geometry.fitCubicBezierToStroke(strokePts);
-        if (fitted) {
-          const p0 = strokePts[0];
-          const p3 = strokePts[strokePts.length - 1];
-          const dx = p3.x - p0.x;
-          const dy = p3.y - p0.y;
-          previewCp1 = {
-            x: p0.x + dx * (1 / 3) + (fitted.cp1_dx || 0),
-            y: p0.y + dy * (1 / 3) + (fitted.cp1_dy || 0)
-          };
-          previewCp2 = {
-            x: p0.x + dx * (2 / 3) + (fitted.cp2_dx || 0),
-            y: p0.y + dy * (2 / 3) + (fitted.cp2_dy || 0)
-          };
+    if (s.isDrawingArrow && s.activeTool !== "select") {
+      const aType = (s.activeTool === "pass") ? "pass" : ((s.activeTool === "guide") ? "guide" : "run");
+      const col = (s.activeTool === "pass") ? "#facc15" : ((s.activeTool === "guide") ? "#fbbf24" : "#38bdf8");
+
+      if ((s.lineDrawMode === "freehand" || s.lineDrawMode === "raw_freehand") && s.arrowDrawStrokePoints && s.arrowDrawStrokePoints.length > 2) {
+        // Draw real-time smooth freehand stroke path following the user's hand/pointer
+        ctx.save();
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 4;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        if (aType === "pass") {
+          ctx.setLineDash([8, 8]);
+        } else if (aType === "guide") {
+          ctx.setLineDash([12, 6]);
         }
+        ctx.beginPath();
+        ctx.moveTo(s.arrowDrawStrokePoints[0].x, s.arrowDrawStrokePoints[0].y);
+        for (let i = 1; i < s.arrowDrawStrokePoints.length; i++) {
+          ctx.lineTo(s.arrowDrawStrokePoints[i].x, s.arrowDrawStrokePoints[i].y);
+        }
+        ctx.stroke();
+
+        // Arrow tip at the end of the stroke
+        const pLast = s.arrowDrawStrokePoints[s.arrowDrawStrokePoints.length - 1];
+        const pPrev = s.arrowDrawStrokePoints[Math.max(0, s.arrowDrawStrokePoints.length - 4)];
+        const tipAngle = Math.atan2(pLast.y - pPrev.y, pLast.x - pPrev.x);
+        const arrowSize = (aType === "guide") ? 14 : 10;
+        ctx.fillStyle = col;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(pLast.x, pLast.y);
+        ctx.lineTo(pLast.x - arrowSize * Math.cos(tipAngle - Math.PI / 6), pLast.y - arrowSize * Math.sin(tipAngle - Math.PI / 6));
+        ctx.lineTo(pLast.x - arrowSize * Math.cos(tipAngle + Math.PI / 6), pLast.y - arrowSize * Math.sin(tipAngle + Math.PI / 6));
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      } else {
+        TC().arrows.drawArrow(ctx, s.arrowStartX, s.arrowStartY, s.arrowCurrentX, s.arrowCurrentY, aType, col, false, null);
       }
-      TC().arrows.drawArrow(ctx, s.arrowStartX, s.arrowStartY, s.arrowCurrentX, s.arrowCurrentY, s.activeTool, "#34d399", false, null, previewCp1, previewCp2, s.lineDrawMode === "raw_freehand" ? strokePts : null);
     }
 
     // 6. Draw Elements
