@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tactical-coach-v87';
+const CACHE_NAME = 'tactical-coach-v88';
 const ASSETS_TO_CACHE = [
   '/',
   '/static/index.html',

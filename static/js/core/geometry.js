@@ -218,6 +218,72 @@ export function catmullRomToBezier(points, tension = 0.5) {
   return segments;
 }
 
+// 1. Finde den Scheitelpunkt S (Punkt mit max. Abstand zur Sehne P0-P2)
+export function getPeakPoint(points, p0, p2) {
+  let maxDist = -1;
+  let peak = points[Math.floor(points.length / 2)]; // Fallback: Mitte nach Index
+
+  for (const p of points) {
+    // Normalisierter Abstand zur Linie p0 -> p2
+    const dist = Math.abs((p2.y - p0.y) * p.x - (p2.x - p0.x) * p.y + p2.x * p0.y - p2.y * p0.x)
+                 / Math.hypot(p2.y - p0.y, p2.x - p0.x);
+    if (dist > maxDist) {
+      maxDist = dist;
+      peak = p;
+    }
+  }
+  return peak;
+}
+
+// 2. Erzeuge die 3-Punkte-Kurve beim Loslassen des Stifts (PointerUp)
+export function fitTo3PointCurve(rawPoints) {
+  if (!rawPoints || rawPoints.length < 2) return null;
+  const p0 = rawPoints[0];
+  const p2 = rawPoints[rawPoints.length - 1];
+  const chordLen = Math.hypot(p2.x - p0.x, p2.y - p0.y);
+  if (chordLen < 5) return null;
+
+  const s = getPeakPoint(rawPoints, p0, p2);
+
+  // Virtueller quadratischer Bézier-Kontrollpunkt für den Renderer
+  const p1 = {
+    x: 2 * s.x - 0.5 * (p0.x + p2.x),
+    y: 2 * s.y - 0.5 * (p0.y + p2.y)
+  };
+
+  // Exakte Umrechnung von quadratischer Bézier (p0, p1, p2) in kubische Bézier (p0, cp1, cp2, p2):
+  // cp1 = p0 + 2/3 * (p1 - p0)
+  // cp2 = p2 + 2/3 * (p1 - p2)
+  const cp1 = {
+    x: p0.x + (2 / 3) * (p1.x - p0.x),
+    y: p0.y + (2 / 3) * (p1.y - p0.y)
+  };
+  const cp2 = {
+    x: p2.x + (2 / 3) * (p1.x - p2.x),
+    y: p2.y + (2 / 3) * (p1.y - p2.y)
+  };
+
+  const dx = p2.x - p0.x;
+  const dy = p2.y - p0.y;
+  const defaultP1X = p0.x + dx * (1 / 3);
+  const defaultP1Y = p0.y + dy * (1 / 3);
+  const defaultP2X = p0.x + dx * (2 / 3);
+  const defaultP2Y = p0.y + dy * (2 / 3);
+
+  return {
+    p0,
+    s,
+    p2,
+    p1,
+    cp1,
+    cp2,
+    cp1_dx: cp1.x - defaultP1X,
+    cp1_dy: cp1.y - defaultP1Y,
+    cp2_dx: cp2.x - defaultP2X,
+    cp2_dy: cp2.y - defaultP2Y
+  };
+}
+
 // Perfekt geglätteter Laufweg: RDP Entrauschen -> Äquidistantes Resampling -> Chaikin Rundung -> Stützpunkte
 export function fitCatmullRomPoints(rawPoints, epsilon = 6.0, spacing = 22) {
   if (!rawPoints || rawPoints.length < 2) return rawPoints ? [...rawPoints] : [];
