@@ -141,24 +141,33 @@ export function setLineDrawMode(mode) {
   if (checkBezier) checkBezier.classList.add("hidden");
   if (checkStraight) checkStraight.classList.add("hidden");
 
+  const setIconClass = (cls) => {
+    if (!icon) return;
+    if (typeof icon.className === "string") {
+      icon.className = cls;
+    } else {
+      icon.setAttribute("class", cls);
+    }
+  };
+
   if (mode === "raw_freehand") {
     if (label) label.innerText = "Full Freihand";
-    if (icon) icon.className = "fa-solid fa-pen-nib text-[11px] text-amber-400";
+    setIconClass("fa-solid fa-pen-nib text-[11px] text-amber-400");
     if (optRawFreehand) optRawFreehand.className = "w-full text-left px-2 py-1.5 rounded-lg bg-amber-950/60 border border-amber-500/50 text-amber-300 hover:bg-amber-900/60 flex items-center justify-between text-xs transition";
     if (checkRawFreehand) checkRawFreehand.classList.remove("hidden");
   } else if (mode === "freehand") {
     if (label) label.innerText = "Freihand";
-    if (icon) icon.className = "fa-solid fa-signature text-[11px] text-emerald-400";
+    setIconClass("fa-solid fa-signature text-[11px] text-emerald-400");
     if (optFreehand) optFreehand.className = "w-full text-left px-2 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/60 flex items-center justify-between text-xs transition";
     if (checkFreehand) checkFreehand.classList.remove("hidden");
   } else if (mode === "bezier") {
     if (label) label.innerText = "Bézier";
-    if (icon) icon.className = "fa-solid fa-bezier-curve text-[11px] text-cyan-400";
+    setIconClass("fa-solid fa-bezier-curve text-[11px] text-cyan-400");
     if (optBezier) optBezier.className = "w-full text-left px-2 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-500/50 text-cyan-300 hover:bg-cyan-900/60 flex items-center justify-between text-xs transition";
     if (checkBezier) checkBezier.classList.remove("hidden");
   } else if (mode === "straight") {
     if (label) label.innerText = "Gerade";
-    if (icon) icon.className = "fa-solid fa-minus text-[11px] text-slate-300";
+    setIconClass("fa-solid fa-minus text-[11px] text-slate-300");
     if (optStraight) optStraight.className = "w-full text-left px-2 py-1.5 rounded-lg bg-slate-700/60 border border-slate-500/50 text-white hover:bg-slate-700 flex items-center justify-between text-xs transition";
     if (checkStraight) checkStraight.classList.remove("hidden");
   }

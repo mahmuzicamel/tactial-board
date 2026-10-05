@@ -285,7 +285,20 @@
       let previewCp1 = null, previewCp2 = null;
       if (s.lineDrawMode === "freehand" && strokePts && strokePts.length >= 3) {
         const fitted = TC().geometry.fitCubicBezierToStroke(strokePts);
-        if (fitted) { previewCp1 = fitted.p1; previewCp2 = fitted.p2; }
+        if (fitted) {
+          const p0 = strokePts[0];
+          const p3 = strokePts[strokePts.length - 1];
+          const dx = p3.x - p0.x;
+          const dy = p3.y - p0.y;
+          previewCp1 = {
+            x: p0.x + dx * (1 / 3) + (fitted.cp1_dx || 0),
+            y: p0.y + dy * (1 / 3) + (fitted.cp1_dy || 0)
+          };
+          previewCp2 = {
+            x: p0.x + dx * (2 / 3) + (fitted.cp2_dx || 0),
+            y: p0.y + dy * (2 / 3) + (fitted.cp2_dy || 0)
+          };
+        }
       }
       TC().arrows.drawArrow(ctx, s.arrowStartX, s.arrowStartY, s.arrowCurrentX, s.arrowCurrentY, s.activeTool, "#34d399", false, null, previewCp1, previewCp2, s.lineDrawMode === "raw_freehand" ? strokePts : null);
     }
