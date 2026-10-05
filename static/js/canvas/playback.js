@@ -19,17 +19,20 @@ export class PlaybackController {
   start() {
     const ex = getCurrentExercise();
     if (!ex || !Array.isArray(ex.keyframes) || ex.keyframes.length < 2) {
-      alert("Füge mindestens 2 Schritte hinzu, um eine Animation abzuspielen.");
+      if (typeof window.showToast === "function") {
+        window.showToast("Füge mindestens 2 Schritte hinzu, um eine Animation abzuspielen.", true);
+      } else {
+        alert("Füge mindestens 2 Schritte hinzu, um eine Animation abzuspielen.");
+      }
       return;
     }
 
-    if (state.isPlaying || state.animReqId) {
-      this.stop();
-    }
+    this.stop();
 
     state.isPlaying = true;
     this.updateUI(true);
     state.animStartTime = performance.now();
+    let lastRenderedStep = -1;
 
     const loop = (now) => {
       if (!state.isPlaying) return;
@@ -59,6 +62,13 @@ export class PlaybackController {
       const stepIdx = Math.min(totalSteps - 1, Math.floor(elapsed / stepDuration));
       const nextStepIdx = state.isLoopMode ? ((stepIdx + 1) % totalSteps) : Math.min(totalSteps - 1, stepIdx + 1);
       const stepProgress = (elapsed % stepDuration) / stepDuration;
+
+      if (stepIdx !== lastRenderedStep) {
+        lastRenderedStep = stepIdx;
+        if (this.onStepChange) {
+          this.onStepChange(stepIdx);
+        }
+      }
 
       // Interpolation (Ease-in-out)
       const smoothT = 0.5 - 0.5 * Math.cos(Math.PI * stepProgress);
