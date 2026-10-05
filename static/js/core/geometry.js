@@ -88,6 +88,97 @@ export function getArrowCurveControlPoints(arr) {
   return { p1, p2 };
 }
 
+// Ramer-Douglas-Peucker (RDP) Pfad-Vereinfachung zur Reduktion von Jitter / Rauschen
+export function simplifyPathRDP(points, epsilon = 2.5) {
+  if (!points || points.length <= 2) return points ? [...points] : [];
+  let maxDist = 0;
+  let index = 0;
+  const p0 = points[0];
+  const pEnd = points[points.length - 1];
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const d = distToSegment(points[i].x, points[i].y, p0.x, p0.y, pEnd.x, pEnd.y);
+    if (d > maxDist) {
+      maxDist = d;
+      index = i;
+    }
+  }
+
+  if (maxDist > epsilon) {
+    const rec1 = simplifyPathRDP(points.slice(0, index + 1), epsilon);
+    const rec2 = simplifyPathRDP(points.slice(index), epsilon);
+    return rec1.slice(0, rec1.length - 1).concat(rec2);
+  } else {
+    return [p0, pEnd];
+  }
+}
+
+// Catmull-Rom Spline zu zusammengesetzten kubischen Bézier-Segmenten (GoodNotes / Notability Standard)
+export function catmullRomToBezier(points, tension = 0.5) {
+  if (!points || points.length < 2) return [];
+  if (points.length === 2) {
+    const p0 = points[0];
+    const p1 = points[1];
+    return [{
+      p0,
+      cp1: { x: p0.x + (p1.x - p0.x) / 3, y: p0.y + (p1.y - p0.y) / 3 },
+      cp2: { x: p0.x + (p1.x - p0.x) * 2 / 3, y: p0.y + (p1.y - p0.y) * 2 / 3 },
+      p3: p1
+    }];
+  }
+
+  // Für saubere Endpunkte Clamping der Randpunkte (P_{-1} = P_0, P_{n} = P_{n-1})
+  const pts = [points[0], ...points, points[points.length - 1]];
+  const segments = [];
+
+  for (let i = 1; i < pts.length - 2; i++) {
+    const p0 = pts[i - 1];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2];
+
+    // Catmull-Rom Kontrollpunkte zu kubischen Bézier-Kontrollpunkten
+    const cp1 = {
+      x: p1.x + ((p2.x - p0.x) / 6) * (tension * 2),
+      y: p1.y + ((p2.y - p0.y) / 6) * (tension * 2)
+    };
+    const cp2 = {
+      x: p2.x - ((p3.x - p1.x) / 6) * (tension * 2),
+      y: p2.y - ((p3.y - p1.y) / 6) * (tension * 2)
+    };
+
+    segments.push({
+      p0: { x: p1.x, y: p1.y },
+      cp1,
+      cp2,
+      p3: { x: p2.x, y: p2.y }
+    });
+  }
+
+  return segments;
+}
+
+// Wandelt Stroke-Punkte mittels RDP + Catmull-Rom in eine geglättete, feine Punktreihe um (für perfektes Rendering)
+export function fitCatmullRomPoints(rawPoints, epsilon = 2.0, samplesPerSegment = 10) {
+  if (!rawPoints || rawPoints.length < 2) return rawPoints ? [...rawPoints] : [];
+  const simplified = simplifyPathRDP(rawPoints, epsilon);
+  if (simplified.length < 2) return [...rawPoints];
+
+  const beziers = catmullRomToBezier(simplified);
+  const smoothed = [];
+
+  beziers.forEach((seg, sIdx) => {
+    const steps = samplesPerSegment;
+    const startStep = (sIdx === 0) ? 0 : 1;
+    for (let step = startStep; step <= steps; step++) {
+      const t = step / steps;
+      smoothed.push(getCubicBezierPoint(t, seg.p0, seg.cp1, seg.cp2, seg.p3));
+    }
+  });
+
+  return smoothed;
+}
+
 export function fitCubicBezierToStroke(points) {
   if (!points || points.length < 3) return null;
   const p0 = points[0];

@@ -9,7 +9,8 @@ import {
   getEffectiveCurveControlPoints,
   getArrowCurveControlPoints,
   getCubicBezierPoint,
-  fitCubicBezierToStroke
+  fitCubicBezierToStroke,
+  fitCatmullRomPoints
 } from "../core/geometry.js";
 import { handleCurvePointerDown, updateCurveDrag } from "./curve-editor.js";
 import { showInspector, showGroupInspector, showArrowInspector, hideInspector } from "../ui/inspectors.js";
@@ -436,11 +437,18 @@ export function handleCanvasPointerUp(e, canvas, callbacks = {}) {
       if (state.lineDrawMode === "raw_freehand" && state.arrowDrawStrokePoints.length >= 2) {
         rawPoints = state.arrowDrawStrokePoints.map(p => ({ x: Math.round(p.x), y: Math.round(p.y) }));
       } else if (state.lineDrawMode === "freehand" && state.arrowDrawStrokePoints.length >= 3) {
+        // Catmull-Rom Glättung: Erhält alle Schwünge und S-Kurven ohne Begradigung
+        const smoothedPoints = fitCatmullRomPoints(state.arrowDrawStrokePoints, 2.0, 10);
+        rawPoints = smoothedPoints.map(p => ({ x: Math.round(p.x), y: Math.round(p.y) }));
+
+        // Berechne zusätzlich die kubische Approximation für Fallbacks
         const fitted = fitCubicBezierToStroke(state.arrowDrawStrokePoints);
-        cp1_dx = Math.round(fitted.cp1_dx);
-        cp1_dy = Math.round(fitted.cp1_dy);
-        cp2_dx = Math.round(fitted.cp2_dx);
-        cp2_dy = Math.round(fitted.cp2_dy);
+        if (fitted) {
+          cp1_dx = Math.round(fitted.cp1_dx);
+          cp1_dy = Math.round(fitted.cp1_dy);
+          cp2_dx = Math.round(fitted.cp2_dx);
+          cp2_dy = Math.round(fitted.cp2_dy);
+        }
       }
 
       const newArrow = {
