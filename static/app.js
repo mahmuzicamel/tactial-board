@@ -206,6 +206,15 @@
     // 1. Draw Pitch
     TC().pitch.drawPitchBackground(ctx, pitchType);
 
+    // 1b. Zonen & Flächen (Rechteck, Kreis, Dreieck) - Unterste Ebene, unter Linien, Spielern und Elementen
+    elements.forEach(el => {
+      const isZone = (el.type === "zone_rect" || el.type === "zone_circle" || el.type === "zone_triangle");
+      if (isZone) {
+        const isSel = (s.selectedElementId === el.id || s.selectedElementIds.includes(el.id));
+        TC().elements.drawElementOnCanvas(ctx, el, isSel, s.fieldRotation, s.globalElementScale);
+      }
+    });
+
     // 2. Ghost Layer
     if (s.isGhostMode !== "off" && !s.isPlaying && s.currentKeyframeIndex > 0) {
       const startIdx = (s.isGhostMode === "all") ? 0 : (s.currentKeyframeIndex - 1);
@@ -407,10 +416,13 @@
       ctx.restore();
     }
 
-    // 6. Draw Elements
+    // 6. Draw Elements (Spieler, Bälle, Hütchen, Tore etc. - oberhalb von Zonen und Linien!)
     elements.forEach(el => {
-      const isSel = (s.selectedElementId === el.id || s.selectedElementIds.includes(el.id));
-      TC().elements.drawElementOnCanvas(ctx, el, isSel, s.fieldRotation, s.globalElementScale);
+      const isZone = (el.type === "zone_rect" || el.type === "zone_circle" || el.type === "zone_triangle");
+      if (!isZone) {
+        const isSel = (s.selectedElementId === el.id || s.selectedElementIds.includes(el.id));
+        TC().elements.drawElementOnCanvas(ctx, el, isSel, s.fieldRotation, s.globalElementScale);
+      }
     });
 
     // 7. Lasso Selection Polygon

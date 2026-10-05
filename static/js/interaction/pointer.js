@@ -187,20 +187,35 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
     }
   }
 
-  // 2. Check if clicked an element
+  // 2. Check if clicked an element (Spieler, Trainingsgeräte, Bälle etc. - HÖCHSTE Priorität vor Zonen!)
   const effectiveElScale = Math.max(0.6, state.globalElementScale || 1.0);
   const baseHitRadius = Math.max(26 * effectiveElScale, (34 * effectiveElScale) / Math.sqrt(state.viewScale));
-  const clickedElement = [...(kf.elements || [])].reverse().find(el => {
-    let hitR = baseHitRadius;
-    if (el.type === "zone_rect") {
-      hitR = Math.max(baseHitRadius, ((el.width || 120) / 2) * effectiveElScale);
-    } else if (el.type === "zone_circle") {
-      hitR = Math.max(baseHitRadius, (el.radius || 50) * effectiveElScale);
-    } else if (el.type === "zone_triangle") {
-      hitR = Math.max(baseHitRadius, ((el.size || 70) * 0.6) * effectiveElScale);
-    }
-    return Math.hypot(el.x - x, el.y - y) <= hitR;
-  });
+
+  // 2a. Zuerst normale Elemente (Spieler, Bälle, Hütchen, Tore, etc.) prüfen
+  const clickedRealElement = [...(kf.elements || [])]
+    .filter(el => el.type !== "zone_rect" && el.type !== "zone_circle" && el.type !== "zone_triangle")
+    .reverse()
+    .find(el => Math.hypot(el.x - x, el.y - y) <= baseHitRadius);
+
+  // 2b. Falls kein Spieler/Element angeklickt wurde: Zonen (Flächen) prüfen
+  const clickedZoneElement = !clickedRealElement
+    ? [...(kf.elements || [])]
+        .filter(el => el.type === "zone_rect" || el.type === "zone_circle" || el.type === "zone_triangle")
+        .reverse()
+        .find(el => {
+          let hitR = baseHitRadius;
+          if (el.type === "zone_rect") {
+            hitR = Math.max(baseHitRadius, ((el.width || 120) / 2) * effectiveElScale);
+          } else if (el.type === "zone_circle") {
+            hitR = Math.max(baseHitRadius, (el.radius || 50) * effectiveElScale);
+          } else if (el.type === "zone_triangle") {
+            hitR = Math.max(baseHitRadius, ((el.size || 70) * 0.6) * effectiveElScale);
+          }
+          return Math.hypot(el.x - x, el.y - y) <= hitR;
+        })
+    : null;
+
+  const clickedElement = clickedRealElement || clickedZoneElement;
 
   if (clickedElement) {
     if (state.activeTool !== "select") {
