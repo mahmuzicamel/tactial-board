@@ -134,6 +134,26 @@
     set("exCoaching", ex.coaching_points);
     const pSel = document.getElementById("pitchSelect");
     if (pSel && ex.pitch_type) pSel.value = ex.pitch_type;
+
+    // Synchronisiere Wiedergabe-Optionen (Ghost & Speed)
+    const ghostBtn = document.getElementById("ghostToggleBtn");
+    const ghostLbl = document.getElementById("ghostToggleLabel");
+    if (ghostBtn && ghostLbl) {
+      if (S().isGhostMode === "prev") {
+        ghostBtn.className = "px-1.5 py-1 bg-cyan-950/70 text-cyan-300 font-bold text-[11px] rounded-md border border-cyan-500/60 transition flex items-center gap-1";
+        ghostLbl.innerText = "Ghost: 1";
+      } else if (S().isGhostMode === "all") {
+        ghostBtn.className = "px-1.5 py-1 bg-purple-950/80 text-purple-200 font-bold text-[11px] rounded-md border border-purple-500/70 transition flex items-center gap-1";
+        ghostLbl.innerText = "Ghost: Alle";
+      } else {
+        ghostBtn.className = "px-1.5 py-1 bg-slate-800 text-slate-400 font-bold text-[11px] rounded-md border border-slate-700 transition flex items-center gap-1";
+        ghostLbl.innerText = "Ghost";
+      }
+    }
+    const speedLbl = document.getElementById("speedToggleLabel");
+    if (speedLbl) {
+      speedLbl.innerText = `${(S().currentSpeed || 1.0).toFixed(1)}x`;
+    }
   };
 
   // Canvas Resize & Dimensions

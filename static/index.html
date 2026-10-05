@@ -323,7 +323,7 @@
 
     <!-- Sidebar Footer -->
     <div class="p-3 border-t border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-[11px] text-slate-400">
-      <span>Tactical Coach v100</span>
+      <span>Tactical Coach v101</span>
       <button onclick="closeSidebarMenu()" class="text-emerald-400 hover:underline font-medium">Zurück zum Board</button>
     </div>
   </aside>
@@ -432,9 +432,9 @@
                 <span class="text-xs text-slate-300 flex items-center gap-1.5">
                   <i class="fa-solid fa-ghost text-cyan-400 text-xs"></i> Ghost
                 </span>
-                <button id="ghostToggleBtn" onclick="toggleGhostLayer()" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-400 font-bold text-[11px] rounded-md border border-slate-700 transition flex items-center gap-1">
+                <button id="ghostToggleBtn" onclick="toggleGhostLayer()" class="px-2 py-0.5 bg-purple-950/80 text-purple-200 font-bold text-[11px] rounded-md border border-purple-500/70 transition flex items-center gap-1">
                   <i id="ghostToggleIcon" class="fa-solid fa-ghost text-[10px]"></i>
-                  <span id="ghostToggleLabel">Aus</span>
+                  <span id="ghostToggleLabel">Ghost: Alle</span>
                 </button>
               </div>
 
@@ -455,7 +455,7 @@
                   <i class="fa-solid fa-gauge-high text-amber-400 text-xs"></i> Tempo
                 </span>
                 <button id="speedToggleBtn" onclick="cyclePlaybackSpeed()" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-emerald-400 font-bold text-[11px] rounded-md border border-slate-700 transition">
-                  <span id="speedToggleLabel">0.5x</span>
+                  <span id="speedToggleLabel">1.0x</span>
                 </button>
               </div>
             </div>
@@ -1002,7 +1002,7 @@
     <span id="toastMsg">Mitteilung</span>
   </div>
 
-  <script type="module" src="/static/js/app-module.js?v=100"></script>
-  <script src="/static/app.js?v=100"></script>
+  <script type="module" src="/static/js/app-module.js?v=101"></script>
+  <script src="/static/app.js?v=101"></script>
 </body>
 </html>

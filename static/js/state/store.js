@@ -13,7 +13,7 @@ export function createEmptyExercise() {
     coaching_points: "",
     element_scale: 1.0,
     field_rotation: 0,
-    playback_speed: 0.5,
+    playback_speed: 1.0,
     keyframes: [
       {
         title: "Schritt 1: Startaufstellung",
@@ -60,10 +60,10 @@ export const state = {
   // Playback & Animation
   isPlaying: false,
   isLoopMode: true,
-  isGhostMode: "off", // 'off', 'prev', 'all'
+  isGhostMode: "all", // 'off', 'prev', 'all'
   animReqId: null,
   animStartTime: null,
-  currentSpeed: 0.5,
+  currentSpeed: 1.0,
 
   // Viewport Transform
   viewScale: 1.0,
