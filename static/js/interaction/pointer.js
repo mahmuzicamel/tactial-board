@@ -91,7 +91,8 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
   if (state.selectedElementId) {
     const selEl = kf.elements.find(it => it.id === state.selectedElementId);
     if (selEl && (selEl.type === "zone_rect" || selEl.type === "zone_circle" || selEl.type === "zone_triangle")) {
-      const zHitR = Math.max(30, 38 / Math.sqrt(state.viewScale));
+      // Touch-Toleranz: Für mobile Touchscreens 24px Radius, damit man nicht daneben tippt, aber nicht zu weit weg
+      const zHitR = Math.max(20, 26 / Math.sqrt(state.viewScale));
 
       // Bei Zonen (Rechteck, Kreis, Dreieck) rotiert das Element mit dem Spielfeld mit (kein Counter-Rotate)
       // Daher ist die Ausrichtung auf dem Canvas gleich el.rotation (ohne -fieldRotation)
@@ -139,7 +140,10 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
             height: h,
             totalRotRad: totalRotRad,
             startMouseX: x,
-            startMouseY: y
+            startMouseY: y,
+            // Offset zwischen Touch/Klick und exaktem Handle-Mittelpunkt speichern
+            handleOffsetX: x - hitHandle.x,
+            handleOffsetY: y - hitHandle.y
           };
           return;
         }
@@ -160,7 +164,13 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
           state.isResizingZone = true;
           state.resizeZoneId = selEl.id;
           state.resizeZoneCorner = hitHandle.name;
-          state.resizeInitialState = { x: selEl.x, y: selEl.y, radius };
+          state.resizeInitialState = {
+            x: selEl.x,
+            y: selEl.y,
+            radius,
+            handleOffsetX: x - hitHandle.x,
+            handleOffsetY: y - hitHandle.y
+          };
           return;
         }
       } else if (selEl.type === "zone_triangle") {
@@ -180,7 +190,13 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
           state.isResizingZone = true;
           state.resizeZoneId = selEl.id;
           state.resizeZoneCorner = hitTip.name;
-          state.resizeInitialState = { x: selEl.x, y: selEl.y, size };
+          state.resizeInitialState = {
+            x: selEl.x,
+            y: selEl.y,
+            size,
+            handleOffsetX: x - hitTip.x,
+            handleOffsetY: y - hitTip.y
+          };
           return;
         }
       }
@@ -390,13 +406,17 @@ export function handleCanvasPointerMove(e, canvas, getCanvasCoords, callbacks = 
         const init = state.resizeInitialState;
         const corner = state.resizeZoneCorner;
 
-        // Transformiere aktuellen Mauszeiger (x, y) in den lokalen Koordinatenraum der Zone
+        // Ziehe direkt am Handle (korrigiert um den anfänglichen Berührungsoffset, kein Versatz/Springen)
+        const effX = x - (init.handleOffsetX || 0);
+        const effY = y - (init.handleOffsetY || 0);
+
+        // Transformiere aktuellen Zeiger (effX, effY) in den lokalen Koordinatenraum der Zone
         const totalRotRad = init.totalRotRad || 0;
         const cosA = Math.cos(totalRotRad);
         const sinA = Math.sin(totalRotRad);
 
-        const dxWorld = x - init.centerX;
-        const dyWorld = y - init.centerY;
+        const dxWorld = effX - init.centerX;
+        const dyWorld = effY - init.centerY;
         const localMouseX = dxWorld * cosA + dyWorld * sinA;
         const localMouseY = -dxWorld * sinA + dyWorld * cosA;
 
@@ -405,7 +425,7 @@ export function handleCanvasPointerMove(e, canvas, getCanvasCoords, callbacks = 
         let top = -init.height / 2;
         let bottom = init.height / 2;
 
-        // Jede Seite einzeln ziehbar im lokalen Koordinatensystem
+        // Jede Seite einzeln ziehbar im lokalen Koordinatensystem (direkt am Griff gebunden)
         if (corner === "l") {
           left = Math.min(localMouseX, right - 20);
         } else if (corner === "r") {
@@ -439,10 +459,16 @@ export function handleCanvasPointerMove(e, canvas, getCanvasCoords, callbacks = 
         el.width = newW;
         el.height = newH;
       } else if (el.type === "zone_circle") {
-        const dist = Math.hypot(x - el.x, y - el.y);
+        const init = state.resizeInitialState;
+        const effX = x - (init.handleOffsetX || 0);
+        const effY = y - (init.handleOffsetY || 0);
+        const dist = Math.hypot(effX - el.x, effY - el.y);
         el.radius = Math.max(15, Math.round(dist));
       } else if (el.type === "zone_triangle") {
-        const dist = Math.hypot(x - el.x, y - el.y);
+        const init = state.resizeInitialState;
+        const effX = x - (init.handleOffsetX || 0);
+        const effY = y - (init.handleOffsetY || 0);
+        const dist = Math.hypot(effX - el.x, effY - el.y);
         el.size = Math.max(25, Math.round(dist * 1.2));
       }
       drawScene();
