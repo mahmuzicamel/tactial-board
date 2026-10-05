@@ -553,18 +553,95 @@ function drawElementOnCanvasFallback(c, el, isSelected = false, fRot = 0, gScale
 }
 
 function drawArrowFallback(c, x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected = false, animTime = null, cp1 = null, cp2 = null, rawPoints = null) {
+  const isRaw = (rawPoints && rawPoints.length >= 2);
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const isCurved = (!isRaw && cp1 && cp2 && (Math.hypot(cp1.x - (x1 + dx * (1 / 3)), cp1.y - (y1 + dy * (1 / 3))) > 1 || Math.hypot(cp2.x - (x1 + dx * (2 / 3)), cp2.y - (y1 + dy * (2 / 3))) > 1));
+
   c.save();
+  if (isSelected) {
+    c.strokeStyle = "rgba(56, 189, 248, 0.4)";
+    c.lineWidth = 14;
+    c.lineCap = "round";
+    c.lineJoin = "round";
+    c.beginPath();
+    if (isRaw) {
+      c.moveTo(rawPoints[0].x, rawPoints[0].y);
+      for (let p = 1; p < rawPoints.length; p++) c.lineTo(rawPoints[p].x, rawPoints[p].y);
+    } else {
+      c.moveTo(x1, y1);
+      if (isCurved) {
+        c.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+      } else {
+        c.lineTo(x2, y2);
+      }
+    }
+    c.stroke();
+  }
+
   c.strokeStyle = color;
-  c.lineWidth = 3;
-  if (type === "pass") c.setLineDash([6, 6]);
+  c.lineWidth = 3.5;
+  c.lineCap = "round";
+  c.lineJoin = "round";
+  if (type === "pass") {
+    c.setLineDash([8, 8]);
+  } else if (type === "guide") {
+    c.setLineDash([12, 6]);
+  }
+
   c.beginPath();
-  c.moveTo(x1, y1);
-  if (cp1 && cp2) {
-    c.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+  if (isRaw) {
+    c.moveTo(rawPoints[0].x, rawPoints[0].y);
+    for (let p = 1; p < rawPoints.length; p++) c.lineTo(rawPoints[p].x, rawPoints[p].y);
   } else {
-    c.lineTo(x2, y2);
+    c.moveTo(x1, y1);
+    if (isCurved) {
+      c.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+    } else {
+      c.lineTo(x2, y2);
+    }
   }
   c.stroke();
+
+  // Tip
+  let tipAngle = Math.atan2(dy, dx);
+  let tipX = x2;
+  let tipY = y2;
+  if (isRaw) {
+    const pLast = rawPoints[rawPoints.length - 1];
+    const pPrev = rawPoints[Math.max(0, rawPoints.length - 4)];
+    tipX = pLast.x;
+    tipY = pLast.y;
+    tipAngle = Math.atan2(pLast.y - pPrev.y, pLast.x - pPrev.x);
+  } else if (isCurved) {
+    tipAngle = Math.atan2(y2 - cp2.y, x2 - cp2.x);
+  }
+
+  const arrowSize = (type === "guide") ? 14 : 10;
+  c.fillStyle = color;
+  c.setLineDash([]);
+  c.beginPath();
+  c.moveTo(tipX, tipY);
+  c.lineTo(tipX - arrowSize * Math.cos(tipAngle - Math.PI / 6), tipY - arrowSize * Math.sin(tipAngle - Math.PI / 6));
+  c.lineTo(tipX - arrowSize * Math.cos(tipAngle + Math.PI / 6), tipY - arrowSize * Math.sin(tipAngle + Math.PI / 6));
+  c.closePath();
+  c.fill();
+
+  // Handles when selected
+  if (isSelected && isCurved && cp1 && cp2) {
+    c.fillStyle = "#38bdf8";
+    c.strokeStyle = "#ffffff";
+    c.lineWidth = 2;
+    c.beginPath();
+    c.arc(cp1.x, cp1.y, 6.5, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+    c.beginPath();
+    c.arc(cp2.x, cp2.y, 6.5, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+  }
+
   c.restore();
 }
 

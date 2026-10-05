@@ -29,19 +29,40 @@ class ElementModel(BaseModel):
     number: Optional[str] = "1"
     name: Optional[str] = None
     rotation: Optional[float] = 0.0
+    cp1_dx: Optional[float] = None
+    cp1_dy: Optional[float] = None
+    cp2_dx: Optional[float] = None
+    cp2_dy: Optional[float] = None
+    jump: Optional[bool] = False
+
+    class Config:
+        extra = "allow"
 
 class ArrowModel(BaseModel):
-    type: str = Field(..., description="pass, run, dribble")
+    id: Optional[str] = None
+    type: str = Field(..., description="pass, run, dribble, guide")
     x1: float
     y1: float
     x2: float
     y2: float
     color: Optional[str] = "#facc15"
+    cp1_dx: Optional[float] = None
+    cp1_dy: Optional[float] = None
+    cp2_dx: Optional[float] = None
+    cp2_dy: Optional[float] = None
+    persistent: Optional[bool] = False
+    raw_points: Optional[List[Dict[str, float]]] = None
+
+    class Config:
+        extra = "allow"
 
 class KeyframeModel(BaseModel):
     title: str = "Schritt 1"
     elements: List[ElementModel] = []
     arrows: List[ArrowModel] = []
+
+    class Config:
+        extra = "allow"
 
 class ExerciseCreateOrUpdate(BaseModel):
     id: Optional[str] = None
