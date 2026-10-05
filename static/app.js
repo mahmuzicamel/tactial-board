@@ -1399,9 +1399,16 @@
 
   // Export, Video & Print
   window.currentExportVideoUrl = "";
+  window.currentExportVideoBlob = null;
+  window.currentExportVideoType = "2d"; // '2d' oder '3d'
+  window.currentExportPhotoType = "2d"; // '2d' oder '3d'
   window.openExportModal = function () {
     TC().popovers.openExportModal();
-    window.preparePhotoSnapshot();
+    // Wenn der Nutzer gerade im 3D-Modus war, Export direkt auf 3D vorwählen
+    const s = S();
+    const initialMode = s.is3DMode ? "3d" : "2d";
+    window.setVideoRenderMode(initialMode);
+    window.preparePhotoSnapshot(initialMode);
   };
 
   window.closeExportModal = function () {
@@ -1438,13 +1445,124 @@
     }
   };
 
-  window.preparePhotoSnapshot = function () {
-    if (!canvas) return;
-    const dataUrl = canvas.toDataURL("image/png");
+  window.preparePhotoSnapshot = function (mode = null) {
+    if (mode) window.currentExportPhotoType = mode;
+    const is3d = window.currentExportPhotoType === "3d";
+    let dataUrl = null;
+
+    if (is3d && window.view3dManager) {
+      // Wenn 3D Manager vorhanden ist, Render aktualisieren
+      if (!window.view3dManager.isActive) {
+        window.view3dManager.init();
+        window.view3dManager.syncScene();
+      }
+      dataUrl = window.view3dManager.getSnapshotDataURL();
+    } else if (canvas) {
+      dataUrl = canvas.toDataURL("image/png");
+    }
+
+    if (!dataUrl) return;
     const imgEl = document.getElementById("exportSnapshotImg");
     if (imgEl) imgEl.src = dataUrl;
     const box = document.getElementById("photoPreviewBox");
     if (box) box.classList.remove("hidden");
+
+    // Toggle Buttons optisch aktualisieren
+    const btn2d = document.getElementById("photoMode2dBtn");
+    const btn3d = document.getElementById("photoMode3dBtn");
+    if (btn2d && btn3d) {
+      if (is3d) {
+        btn3d.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-600 text-white shadow";
+        btn2d.className = "px-2 py-0.5 rounded text-[11px] font-medium text-slate-400 hover:text-white";
+      } else {
+        btn2d.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-blue-600 text-white shadow";
+        btn3d.className = "px-2 py-0.5 rounded text-[11px] font-medium text-slate-400 hover:text-white";
+      }
+    }
+  };
+
+  window.setVideoRenderMode = function (mode) {
+    window.currentExportVideoType = mode;
+    const btn2d = document.getElementById("videoMode2dBtn");
+    const btn3d = document.getElementById("videoMode3dBtn");
+    const desc = document.getElementById("videoModeDescription");
+    if (mode === "3d") {
+      if (btn3d) btn3d.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-600 text-white shadow";
+      if (btn2d) btn2d.className = "px-2 py-0.5 rounded text-[11px] font-medium text-slate-400 hover:text-white";
+      if (desc) desc.innerHTML = `<i class="fa-solid fa-cube text-cyan-400"></i> Direkter 3D-Stadion-Videomitschnitt mit Three.js`;
+    } else {
+      if (btn2d) btn2d.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-blue-600 text-white shadow";
+      if (btn3d) btn3d.className = "px-2 py-0.5 rounded text-[11px] font-medium text-slate-400 hover:text-white";
+      if (desc) desc.innerHTML = `<i class="fa-solid fa-server text-blue-400"></i> Serverseitiger 2D HD-Export (ffmpeg)`;
+    }
+  };
+
+  window.triggerVideoRender = function () {
+    if (window.currentExportVideoType === "3d") {
+      window.trigger3DVideoRender();
+    } else {
+      window.triggerServerVideoRender();
+    }
+  };
+
+  window.trigger3DVideoRender = async function () {
+    const s = S();
+    const btn = document.getElementById("btnRenderVideo");
+    const statusBox = document.getElementById("videoRenderStatus");
+    const statusText = document.getElementById("videoRenderStatusText");
+    const resultBox = document.getElementById("videoResultBox");
+
+    const currentEx = s.currentExercise;
+    if (!currentEx || !Array.isArray(currentEx.keyframes) || currentEx.keyframes.length < 2) {
+      window.showToast("Füge mindestens 2 Schritte hinzu, um ein Video aufzunehmen!", true);
+      return;
+    }
+
+    if (!window.view3dManager) {
+      window.showToast("3D Manager nicht verfügbar.", true);
+      return;
+    }
+
+    // Sicherstellen, dass 3D initialisiert ist
+    if (!window.view3dManager.isActive) {
+      window.view3dManager.init();
+    }
+
+    if (btn) btn.disabled = true;
+    if (statusBox) statusBox.classList.remove("hidden");
+    if (statusText) statusText.innerText = "3D-Animation wird aufgezeichnet (0%)...";
+    if (resultBox) resultBox.classList.add("hidden");
+
+    try {
+      const result = await window.view3dManager.recordAnimationVideo({
+        durationPerStep: 2000,
+        fps: 30,
+        onProgress: (p) => {
+          if (statusText) statusText.innerText = `3D-Animation wird aufgezeichnet (${Math.round(p * 100)}%)...`;
+        }
+      });
+
+      const videoBlob = result.blob;
+      window.currentExportVideoBlob = videoBlob;
+      const videoUrl = URL.createObjectURL(videoBlob);
+      window.currentExportVideoUrl = videoUrl;
+
+      const player = document.getElementById("exportVideoPlayer");
+      if (player) {
+        player.src = videoUrl;
+        player.load();
+      }
+      const btnGif = document.getElementById("btnExportGif");
+      if (btnGif) btnGif.classList.add("hidden"); // GIF nur bei 2D Server-Render vorhanden
+      if (resultBox) resultBox.classList.remove("hidden");
+      window.showToast("🎬 3D-Video erfolgreich aufgezeichnet!");
+    } catch (err) {
+      console.error("3D Video Render Error:", err);
+      window.showToast("Fehler bei 3D-Aufnahme: " + err.message, true);
+    } finally {
+      if (btn) btn.disabled = false;
+      if (statusBox) statusBox.classList.add("hidden");
+    }
   };
 
   window.triggerServerVideoRender = async function () {
@@ -1465,11 +1583,14 @@
       const videoUrl = data.video_url || (data.exercise && data.exercise.video_mp4);
       if (data.status === "ok" && videoUrl) {
         window.currentExportVideoUrl = videoUrl;
+        window.currentExportVideoBlob = null;
         const player = document.getElementById("exportVideoPlayer");
         if (player) {
           player.src = `${videoUrl}?t=${Date.now()}`;
           player.load();
         }
+        const btnGif = document.getElementById("btnExportGif");
+        if (btnGif) btnGif.classList.remove("hidden");
         if (resultBox) resultBox.classList.remove("hidden");
         window.showToast("🎬 Video fertig generiert!");
       } else {
@@ -1506,17 +1627,32 @@
     if (navigator.share) {
       try {
         if (type === "video" && window.currentExportVideoUrl) {
-          const res = await fetch(window.currentExportVideoUrl);
-          const blob = await res.blob();
-          const file = new File([blob], `${title}.mp4`, { type: "video/mp4" });
+          let blob = window.currentExportVideoBlob;
+          if (!blob) {
+            const res = await fetch(window.currentExportVideoUrl);
+            blob = await res.blob();
+          }
+          const is3d = window.currentExportVideoType === "3d";
+          const ext = blob.type.includes("webm") ? "webm" : "mp4";
+          const suffix = is3d ? "_3d" : "";
+          const file = new File([blob], `${title}${suffix}.${ext}`, { type: blob.type || "video/mp4" });
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ title, files: [file] });
             return;
           }
         } else if (type === "photo") {
-          const res = await fetch(canvas.toDataURL("image/png"));
+          const is3d = window.currentExportPhotoType === "3d";
+          let dataUrl = null;
+          if (is3d && window.view3dManager) {
+            dataUrl = window.view3dManager.getSnapshotDataURL();
+          } else if (canvas) {
+            dataUrl = canvas.toDataURL("image/png");
+          }
+          if (!dataUrl) return;
+          const res = await fetch(dataUrl);
           const blob = await res.blob();
-          const file = new File([blob], `${title}.png`, { type: "image/png" });
+          const suffix = is3d ? "_3d" : "";
+          const file = new File([blob], `${title}${suffix}.png`, { type: "image/png" });
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ title, files: [file] });
             return;
@@ -1530,10 +1666,32 @@
     }
   };
 
+  window.downloadCurrentVideo = function () {
+    if (!window.currentExportVideoUrl) return;
+    const title = (S().currentExercise.title || "taktik").replace(/[^a-zA-Z0-9_\u00C0-\u017F-]/g, "_");
+    const is3d = window.currentExportVideoType === "3d";
+    let ext = "mp4";
+    if (window.currentExportVideoBlob && window.currentExportVideoBlob.type.includes("webm")) {
+      ext = "webm";
+    }
+    const suffix = is3d ? "_3d" : "";
+    window.downloadBlobFile(window.currentExportVideoUrl, `${title}${suffix}.${ext}`);
+  };
+
   window.exportCanvasPNG = function () {
+    const is3d = window.currentExportPhotoType === "3d";
+    let dataUrl = null;
+    if (is3d && window.view3dManager) {
+      dataUrl = window.view3dManager.getSnapshotDataURL();
+    } else if (canvas) {
+      dataUrl = canvas.toDataURL("image/png");
+    }
+    if (!dataUrl) return;
+
     const link = document.createElement("a");
-    link.download = `${(S().currentExercise.title || "taktik").replace(/\s+/g, "_")}.png`;
-    link.href = canvas.toDataURL("image/png");
+    const suffix = is3d ? "_3d" : "";
+    link.download = `${(S().currentExercise.title || "taktik").replace(/\s+/g, "_")}${suffix}.png`;
+    link.href = dataUrl;
     link.click();
   };
 

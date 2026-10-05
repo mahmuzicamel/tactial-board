@@ -56,8 +56,8 @@ export class View3DManager {
     // Standard-Perspektive: Erhöhte Trainerbank / Haupttribüne
     this.camera.position.set(0, 520, 680);
 
-    // 3. Renderer mit sauberem Antialiasing und Shadow Map
-    this.renderer = new window.THREE.WebGLRenderer({ antialias: true, alpha: false });
+    // 3. Renderer mit sauberem Antialiasing und Shadow Map (preserveDrawingBuffer für Snapshots & Video-Recording)
+    this.renderer = new window.THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.shadowMap.enabled = true;
@@ -832,6 +832,139 @@ export class View3DManager {
       this.scene.add(tip);
       this.arrowLines.push(tip);
     });
+  }
+
+  // Nimmt eine vollständige Animation als Video via WebGL/Canvas MediaRecorder auf
+  async recordAnimationVideo({ durationPerStep = 2000, fps = 30, onProgress = null }) {
+    if (!this.renderer || !this.scene || !this.camera) {
+      throw new Error("3D Ansicht ist nicht initialisiert.");
+    }
+    const currentEx = this.getExercise();
+    if (!currentEx || !Array.isArray(currentEx.keyframes) || currentEx.keyframes.length < 2) {
+      throw new Error("Mindestens 2 Schritte erforderlich für Video.");
+    }
+
+    const canvas = this.renderer.domElement;
+    if (!canvas.captureStream) {
+      throw new Error("MediaRecorder captureStream wird von diesem Browser nicht unterstützt.");
+    }
+
+    // Passenden MimeType ermitteln
+    let mimeType = "video/webm;codecs=vp9";
+    if (window.MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")) {
+      mimeType = "video/mp4;codecs=avc1";
+    } else if (window.MediaRecorder.isTypeSupported("video/mp4")) {
+      mimeType = "video/mp4";
+    } else if (window.MediaRecorder.isTypeSupported("video/webm;codecs=vp8")) {
+      mimeType = "video/webm;codecs=vp8";
+    } else if (window.MediaRecorder.isTypeSupported("video/webm")) {
+      mimeType = "video/webm";
+    }
+
+    const stream = canvas.captureStream(fps);
+    const recorder = new window.MediaRecorder(stream, {
+      mimeType: mimeType,
+      videoBitsPerSecond: 6000000 // 6 Mbps für gestochen scharfes 3D
+    });
+
+    const chunks = [];
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunks.push(e.data);
+    };
+
+    return new Promise(async (resolve, reject) => {
+      recorder.onerror = (err) => reject(err);
+      recorder.onstop = () => {
+        const finalBlob = new Blob(chunks, { type: mimeType });
+        resolve({ blob: finalBlob, mimeType: mimeType });
+      };
+
+      const totalSteps = currentEx.keyframes.length;
+      const totalDuration = (totalSteps - 1) * durationPerStep;
+      const startTime = performance.now();
+
+      recorder.start();
+
+      const renderLoop = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(1.0, elapsed / totalDuration);
+        if (onProgress) onProgress(progress);
+
+        // Frame interpolieren & rendern
+        const stepIdx = Math.min(totalSteps - 2, Math.floor(elapsed / durationPerStep));
+        const stepProgress = Math.min(1.0, (elapsed % durationPerStep) / durationPerStep);
+        const smoothT = 0.5 - 0.5 * Math.cos(Math.PI * stepProgress);
+
+        const kf1 = currentEx.keyframes[stepIdx] || { elements: [], arrows: [] };
+        const kf2 = currentEx.keyframes[stepIdx + 1] || { elements: [], arrows: [] };
+
+        const map1 = new Map((kf1.elements || []).map(e => [e.id, e]));
+        const map2 = new Map((kf2.elements || []).map(e => [e.id, e]));
+        const interpolated = [];
+        const allIds = new Set([...map1.keys(), ...map2.keys()]);
+
+        for (const id of allIds) {
+          const el1 = map1.get(id);
+          const el2 = map2.get(id);
+          if (el1 && el2) {
+            let posX, posY;
+            if (el2.cp1_dx !== undefined || el2.cp1_dy !== undefined || el2.cp2_dx !== undefined || el2.cp2_dy !== undefined) {
+              const { p1, p2 } = window.TC ? window.TC().geometry.getEffectiveCurveControlPoints(el1, el2) : { p1: el1, p2: el2 };
+              const pt = window.TC ? window.TC().geometry.getCubicBezierPoint(smoothT, el1, p1, p2, el2) : { x: el1.x, y: el1.y };
+              posX = pt.x;
+              posY = pt.y;
+            } else {
+              posX = el1.x + (el2.x - el1.x) * smoothT;
+              posY = el1.y + (el2.y - el1.y) * smoothT;
+            }
+            let scaleMult = 1.0;
+            let jumpOffset = 0;
+            if (el2.jump) {
+              const jumpFactor = Math.sin(smoothT * Math.PI);
+              scaleMult = 1.0 + jumpFactor * 0.45;
+              jumpOffset = jumpFactor;
+            }
+            interpolated.push({
+              ...el1,
+              x: posX,
+              y: posY,
+              scaleMultiplier: scaleMult,
+              jumpProgress: jumpOffset
+            });
+          } else if (el1) {
+            interpolated.push(el1);
+          } else if (el2 && smoothT > 0.5) {
+            interpolated.push(el2);
+          }
+        }
+
+        this.syncScene(interpolated, kf1.arrows);
+
+        // Sanfte dynamische Kameraführung während des Spielzugs
+        if (this.controls) this.controls.update();
+        if (this.renderer && this.scene && this.camera) {
+          this.renderer.render(this.scene, this.camera);
+        }
+
+        if (elapsed < totalDuration) {
+          requestAnimationFrame(renderLoop);
+        } else {
+          // Kleiner Puffer am Ende für sauberen Ausklang
+          setTimeout(() => {
+            recorder.stop();
+          }, 350);
+        }
+      };
+
+      requestAnimationFrame(renderLoop);
+    });
+  }
+
+  // Liefert Data-URL eines 3D-Snapshots
+  getSnapshotDataURL() {
+    if (!this.renderer || !this.scene || !this.camera) return null;
+    this.renderer.render(this.scene, this.camera);
+    return this.renderer.domElement.toDataURL("image/png");
   }
 
   // Setzt Kamera auf vordefinierte Taktik-Perspektiven
