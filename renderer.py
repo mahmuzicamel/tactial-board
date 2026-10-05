@@ -648,10 +648,15 @@ def interpolate_elements(el_start: Dict[str, Any], el_end: Dict[str, Any], t: fl
         dx = x3 - x0
         dy = y3 - y0
         
-        x1 = x0 + dx * (1.0 / 3.0) + el_end.get("cp1_dx", 0)
-        y1 = y0 + dy * (1.0 / 3.0) + el_end.get("cp1_dy", 0)
-        x2 = x0 + dx * (2.0 / 3.0) + el_end.get("cp2_dx", 0)
-        y2 = y0 + dy * (2.0 / 3.0) + el_end.get("cp2_dy", 0)
+        cp1_dx = el_end.get("cp1_dx") or 0
+        cp1_dy = el_end.get("cp1_dy") or 0
+        cp2_dx = el_end.get("cp2_dx") or 0
+        cp2_dy = el_end.get("cp2_dy") or 0
+        
+        x1 = x0 + dx * (1.0 / 3.0) + cp1_dx
+        y1 = y0 + dy * (1.0 / 3.0) + cp1_dy
+        x2 = x0 + dx * (2.0 / 3.0) + cp2_dx
+        y2 = y0 + dy * (2.0 / 3.0) + cp2_dy
         
         u = 1.0 - t
         tt = t * t
@@ -707,8 +712,12 @@ def render_frame(pitch_type: str, elements: List[Dict[str, Any]], arrows: List[D
             if any(k in arrow for k in ("cp1_dx", "cp1_dy", "cp2_dx", "cp2_dy")):
                 dx = e[0] - s[0]
                 dy = e[1] - s[1]
-                cp1 = (s[0] + dx * (1.0 / 3.0) + arrow.get("cp1_dx", 0), s[1] + dy * (1.0 / 3.0) + arrow.get("cp1_dy", 0))
-                cp2 = (s[0] + dx * (2.0 / 3.0) + arrow.get("cp2_dx", 0), s[1] + dy * (2.0 / 3.0) + arrow.get("cp2_dy", 0))
+                cp1_dx = arrow.get("cp1_dx") or 0
+                cp1_dy = arrow.get("cp1_dy") or 0
+                cp2_dx = arrow.get("cp2_dx") or 0
+                cp2_dy = arrow.get("cp2_dy") or 0
+                cp1 = (s[0] + dx * (1.0 / 3.0) + cp1_dx, s[1] + dy * (1.0 / 3.0) + cp1_dy)
+                cp2 = (s[0] + dx * (2.0 / 3.0) + cp2_dx, s[1] + dy * (2.0 / 3.0) + cp2_dy)
             
             raw_points = None
             if arrow.get("raw_points") and isinstance(arrow["raw_points"], list) and len(arrow["raw_points"]) >= 2:
