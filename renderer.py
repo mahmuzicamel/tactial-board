@@ -354,14 +354,17 @@ def draw_pitch(draw: ImageDraw.ImageDraw, pitch_type: str = "full"):
         draw.rectangle([margin_x + w, margin_y + h - 60 - goal_h, margin_x + w + goal_w, margin_y + h - 60], outline="#3498db", width=2, fill="#3498db44")
 
     elif pitch_type == "funino_4zones":
-        # 4 Zonen Spielfeld: 2 hinten (links), 2 vorne (rechts)
+        # 4 Zonen Spielfeld nach Whiteboard-Skizze:
         mid_x = margin_x + w / 2
         mid_y = margin_y + h / 2
-        # Dashed dividing lines for 4 equal zones
-        draw.line([(mid_x, margin_y), (mid_x, margin_y + h)], fill="#ffffffcc", width=3)
-        draw.line([(margin_x, mid_y), (margin_x + w, mid_y)], fill="#ffffffcc", width=3)
-        # Goal area for GK at rear (left)
-        draw.rectangle([margin_x, margin_y + (h - 240) / 2, margin_x + 100, margin_y + (h + 240) / 2], outline="#ffffff", width=3)
+        # Rote Zonenlinien (durchgezogen wie auf Skizze)
+        draw.line([(mid_x, margin_y), (mid_x, margin_y + h)], fill="#ef4444", width=4)
+        draw.line([(margin_x, mid_y), (margin_x + w, mid_y)], fill="#ef4444", width=4)
+        # Gestrichelte Schusslinie vor den Minitoren (rechts)
+        for sy in range(int(margin_y), int(margin_y + h), 16):
+            draw.line([(margin_x + w - 100, sy), (margin_x + w - 100, min(sy + 8, margin_y + h))], fill="#ffffffaa", width=2)
+        # Torraum für GK hinten (links)
+        draw.rectangle([margin_x, margin_y + (h - 200) / 2, margin_x + 70, margin_y + (h + 200) / 2], outline="#ffffff", width=3)
 
     elif pitch_type == "rondo":
         # Square practice grid inside pitch

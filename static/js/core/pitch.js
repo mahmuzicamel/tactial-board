@@ -78,25 +78,35 @@ export function drawPitchBackground(ctx, pitchType) {
     ctx.fillRect(mx + pw, my + 60, 15, 50);
     ctx.fillRect(mx + pw, my + ph - 110, 15, 50);
   } else if (pitchType === "funino_4zones") {
-    // 4 Zonen Funino / Spielfeldaufbau: 2 Zonen hinten, 2 Zonen vorne
+    // 4 Zonen Funino nach Taktikboard-Skizze:
+    // Spielfeld aufgeteilt in 4 gleiche Zonen durch rote Kreuzlinien
     const midX = mx + pw / 2;
     const midY = my + ph / 2;
-    // Mittelkreuz (vertikal & horizontal unterteilt in 4 Zonen)
-    ctx.setLineDash([8, 6]);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
-    ctx.lineWidth = 3;
+    
+    // Rote Zonenlinien (wie in der Skizze)
+    ctx.strokeStyle = "#ef4444";
+    ctx.lineWidth = 3.5;
     ctx.beginPath();
     ctx.moveTo(midX, my);
     ctx.lineTo(midX, my + ph);
     ctx.moveTo(mx, midY);
     ctx.lineTo(mx + pw, midY);
     ctx.stroke();
+
+    // Gestrichelte Schusslinie vor den Minitoren (rechts / vorne)
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(mx + pw - 100, my);
+    ctx.lineTo(mx + pw - 100, my + ph);
+    ctx.stroke();
     ctx.setLineDash([]);
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 4;
 
     // Torraum-Markierung links (Haupttor hinten mit TW)
-    ctx.strokeRect(mx, my + (ph - 240) / 2, 100, 240);
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(mx, my + (ph - 200) / 2, 70, 200);
   } else if (pitchType === "rondo") {
     ctx.strokeStyle = "#facc15";
     ctx.lineWidth = 3;

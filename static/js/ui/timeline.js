@@ -14,12 +14,18 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
   ex.keyframes.forEach((kf, idx) => {
     const container = document.createElement("div");
     const isActive = idx === state.currentKeyframeIndex;
-    container.draggable = true;
-    container.className = `rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1 px-1.5 py-0.5 cursor-grab active:cursor-grabbing ${
+    container.className = `rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1 px-2 py-1 shrink-0 ${
       isActive
         ? "bg-emerald-600 text-white shadow ring-1 ring-emerald-400"
         : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
     }`;
+
+    // Desktop only draggable; on touch devices draggable interferes with horizontal touch swipe
+    if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: fine)").matches) {
+      container.draggable = true;
+    } else {
+      container.draggable = false;
+    }
 
     // Drag and Drop events to reorder steps
     container.ondragstart = (e) => {
