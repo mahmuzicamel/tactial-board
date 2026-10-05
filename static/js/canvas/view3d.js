@@ -52,7 +52,7 @@ export class View3DManager {
     this.scene.background = new window.THREE.Color(0x0f172a); // Slate-900 Stadium-Look
 
     // 2. Camera
-    this.camera = new window.THREE.PerspectiveCamera(45, width / height, 1, 5000);
+    this.camera = new window.THREE.PerspectiveCamera(45, width / height, 1, 8000);
     // Standard-Perspektive: Erhöhte Trainerbank / Haupttribüne
     this.camera.position.set(0, 520, 680);
 
@@ -82,10 +82,13 @@ export class View3DManager {
     // 5. Lighting (Flutlicht & Atmosphäre)
     this.setupLighting();
 
-    // 6. Spielfeld & Stadion-Boden
+    // 6. Skybox / 360° Spherical Environment (Panorama)
+    this.createSkyDome();
+
+    // 7. Spielfeld & Stadion-Boden
     this.createPitch();
 
-    // 7. Reusable Geometries & Materials
+    // 8. Reusable Geometries & Materials
     this.initSharedResources();
 
     window.addEventListener("resize", () => this.onResize(), { passive: true });
@@ -117,6 +120,29 @@ export class View3DManager {
     const floodLight2 = new window.THREE.DirectionalLight(0xdbeafe, 0.35);
     floodLight2.position.set(400, 500, -400);
     this.scene.add(floodLight2);
+  }
+
+  createSkyDome() {
+    // 360° Panorama Sphere (Himmelskugel)
+    const T = window.THREE;
+    const loader = new T.TextureLoader();
+    loader.load('/static/textures/sky_panorama.png', (texture) => {
+      texture.mapping = T.EquirectangularReflectionMapping || 303;
+      texture.anisotropy = 8;
+
+      // Himmelskuppel mit umgekehrter X-Skalierung, damit sie von innen sichtbar ist
+      const skyGeo = new T.SphereGeometry(3200, 48, 32);
+      const skyMat = new T.MeshBasicMaterial({
+        map: texture,
+        side: T.BackSide // von innen gerendert
+      });
+
+      const skyMesh = new T.Mesh(skyGeo, skyMat);
+      skyMesh.position.set(0, 100, 0);
+      skyMesh.rotation.y = Math.PI / 1.4; // Schöner Blickwinkel auf den Horizont
+      this.scene.add(skyMesh);
+      this.skyMesh = skyMesh;
+    });
   }
 
   createPitch() {
