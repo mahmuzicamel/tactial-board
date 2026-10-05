@@ -1382,6 +1382,7 @@
     window.drawScene();
     window.updateFormFields();
     window.refreshExerciseBadge();
+    window.loadCatalogExercises();
 
     // Bottom dock scroll listeners
     const bDock = document.getElementById("bottomDockScrollContainer");

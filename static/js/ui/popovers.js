@@ -8,6 +8,9 @@ export function toggleTopMenu() {
   if (isCollapsed) {
     drawer.classList.remove("collapsed");
     if (overlay) overlay.classList.remove("collapsed");
+    if (typeof window.loadCatalogExercises === "function") {
+      window.loadCatalogExercises();
+    }
   } else {
     closeSidebarMenu();
   }
