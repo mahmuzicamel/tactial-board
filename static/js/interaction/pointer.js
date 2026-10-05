@@ -742,13 +742,16 @@ export function handleCanvasPointerUp(e, canvas, callbacks = {}) {
       }
 
       kf.arrows.push(newArrow);
-      state.selectedArrowIndex = kf.arrows.length - 1;
+      state.arrowDrawStrokePoints = [];
+      // Nach dem Zeichnen bleibt die Linie unselektiert (kein störender Bearbeitungsmodus),
+      // bis der Nutzer sie später gezielt anklickt.
+      state.selectedArrowIndex = null;
       state.selectedArrowPart = null;
-      // Bleibe im aktuellen Linien-Zeichen-Modus (Pass, Laufweg, Hilfslinie), damit mehrere Linien nacheinander gezogen werden können
-      showArrowInspector(newArrow);
+      hideInspector();
+    } else {
+      state.arrowDrawStrokePoints = [];
     }
 
-    state.arrowDrawStrokePoints = [];
     drawScene();
     updateActionPopupPosition();
   }
@@ -815,10 +818,12 @@ export function handleCanvasPointerUp(e, canvas, callbacks = {}) {
 
       if (newEl) {
         kf.elements.push(newEl);
-        state.selectedElementId = newEl.id;
+        // Nach dem Aufziehen bleibt die Form unselektiert (keine Handles / kein Popup),
+        // bis der Nutzer sie später gezielt anklickt.
+        state.selectedElementId = null;
         state.selectedElementIds = [];
         state.selectedArrowIndex = null;
-        showInspector(newEl);
+        hideInspector();
       }
     }
 
