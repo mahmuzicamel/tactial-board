@@ -458,6 +458,91 @@ function drawElementOnCanvasFallback(c, el, isSelected = false, fRot = 0, gScale
     c.strokeStyle = "#334155";
     c.lineWidth = 2;
     c.strokeRect(-20, -10, 40, 20);
+  } else if (el.type === "goal_5m") {
+    const gw = 70;
+    const gh = 30;
+    c.fillStyle = "rgba(255, 255, 255, 0.15)";
+    c.fillRect(-gw / 2, -gh / 2, gw, gh);
+    c.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    c.lineWidth = 1;
+    for (let gx = -gw / 2 + 10; gx < gw / 2; gx += 10) {
+      c.beginPath();
+      c.moveTo(gx, -gh / 2);
+      c.lineTo(gx, gh / 2);
+      c.stroke();
+    }
+    for (let gy = -gh / 2 + 10; gy < gh / 2; gy += 10) {
+      c.beginPath();
+      c.moveTo(-gw / 2, gy);
+      c.lineTo(gw / 2, gy);
+      c.stroke();
+    }
+    c.strokeStyle = "#ffffff";
+    c.lineWidth = 4;
+    c.strokeRect(-gw / 2, -gh / 2, gw, gh);
+    c.save();
+    if (el.rotation) c.rotate((-el.rotation * Math.PI) / 180);
+    c.fillStyle = "rgba(255, 255, 255, 0.85)";
+    c.font = "bold 10px sans-serif";
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.fillText("5m Tor", 0, 0);
+    c.restore();
+  } else if (el.type === "pole") {
+    c.fillStyle = "#eab308";
+    c.fillRect(-3, -24, 6, 32);
+    c.fillStyle = "#000000";
+    c.beginPath();
+    c.arc(0, 8, 6, 0, Math.PI * 2);
+    c.fill();
+  } else if (el.type === "ladder") {
+    c.strokeStyle = "#facc15";
+    c.lineWidth = 2;
+    c.strokeRect(-40, -10, 80, 20);
+    for (let i = 1; i < 5; i++) {
+      c.beginPath();
+      c.moveTo(-40 + i * 16, -10);
+      c.lineTo(-40 + i * 16, 10);
+      c.stroke();
+    }
+  } else if (el.type === "dummy") {
+    c.fillStyle = "rgba(0,0,0,0.45)";
+    c.beginPath();
+    c.ellipse(0, 16, 14, 5, 0, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = "#eab308";
+    c.strokeStyle = "#000000";
+    c.lineWidth = 2;
+    c.beginPath();
+    c.roundRect(-12, -10, 24, 24, [4, 4, 8, 8]);
+    c.fill();
+    c.stroke();
+    c.beginPath();
+    c.arc(0, -16, 7, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+  } else if (el.type === "ring") {
+    c.strokeStyle = "#06b6d4";
+    c.lineWidth = 4;
+    c.beginPath();
+    c.arc(0, 0, 16, 0, Math.PI * 2);
+    c.stroke();
+    c.fillStyle = "rgba(6, 182, 212, 0.15)";
+    c.fill();
+  } else if (el.type === "hurdle") {
+    c.fillStyle = "rgba(0,0,0,0.3)";
+    c.fillRect(-22, 1, 44, 4);
+    c.fillStyle = "#1e293b";
+    c.fillRect(-22, -6, 5, 12);
+    c.fillRect(17, -6, 5, 12);
+    c.fillStyle = "#f97316";
+    c.strokeStyle = "#ffffff";
+    c.lineWidth = 1;
+    c.fillRect(-20, -3, 40, 6);
+    c.strokeRect(-20, -3, 40, 6);
+    c.fillStyle = "#ffffff";
+    c.fillRect(-8, -3, 4, 6);
+    c.fillRect(4, -3, 4, 6);
   } else {
     c.fillStyle = "#94a3b8";
     c.beginPath();
@@ -483,6 +568,104 @@ function drawArrowFallback(c, x1, y1, x2, y2, type = "pass", color = "#facc15", 
   c.restore();
 }
 
+// Fallback Geometry functions in case module is not loaded yet
+function pointInPolygonFallback(point, vs) {
+  const x = point.x, y = point.y;
+  let inside = false;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i].x, yi = vs[i].y;
+    const xj = vs[j].x, yj = vs[j].y;
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function distToSegmentFallback(px, py, x1, y1, x2, y2) {
+  const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+  if (l2 === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+}
+
+function distToPolylineFallback(px, py, points) {
+  if (!points || points.length < 2) return Infinity;
+  let minDist = Infinity;
+  for (let i = 1; i < points.length; i++) {
+    const d = distToSegmentFallback(px, py, points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
+    if (d < minDist) minDist = d;
+  }
+  return minDist;
+}
+
+function getCubicBezierPointFallback(t, p0, p1, p2, p3) {
+  const mt = 1 - t;
+  const mt2 = mt * mt;
+  const mt3 = mt2 * mt;
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return {
+    x: mt3 * p0.x + 3 * mt2 * t * p1.x + 3 * mt * t2 * p2.x + t3 * p3.x,
+    y: mt3 * p0.y + 3 * mt2 * t * p1.y + 3 * mt * t2 * p2.y + t3 * p3.y
+  };
+}
+
+function distToCubicBezierFallback(px, py, p0, p1, p2, p3, samples = 20) {
+  let minDist = Infinity;
+  let prevPt = p0;
+  for (let i = 1; i <= samples; i++) {
+    const t = i / samples;
+    const currPt = getCubicBezierPointFallback(t, p0, p1, p2, p3);
+    const d = distToSegmentFallback(px, py, prevPt.x, prevPt.y, currPt.x, currPt.y);
+    if (d < minDist) minDist = d;
+    prevPt = currPt;
+  }
+  return minDist;
+}
+
+function getEffectiveCurveControlPointsFallback(fromEl, toEl) {
+  const dx = toEl.x - fromEl.x;
+  const dy = toEl.y - fromEl.y;
+  const baseP1 = { x: fromEl.x + dx * (1 / 3), y: fromEl.y + dy * (1 / 3) };
+  const baseP2 = { x: fromEl.x + dx * (2 / 3), y: fromEl.y + dy * (2 / 3) };
+  return {
+    p1: { x: baseP1.x + (toEl.cp1_dx || 0), y: baseP1.y + (toEl.cp1_dy || 0) },
+    p2: { x: baseP2.x + (toEl.cp2_dx || 0), y: baseP2.y + (toEl.cp2_dy || 0) }
+  };
+}
+
+function getArrowCurveControlPointsFallback(arr) {
+  const dx = arr.x2 - arr.x1;
+  const dy = arr.y2 - arr.y1;
+  const baseP1 = { x: arr.x1 + dx * (1 / 3), y: arr.y1 + dy * (1 / 3) };
+  const baseP2 = { x: arr.x1 + dx * (2 / 3), y: arr.y1 + dy * (2 / 3) };
+  return {
+    p1: { x: baseP1.x + (arr.cp1_dx || 0), y: baseP1.y + (arr.cp1_dy || 0) },
+    p2: { x: baseP2.x + (arr.cp2_dx || 0), y: baseP2.y + (arr.cp2_dy || 0) }
+  };
+}
+
+function fitCubicBezierToStrokeFallback(points) {
+  if (!points || points.length < 2) return null;
+  const p0 = points[0];
+  const p3 = points[points.length - 1];
+  const chordLen = Math.hypot(p3.x - p0.x, p3.y - p0.y);
+  if (chordLen < 15) return null;
+  const idx1 = Math.floor(points.length / 3);
+  const idx2 = Math.floor((points.length * 2) / 3);
+  const sample1 = points[idx1];
+  const sample2 = points[idx2];
+  const baseP1 = { x: p0.x + (p3.x - p0.x) * (1 / 3), y: p0.y + (p3.y - p0.y) * (1 / 3) };
+  const baseP2 = { x: p0.x + (p3.x - p0.x) * (2 / 3), y: p0.y + (p3.y - p0.y) * (2 / 3) };
+  return {
+    cp1_dx: Math.round(sample1.x - baseP1.x),
+    cp1_dy: Math.round(sample1.y - baseP1.y),
+    cp2_dx: Math.round(sample2.x - baseP2.x),
+    cp2_dy: Math.round(sample2.y - baseP2.y)
+  };
+}
+
 // Aliases for modules from window.TacticalCoach
 const pitch = {
   drawPitchBackground: (c, type) => (window.TacticalCoach?.pitch?.drawPitchBackground || drawPitchBackgroundFallback)(c, type)
@@ -494,14 +677,14 @@ const arrowModule = {
   drawArrow: (...args) => (window.TacticalCoach?.arrows?.drawArrow || drawArrowFallback)(...args)
 };
 const geomModule = {
-  distToSegment: (...args) => (window.TacticalCoach?.geometry?.distToSegment || distToSegment)(...args),
-  distToPolyline: (...args) => (window.TacticalCoach?.geometry?.distToPolyline || distToPolyline)(...args),
-  pointInPolygon: (...args) => (window.TacticalCoach?.geometry?.pointInPolygon || pointInPolygon)(...args),
-  getCubicBezierPoint: (...args) => (window.TacticalCoach?.geometry?.getCubicBezierPoint || getCubicBezierPoint)(...args),
-  distToCubicBezier: (...args) => (window.TacticalCoach?.geometry?.distToCubicBezier || distToCubicBezier)(...args),
-  getEffectiveCurveControlPoints: (...args) => (window.TacticalCoach?.geometry?.getEffectiveCurveControlPoints || getEffectiveCurveControlPoints)(...args),
-  getArrowCurveControlPoints: (...args) => (window.TacticalCoach?.geometry?.getArrowCurveControlPoints || getArrowCurveControlPoints)(...args),
-  fitCubicBezierToStroke: (...args) => (window.TacticalCoach?.geometry?.fitCubicBezierToStroke || fitCubicBezierToStroke)(...args)
+  distToSegment: (...args) => (window.TacticalCoach?.geometry?.distToSegment || distToSegmentFallback)(...args),
+  distToPolyline: (...args) => (window.TacticalCoach?.geometry?.distToPolyline || distToPolylineFallback)(...args),
+  pointInPolygon: (...args) => (window.TacticalCoach?.geometry?.pointInPolygon || pointInPolygonFallback)(...args),
+  getCubicBezierPoint: (...args) => (window.TacticalCoach?.geometry?.getCubicBezierPoint || getCubicBezierPointFallback)(...args),
+  distToCubicBezier: (...args) => (window.TacticalCoach?.geometry?.distToCubicBezier || distToCubicBezierFallback)(...args),
+  getEffectiveCurveControlPoints: (...args) => (window.TacticalCoach?.geometry?.getEffectiveCurveControlPoints || getEffectiveCurveControlPointsFallback)(...args),
+  getArrowCurveControlPoints: (...args) => (window.TacticalCoach?.geometry?.getArrowCurveControlPoints || getArrowCurveControlPointsFallback)(...args),
+  fitCubicBezierToStroke: (...args) => (window.TacticalCoach?.geometry?.fitCubicBezierToStroke || fitCubicBezierToStrokeFallback)(...args)
 };
 const vpModule = {
   getDisplayDimensions: (c) => (window.TacticalCoach?.viewport?.getDisplayDimensions || getDisplayDimensions)(c),
@@ -2542,70 +2725,54 @@ function duplicateSelectedElement() {
 }
 
 function showGroupInspector(count) {
-  if (window.TacticalCoach?.inspectors?.showGroupInspector) {
-    window.TacticalCoach.inspectors.showGroupInspector(count);
-  } else {
-    const bar = document.getElementById("floatingElementBar");
-    const nameLabel = document.getElementById("floatingElementName");
-    const numInput = document.getElementById("floatingPropNumber");
-    const nameInput = document.getElementById("floatingPropName");
-    if (!bar) return;
-    if (!isMovingElement) bar.classList.remove("hidden"); else bar.classList.add("hidden");
-    nameLabel.textContent = `Gruppe (${count} Objekte)`;
-    numInput.classList.add("hidden");
-    nameInput.classList.add("hidden");
-  }
+  const bar = document.getElementById("floatingElementBar");
+  const nameLabel = document.getElementById("floatingElementName");
+  const numInput = document.getElementById("floatingPropNumber");
+  const nameInput = document.getElementById("floatingPropName");
+  if (!bar) return;
+  if (!isMovingElement) bar.classList.remove("hidden"); else bar.classList.add("hidden");
+  nameLabel.textContent = `Gruppe (${count} Objekte)`;
+  numInput.classList.add("hidden");
+  nameInput.classList.add("hidden");
 }
 
 function showInspector(el) {
-  if (window.TacticalCoach?.inspectors?.showInspector) {
-    window.TacticalCoach.inspectors.showInspector(el);
+  const bar = document.getElementById("floatingElementBar");
+  const nameLabel = document.getElementById("floatingElementName");
+  const numInput = document.getElementById("floatingPropNumber");
+  const nameInput = document.getElementById("floatingPropName");
+  if (!bar) return;
+  if (!isMovingElement) bar.classList.remove("hidden"); else bar.classList.add("hidden");
+  if (el.type === "player") {
+    nameLabel.textContent = (el.team === "blue" ? "Blau" : el.team === "red" ? "Rot" : "Joker");
+    numInput.classList.remove("hidden");
+    nameInput.classList.remove("hidden");
+    numInput.value = el.number || "";
+    nameInput.value = el.name || "";
   } else {
-    const bar = document.getElementById("floatingElementBar");
-    const nameLabel = document.getElementById("floatingElementName");
-    const numInput = document.getElementById("floatingPropNumber");
-    const nameInput = document.getElementById("floatingPropName");
-    if (!bar) return;
-    if (!isMovingElement) bar.classList.remove("hidden"); else bar.classList.add("hidden");
-    if (el.type === "player") {
-      nameLabel.textContent = (el.team === "blue" ? "Blau" : el.team === "red" ? "Rot" : "Joker");
-      numInput.classList.remove("hidden");
-      nameInput.classList.remove("hidden");
-      numInput.value = el.number || "";
-      nameInput.value = el.name || "";
-    } else {
-      nameLabel.textContent = el.type === "ball" ? "Ball" : el.type === "cone" ? "Hütchen" : el.type === "minigoal" ? "Minitor" : el.type === "goal_5m" ? "5m Tor (E-Jugend)" : el.type === "pole" ? "Stange" : el.type === "ladder" ? "Leiter" : el.type === "dummy" ? "Dummy" : el.type === "ring" ? "Ring" : el.type === "hurdle" ? "Hürde" : "Objekt";
-      numInput.classList.add("hidden");
-      nameInput.classList.add("hidden");
-    }
+    nameLabel.textContent = el.type === "ball" ? "Ball" : el.type === "cone" ? "Hütchen" : el.type === "minigoal" ? "Minitor" : el.type === "goal_5m" ? "5m Tor (E-Jugend)" : el.type === "pole" ? "Stange" : el.type === "ladder" ? "Leiter" : el.type === "dummy" ? "Dummy" : el.type === "ring" ? "Ring" : el.type === "hurdle" ? "Hürde" : "Objekt";
+    numInput.classList.add("hidden");
+    nameInput.classList.add("hidden");
   }
 }
 
 function showArrowInspector(arr) {
-  if (window.TacticalCoach?.inspectors?.showArrowInspector) {
-    window.TacticalCoach.inspectors.showArrowInspector(arr);
-  } else {
-    const bar = document.getElementById("floatingElementBar");
-    const nameLabel = document.getElementById("floatingElementName");
-    const numInput = document.getElementById("floatingPropNumber");
-    const nameInput = document.getElementById("floatingPropName");
-    if (!bar) return;
-    if (!isMovingElement) bar.classList.remove("hidden"); else bar.classList.add("hidden");
-    nameLabel.textContent = arr.type === "pass" ? "Passweg" : (arr.type === "guide" ? "Hilfslinie" : "Laufweg");
-    numInput.classList.add("hidden");
-    nameInput.classList.add("hidden");
-  }
+  const bar = document.getElementById("floatingElementBar");
+  const nameLabel = document.getElementById("floatingElementName");
+  const numInput = document.getElementById("floatingPropNumber");
+  const nameInput = document.getElementById("floatingPropName");
+  if (!bar) return;
+  if (!isMovingElement) bar.classList.remove("hidden"); else bar.classList.add("hidden");
+  nameLabel.textContent = arr.type === "pass" ? "Passweg" : (arr.type === "guide" ? "Hilfslinie" : "Laufweg");
+  numInput.classList.add("hidden");
+  nameInput.classList.add("hidden");
 }
 
 function hideInspector() {
-  if (window.TacticalCoach?.inspectors?.hideInspector) {
-    window.TacticalCoach.inspectors.hideInspector();
-  } else {
-    const bar = document.getElementById("floatingElementBar");
-    if (bar) bar.classList.add("hidden");
-    const popup = document.getElementById("elementActionPopup");
-    if (popup) popup.classList.add("hidden");
-  }
+  const bar = document.getElementById("floatingElementBar");
+  if (bar) bar.classList.add("hidden");
+  const popup = document.getElementById("elementActionPopup");
+  if (popup) popup.classList.add("hidden");
 }
 
 function deselectElement() {

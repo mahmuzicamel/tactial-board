@@ -30,3 +30,5 @@ export const COLORS = {
 };
 
 export const MAX_HISTORY = 40;
+export const MIN_SCALE = 0.5;
+export const MAX_SCALE = 3.0;
