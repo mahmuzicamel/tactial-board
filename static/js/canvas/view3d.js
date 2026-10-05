@@ -309,19 +309,25 @@ export class View3DManager {
       group.position.set(p3.x, jumpHeight, p3.z);
 
       // Rotation (Objekt-Drehung)
-      // Standard-Ausrichtung im 2D-Canvas (pitchType: half / full):
-      // Das Tor steht links auf der Grundlinie. Die Pfosten/Querlatte zeigen nach RECHTS (+X ins Feld),
-      // und das Netz zieht sich nach LINKS (-X hinter die Auslinie).
+      // Standard-Ausrichtung im 2D-Canvas:
+      // Auf dem 2D-Board blickt der Nutzer immer in Richtung POV (von unten nach oben).
+      // Trainingsgeräte (Dummies, Hürden, Leitern, Tore) werden im 2D-Canvas so gezeichnet,
+      // dass sie für den Trainer horizontal/waagerecht ausgerichtet sind.
       //
-      // In 3D: group.rotation.y = -(elRot * Math.PI) / 180 - Math.PI / 2
-      // - Bei rotation = 0° (Standard wie auf der linken Torlinie platziert):
-      //   Zeigt die Toröffnung nach +X (ins Spielfeld hinein) und das Netz nach -X (hinter die Torlinie)!
-      // - Bei rotation = 180° (z. B. auf der rechten Seite des Feldes platziert):
-      //   Zeigt die Toröffnung nach -X (ins Feld) und das Netz nach +X!
-      // - Bei rotation = 90° oder 270° (z. B. Querfeld oder Funino-Minitore):
-      //   Dreht sich das Tor exakt mit der 2D-Ausrichtung mit.
+      // In 3D steht die Kamera (Trainer-Preset) an der Seitenlinie (z > 0, blickt nach -z auf den Rasen).
+      // Damit ALLE Objekte (Dummies, Hürden, Leitern, Minitore, Großtore) in 3D EXAKT so stehen
+      // wie der Nutzer sie im 2D-Board sieht:
+      //
+      // - Dummy: In 2D ist die Brust waagerecht (entlang X des Bildschirms) und blickt nach oben/unten.
+      //   In 3D muss die Brust entlang der X-Achse der Kamera stehen.
+      // - Hürde: In 2D verläuft der Querbalken waagerecht. In 3D muss er parallel zur Torlinie bzw. Grundlinie verlaufen.
+      // - Tor: Die Toröffnung schaut ins Feld hinein.
+      //
+      // Durch den einheitlichen 90°-Offset (-Math.PI / 2) stimmen nun ALLE Ausrüstungsgegenstände
+      // (Tore, Dummies, Hürden, Leitern) perfekt mit der Blickachse des 2D-Boards überein!
       const elRot = el.rotation || 0;
-      if (el.type === "goal_5m" || el.type === "goal_large" || el.type === "minigoal" || el.type === "goal_mini") {
+      if (el.type === "dummy" || el.type === "hurdle" || el.type === "ladder" ||
+          el.type === "goal_5m" || el.type === "goal_large" || el.type === "minigoal" || el.type === "goal_mini") {
         group.rotation.y = -(elRot * Math.PI) / 180 - Math.PI / 2;
       } else {
         group.rotation.y = -(elRot * Math.PI) / 180;
