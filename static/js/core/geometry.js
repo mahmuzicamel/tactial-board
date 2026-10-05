@@ -235,7 +235,34 @@ export function getPeakPoint(points, p0, p2) {
   return peak;
 }
 
-// 2. Erzeuge die 3-Punkte-Kurve beim Loslassen des Stifts (PointerUp)
+// Wendepunkt-Erkennung (Inflection Point) für S-Kurven
+export function detectInflection(points) {
+  if (!points || points.length < 8) return { hasInflection: false, splitIndex: -1 };
+  let signChanges = 0;
+  let lastSign = 0;
+  let splitIndex = -1;
+
+  for (let i = 2; i < points.length - 2; i++) {
+    // Vektor 1: i-2 -> i, Vektor 2: i -> i+2 (geglättet)
+    const dx1 = points[i].x - points[i - 2].x;
+    const dy1 = points[i].y - points[i - 2].y;
+    const dx2 = points[i + 2].x - points[i].x;
+    const dy2 = points[i + 2].y - points[i].y;
+
+    const cross = dx1 * dy2 - dy1 * dx2;
+    const currentSign = Math.sign(cross);
+
+    if (currentSign !== 0 && lastSign !== 0 && currentSign !== lastSign) {
+      signChanges++;
+      splitIndex = i;
+      break; // Erster Wendepunkt gefunden
+    }
+    if (currentSign !== 0) lastSign = currentSign;
+  }
+  return { hasInflection: signChanges > 0, splitIndex };
+}
+
+// 2. Erzeuge Kurve beim Loslassen des Stifts (PointerUp) - unterstützt C- und S-Kurven
 export function fitTo3PointCurve(rawPoints) {
   if (!rawPoints || rawPoints.length < 2) return null;
   const p0 = rawPoints[0];
@@ -243,6 +270,52 @@ export function fitTo3PointCurve(rawPoints) {
   const chordLen = Math.hypot(p2.x - p0.x, p2.y - p0.y);
   if (chordLen < 5) return null;
 
+  const dx = p2.x - p0.x;
+  const dy = p2.y - p0.y;
+  const defaultP1X = p0.x + dx * (1 / 3);
+  const defaultP1Y = p0.y + dy * (1 / 3);
+  const defaultP2X = p0.x + dx * (2 / 3);
+  const defaultP2Y = p0.y + dy * (2 / 3);
+
+  // Wendepunkt prüfen (S-Kurve)
+  const infl = detectInflection(rawPoints);
+  if (infl.hasInflection && infl.splitIndex > 2 && infl.splitIndex < rawPoints.length - 3) {
+    // S-Kurve: Pfad in 2 Teilbögen splitten
+    const pts1 = rawPoints.slice(0, infl.splitIndex + 1);
+    const pts2 = rawPoints.slice(infl.splitIndex);
+    const s1 = getPeakPoint(pts1, p0, rawPoints[infl.splitIndex]);
+    const s2 = getPeakPoint(pts2, rawPoints[infl.splitIndex], p2);
+
+    // Virtuelle kubische Kontrollpunkte aus den beiden Peaks
+    const q1 = {
+      x: 2 * s1.x - 0.5 * (p0.x + rawPoints[infl.splitIndex].x),
+      y: 2 * s1.y - 0.5 * (p0.y + rawPoints[infl.splitIndex].y)
+    };
+    const q2 = {
+      x: 2 * s2.x - 0.5 * (rawPoints[infl.splitIndex].x + p2.x),
+      y: 2 * s2.y - 0.5 * (rawPoints[infl.splitIndex].y + p2.y)
+    };
+
+    const cp1 = {
+      x: p0.x + 0.6 * (q1.x - p0.x) + 0.4 * (rawPoints[infl.splitIndex].x - p0.x),
+      y: p0.y + 0.6 * (q1.y - p0.y) + 0.4 * (rawPoints[infl.splitIndex].y - p0.y)
+    };
+    const cp2 = {
+      x: p2.x + 0.6 * (q2.x - p2.x) + 0.4 * (rawPoints[infl.splitIndex].x - p2.x),
+      y: p2.y + 0.6 * (q2.y - p2.y) + 0.4 * (rawPoints[infl.splitIndex].y - p2.y)
+    };
+
+    return {
+      p0, s: rawPoints[infl.splitIndex], p2,
+      cp1, cp2,
+      cp1_dx: cp1.x - defaultP1X,
+      cp1_dy: cp1.y - defaultP1Y,
+      cp2_dx: cp2.x - defaultP2X,
+      cp2_dy: cp2.y - defaultP2Y
+    };
+  }
+
+  // C-Kurve (Ein einzelner Bogen mit Scheitelpunkt S)
   const s = getPeakPoint(rawPoints, p0, p2);
 
   // Virtueller quadratischer Bézier-Kontrollpunkt für den Renderer
@@ -251,9 +324,7 @@ export function fitTo3PointCurve(rawPoints) {
     y: 2 * s.y - 0.5 * (p0.y + p2.y)
   };
 
-  // Exakte Umrechnung von quadratischer Bézier (p0, p1, p2) in kubische Bézier (p0, cp1, cp2, p2):
-  // cp1 = p0 + 2/3 * (p1 - p0)
-  // cp2 = p2 + 2/3 * (p1 - p2)
+  // Exakte Umrechnung von quadratischer Bézier (p0, p1, p2) in kubische Bézier (p0, cp1, cp2, p2)
   const cp1 = {
     x: p0.x + (2 / 3) * (p1.x - p0.x),
     y: p0.y + (2 / 3) * (p1.y - p0.y)
@@ -262,13 +333,6 @@ export function fitTo3PointCurve(rawPoints) {
     x: p2.x + (2 / 3) * (p1.x - p2.x),
     y: p2.y + (2 / 3) * (p1.y - p2.y)
   };
-
-  const dx = p2.x - p0.x;
-  const dy = p2.y - p0.y;
-  const defaultP1X = p0.x + dx * (1 / 3);
-  const defaultP1Y = p0.y + dy * (1 / 3);
-  const defaultP2X = p0.x + dx * (2 / 3);
-  const defaultP2Y = p0.y + dy * (2 / 3);
 
   return {
     p0,
