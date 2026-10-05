@@ -82,14 +82,14 @@ export class View3DManager {
     // 5. Lighting (Flutlicht & Atmosphäre)
     this.setupLighting();
 
-    // 6. Skybox / 360° Spherical Environment (Panorama)
+    // 6. Reusable Geometries & Materials (zuerst initialisieren, damit getMaterialForColor bereitsteht!)
+    this.initSharedResources();
+
+    // 7. Skybox / 360° Spherical Environment (Panorama)
     this.createSkyDome();
 
-    // 7. Spielfeld & Stadion-Boden
+    // 8. Spielfeld & Stadion-Boden (nutzt getMaterialForColor für den Zaun)
     this.createPitch();
-
-    // 8. Reusable Geometries & Materials
-    this.initSharedResources();
 
     window.addEventListener("resize", () => this.onResize(), { passive: true });
     return true;
@@ -292,6 +292,7 @@ export class View3DManager {
   }
 
   getMaterialForColor(hex, roughness = 0.45) {
+    if (!this.colorMaterials) this.colorMaterials = new Map();
     const key = `${hex}_${roughness}`;
     if (!this.colorMaterials.has(key)) {
       const col = new window.THREE.Color(hex);
