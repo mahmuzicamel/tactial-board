@@ -74,4 +74,6 @@ export function hideInspector() {
   if (bar) bar.classList.add("hidden");
   const popup = document.getElementById("elementActionPopup");
   if (popup) popup.classList.add("hidden");
+  const zoneColorSubmenu = document.getElementById("actionPopupZoneColorSubmenu");
+  if (zoneColorSubmenu) zoneColorSubmenu.classList.add("hidden");
 }

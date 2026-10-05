@@ -751,22 +751,33 @@
     }
 
     // Zone Color Palette visibility & active color indicator
-    const zoneColorControls = document.getElementById("actionPopupZoneColorControls");
-    if (zoneColorControls) {
+    const zoneColorWrapper = document.getElementById("actionPopupZoneColorWrapper");
+    const zoneColorDot = document.getElementById("actionPopupZoneColorDot");
+    const zoneColorSubmenu = document.getElementById("actionPopupZoneColorSubmenu");
+    if (zoneColorWrapper) {
       const curEl = s.selectedElementId ? kf.elements.find(it => it.id === s.selectedElementId) : null;
       const isZone = curEl && (curEl.type === "zone_rect" || curEl.type === "zone_circle" || curEl.type === "zone_triangle");
-      zoneColorControls.classList.toggle("hidden", !isZone);
+      zoneColorWrapper.classList.toggle("hidden", !isZone);
+
+      if (!isZone && zoneColorSubmenu) {
+        zoneColorSubmenu.classList.add("hidden");
+      }
 
       if (isZone) {
-        const curColor = curEl.color ? curEl.color.toLowerCase() : "";
-        zoneColorControls.querySelectorAll("[data-zone-color]").forEach(dot => {
-          const c = dot.getAttribute("data-zone-color").toLowerCase();
-          if (c === curColor) {
-            dot.classList.add("ring-2", "ring-white", "scale-110");
-          } else {
-            dot.classList.remove("ring-2", "ring-white", "scale-110");
-          }
-        });
+        const curColor = curEl.color ? curEl.color.toLowerCase() : "#38bdf8";
+        if (zoneColorDot) {
+          zoneColorDot.style.backgroundColor = curColor;
+        }
+        if (zoneColorSubmenu) {
+          zoneColorSubmenu.querySelectorAll("[data-zone-color]").forEach(dot => {
+            const c = dot.getAttribute("data-zone-color").toLowerCase();
+            if (c === curColor) {
+              dot.classList.add("ring-2", "ring-white", "scale-110");
+            } else {
+              dot.classList.remove("ring-2", "ring-white", "scale-110");
+            }
+          });
+        }
       }
     }
   };
@@ -925,6 +936,13 @@
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  window.toggleZoneColorMenu = function (e) {
+    if (e) e.stopPropagation();
+    const sub = document.getElementById("actionPopupZoneColorSubmenu");
+    if (!sub) return;
+    sub.classList.toggle("hidden");
+  };
+
   window.setSelectedZoneColor = function (colorHex) {
     const s = S();
     const kf = TC().getCurrentKeyframe();
@@ -939,6 +957,9 @@
         el.fillColor = hexToRgba(colorHex, 0.2);
       }
     });
+
+    const sub = document.getElementById("actionPopupZoneColorSubmenu");
+    if (sub) sub.classList.add("hidden");
 
     window.drawScene();
     window.updateFocusButtonState();
