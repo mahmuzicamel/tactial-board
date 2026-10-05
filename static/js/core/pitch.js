@@ -77,6 +77,26 @@ export function drawPitchBackground(ctx, pitchType) {
     ctx.fillStyle = "rgba(52, 152, 219, 0.6)";
     ctx.fillRect(mx + pw, my + 60, 15, 50);
     ctx.fillRect(mx + pw, my + ph - 110, 15, 50);
+  } else if (pitchType === "funino_4zones") {
+    // 4 Zonen Funino / Spielfeldaufbau: 2 Zonen hinten, 2 Zonen vorne
+    const midX = mx + pw / 2;
+    const midY = my + ph / 2;
+    // Mittelkreuz (vertikal & horizontal unterteilt in 4 Zonen)
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(midX, my);
+    ctx.lineTo(midX, my + ph);
+    ctx.moveTo(mx, midY);
+    ctx.lineTo(mx + pw, midY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 4;
+
+    // Torraum-Markierung links (Haupttor hinten mit TW)
+    ctx.strokeRect(mx, my + (ph - 240) / 2, 100, 240);
   } else if (pitchType === "rondo") {
     ctx.strokeStyle = "#facc15";
     ctx.lineWidth = 3;

@@ -236,7 +236,7 @@
           if (toEl.type === "player" || toEl.type === "ball") {
             const fromEl = (fromKf.elements || []).find(it => it.id === toEl.id);
             if (fromEl && Math.hypot(toEl.x - fromEl.x, toEl.y - fromEl.y) > 8) {
-              const teamCol = toEl.type === "ball" ? "#facc15" : (toEl.team === "red" ? "#f87171" : toEl.team === "blue" ? "#60a5fa" : "#34d399");
+              const teamCol = toEl.type === "ball" ? "#facc15" : (toEl.team === "red" ? "#f87171" : toEl.team === "blue" ? "#60a5fa" : (toEl.team === "orange" ? "#fb923c" : "#34d399"));
               const { p1, p2 } = TC().geometry.getEffectiveCurveControlPoints(fromEl, toEl);
 
               ctx.save();

@@ -378,7 +378,7 @@ export class View3DManager {
     const group = new T.Group();
 
     if (el.type === "player") {
-      const teamCol = el.team === "red" ? 0xef4444 : (el.team === "blue" ? 0x3b82f6 : (el.team === "yellow" ? 0xeab308 : 0x10b981));
+      const teamCol = el.team === "red" ? 0xef4444 : (el.team === "blue" ? 0x3b82f6 : (el.team === "yellow" ? 0xeab308 : (el.team === "orange" ? 0xf97316 : 0x10b981)));
       const bodyMat = this.getMaterialForColor(teamCol);
       const headMat = this.getMaterialForColor(0xffedd5, 0.6); // Hautton
 

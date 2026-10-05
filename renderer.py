@@ -353,6 +353,16 @@ def draw_pitch(draw: ImageDraw.ImageDraw, pitch_type: str = "full"):
         draw.rectangle([margin_x + w, margin_y + 60, margin_x + w + goal_w, margin_y + 60 + goal_h], outline="#3498db", width=2, fill="#3498db44")
         draw.rectangle([margin_x + w, margin_y + h - 60 - goal_h, margin_x + w + goal_w, margin_y + h - 60], outline="#3498db", width=2, fill="#3498db44")
 
+    elif pitch_type == "funino_4zones":
+        # 4 Zonen Spielfeld: 2 hinten (links), 2 vorne (rechts)
+        mid_x = margin_x + w / 2
+        mid_y = margin_y + h / 2
+        # Dashed dividing lines for 4 equal zones
+        draw.line([(mid_x, margin_y), (mid_x, margin_y + h)], fill="#ffffffcc", width=3)
+        draw.line([(margin_x, mid_y), (margin_x + w, mid_y)], fill="#ffffffcc", width=3)
+        # Goal area for GK at rear (left)
+        draw.rectangle([margin_x, margin_y + (h - 240) / 2, margin_x + 100, margin_y + (h + 240) / 2], outline="#ffffff", width=3)
+
     elif pitch_type == "rondo":
         # Square practice grid inside pitch
         grid_margin_x = margin_x + 100
@@ -390,7 +400,7 @@ def draw_element(draw: ImageDraw.ImageDraw, el: Dict[str, Any], scale: float = 1
 
     # Dedicated transparent sub-surface rendering for equipment AND players
     # When rot != 0 or player needs local rotation, render to sub-surface
-    if el_type in ["player", "ball", "ladder", "goal_5m", "minigoal", "pole", "cone", "dummy", "ring", "hurdle"]:
+    if el_type in ["player", "ball", "ladder", "goal_5m", "minigoal", "pole", "cone", "dummy", "ring", "hurdle", "zone_rect", "zone_circle", "zone_triangle"]:
         size = int(160 * max(1.0, scale))
         sub_img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
         sub_draw = ImageDraw.Draw(sub_img)
@@ -455,7 +465,11 @@ def _draw_element_direct(draw: ImageDraw.ImageDraw, el: Dict[str, Any], scale: f
             border_c = "#000000"
             text_color = "#000000"
         elif team == "green":
-            fill_c = "#16a34a"
+            fill_c = "#10b981"
+            border_c = "#ffffff"
+            text_color = "#ffffff"
+        elif team == "orange":
+            fill_c = "#f97316"
             border_c = "#ffffff"
             text_color = "#ffffff"
         else:
@@ -523,14 +537,22 @@ def _draw_element_direct(draw: ImageDraw.ImageDraw, el: Dict[str, Any], scale: f
 
     elif el_type == "minigoal":
         # Refined minigoal: semi-transparent net pattern with crisp white posts
-        gw = 36
-        gh = 22
+        # Check if rotated (e.g. angle around 90 or 270)
+        angle = el.get("angle", 0)
+        is_rotated = (angle % 180) != 0
+        gw = 22 if is_rotated else 36
+        gh = 36 if is_rotated else 22
         # Net fill
         draw.rectangle([x - gw/2, y - gh/2, x + gw/2, y + gh/2], fill="#ffffff33", outline="#ffffff", width=3)
         # Net cross lines
-        for net_x in [x - 6, x + 6]:
-            draw.line([(net_x, y - gh/2), (net_x, y + gh/2)], fill="#ffffff55", width=1)
-        draw.line([(x - gw/2, y), (x + gw/2, y)], fill="#ffffff55", width=1)
+        if not is_rotated:
+            for net_x in [x - 6, x + 6]:
+                draw.line([(net_x, y - gh/2), (net_x, y + gh/2)], fill="#ffffff55", width=1)
+            draw.line([(x - gw/2, y), (x + gw/2, y)], fill="#ffffff55", width=1)
+        else:
+            for net_y in [y - 6, y + 6]:
+                draw.line([(x - gw/2, net_y), (x + gw/2, net_y)], fill="#ffffff55", width=1)
+            draw.line([(x, y - gh/2), (x, y + gh/2)], fill="#ffffff55", width=1)
 
     elif el_type == "goal_5m":
         # 5m x 2m Jugendtor (E-Jugend / Kleinfeldtor)
@@ -586,6 +608,32 @@ def _draw_element_direct(draw: ImageDraw.ImageDraw, el: Dict[str, Any], scale: f
         draw.rectangle([x - hw, y - hh, x + hw, y + hh], fill="#f97316", outline="#ffffff", width=1)
         draw.rectangle([x - 8, y - hh, x - 4, y + hh], fill="#ffffff")
         draw.rectangle([x + 4, y - hh, x + 8, y + hh], fill="#ffffff")
+
+    elif el_type == "zone_rect":
+        zw = (el.get("width") or el.get("w") or 120) * scale
+        zh = (el.get("height") or el.get("h") or 80) * scale
+        color = el.get("color", "#38bdf8")
+        fill_color = el.get("fillColor", "rgba(56, 189, 248, 0.18)")
+        # Simple color mapping or fallback
+        fill_rgba = (56, 189, 248, 35)
+        border_rgba = (56, 189, 248, 160)
+        if "yellow" in color or "250, 204, 21" in color or "eab308" in color:
+            fill_rgba = (234, 179, 8, 35)
+            border_rgba = (234, 179, 8, 160)
+        elif "green" in color or "16, 185, 129" in color or "16a34a" in color:
+            fill_rgba = (16, 185, 129, 35)
+            border_rgba = (16, 185, 129, 160)
+        elif "orange" in color or "249, 115, 22" in color:
+            fill_rgba = (249, 115, 22, 35)
+            border_rgba = (249, 115, 22, 160)
+        elif "white" in color or "255, 255, 255" in color or "ffffff" in color:
+            fill_rgba = (255, 255, 255, 20)
+            border_rgba = (255, 255, 255, 180)
+        draw.rectangle([x - zw/2, y - zh/2, x + zw/2, y + zh/2], fill=fill_rgba, outline=border_rgba, width=2)
+        label = el.get("label", "")
+        if label:
+            lbl_font = get_font(max(10, int(13 * scale)), bold=True)
+            draw.text((x - 20, y - zh/2 + 6), label, fill=border_rgba, font=lbl_font)
 
 def interpolate_elements(el_start: Dict[str, Any], el_end: Dict[str, Any], t: float) -> Dict[str, Any]:
     res = dict(el_start)
@@ -666,7 +714,7 @@ def render_frame(pitch_type: str, elements: List[Dict[str, Any]], arrows: List[D
             draw_arrow(draw, s, e, color=color, width=4, dashed=dashed, wavy=wavy, guide=guide, anim_t=anim_t, cp1=cp1, cp2=cp2, raw_points=raw_points)
 
     # 3. Static & moving elements (players, cones, balls)
-    order_map = {"cone": 1, "pole": 1, "ladder": 1, "ring": 1, "hurdle": 1, "dummy": 1, "minigoal": 2, "goal_5m": 2, "player": 3, "ball": 4}
+    order_map = {"zone_rect": 0, "zone_circle": 0, "zone_triangle": 0, "cone": 1, "pole": 1, "ladder": 1, "ring": 1, "hurdle": 1, "dummy": 1, "minigoal": 2, "goal_5m": 2, "player": 3, "ball": 4}
     sorted_elements = sorted(elements, key=lambda it: order_map.get(it.get("type"), 2))
     
     for el in sorted_elements:

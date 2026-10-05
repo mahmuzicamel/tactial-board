@@ -100,6 +100,7 @@
         <!-- Current Pitch Quick Switch directly visible -->
         <select id="pitchSelect" onchange="changePitchType(this.value)" class="bg-slate-800 border border-slate-700 rounded-lg px-1.5 py-1 text-[11px] text-white focus:outline-none focus:border-emerald-500 cursor-pointer font-medium max-w-[85px] sm:max-w-none">
           <option value="funino">Funino</option>
+          <option value="funino_4zones">4-Zonen Funino</option>
           <option value="half">Halbfeld</option>
           <option value="full">Vollfeld</option>
           <option value="rondo">Rondo</option>
@@ -597,7 +598,19 @@
           <!-- Yellow / Joker Player -->
           <button onclick="spawnElement('player', {team: 'yellow'})" class="px-2 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 flex items-center gap-1.5 border border-slate-700 transition shrink-0 active:scale-95">
             <div class="w-4 h-4 rounded-full bg-yellow-400 border border-black flex items-center justify-center text-[9px] font-bold text-black shadow">J</div>
-            <span class="text-xs text-slate-200 font-medium">Joker</span>
+            <span class="text-xs text-slate-200 font-medium">Gelb</span>
+          </button>
+
+          <!-- Green Player -->
+          <button onclick="spawnElement('player', {team: 'green'})" class="px-2 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 flex items-center gap-1.5 border border-slate-700 transition shrink-0 active:scale-95">
+            <div class="w-4 h-4 rounded-full bg-emerald-500 border border-white flex items-center justify-center text-[9px] font-bold text-white shadow">G</div>
+            <span class="text-xs text-slate-200 font-medium">Grün</span>
+          </button>
+
+          <!-- Orange Player -->
+          <button onclick="spawnElement('player', {team: 'orange'})" class="px-2 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 flex items-center gap-1.5 border border-slate-700 transition shrink-0 active:scale-95">
+            <div class="w-4 h-4 rounded-full bg-orange-500 border border-white flex items-center justify-center text-[9px] font-bold text-white shadow">O</div>
+            <span class="text-xs text-slate-200 font-medium">Orange</span>
           </button>
 
           <!-- Football -->
@@ -1143,7 +1156,7 @@
     <span id="toastMsg">Mitteilung</span>
   </div>
 
-  <script type="module" src="/static/js/app-module.js?v=138"></script>
-  <script src="/static/app.js?v=138"></script>
+  <script type="module" src="/static/js/app-module.js?v=139"></script>
+  <script src="/static/app.js?v=139"></script>
 </body>
 </html>

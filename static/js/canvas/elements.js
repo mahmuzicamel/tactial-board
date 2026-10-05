@@ -100,7 +100,8 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
     let textCol = "#ffffff";
     if (el.team === "red") fill = COLORS.TEAM_RED;
     if (el.team === "yellow") { fill = COLORS.TEAM_YELLOW; textCol = "#000000"; }
-    if (el.team === "green") fill = "#16a34a";
+    if (el.team === "green") fill = "#10b981";
+    if (el.team === "orange") { fill = "#f97316"; textCol = "#ffffff"; }
 
     // Shadow
     ctx.fillStyle = "rgba(0,0,0,0.3)";

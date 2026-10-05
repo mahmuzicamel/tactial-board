@@ -40,7 +40,7 @@ export function showInspector(el) {
   }
 
   if (el.type === "player") {
-    nameLabel.textContent = (el.team === "blue" ? "Blau" : el.team === "red" ? "Rot" : "Joker");
+    nameLabel.textContent = (el.team === "blue" ? "Blau" : el.team === "red" ? "Rot" : el.team === "yellow" ? "Gelb" : el.team === "green" ? "Grün" : el.team === "orange" ? "Orange" : "Spieler");
     numInput.classList.remove("hidden");
     nameInput.classList.remove("hidden");
     numInput.value = el.number || "";
