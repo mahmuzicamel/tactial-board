@@ -495,8 +495,7 @@ export function handleCanvasPointerUp(e, canvas, callbacks = {}) {
       kf.arrows.push(newArrow);
       state.selectedArrowIndex = kf.arrows.length - 1;
       state.selectedArrowPart = null;
-      // Nach dem Zeichnen direkt in den Select-Modus wechseln, damit die Bézier-Handles sichtbar und editierbar sind
-      setActiveTool("select");
+      // Bleibe im aktuellen Linien-Zeichen-Modus (Pass, Laufweg, Hilfslinie), damit mehrere Linien nacheinander gezogen werden können
       showArrowInspector(newArrow);
     }
 
