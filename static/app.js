@@ -1280,8 +1280,11 @@
 
   // Application Initialization
   async function init() {
-    canvas = document.getElementById("tacticsCanvas");
-    if (!canvas) return;
+    canvas = document.getElementById("tacticCanvas") || document.getElementById("tacticsCanvas");
+    if (!canvas) {
+      console.error("❌ Canvas element not found!");
+      return;
+    }
     ctx = canvas.getContext("2d");
     window.canvas = canvas;
     window.ctx = ctx;
