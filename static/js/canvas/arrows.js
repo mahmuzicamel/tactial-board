@@ -162,7 +162,7 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
 
       // Dotted tangent arms
       ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.5)";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -172,18 +172,18 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // P1 handle (cyan)
+      // P1 handle (cyan, oberer Wölbungs-Griff für Bogen 1)
       ctx.fillStyle = "#06b6d4";
       ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(cp1.x, cp1.y, 6.5, 0, Math.PI * 2);
+      ctx.arc(cp1.x, cp1.y, 8.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // P2 handle (cyan)
+      // P2 handle (cyan, unterer Wölbungs-Griff für Bogen 2)
       ctx.beginPath();
-      ctx.arc(cp2.x, cp2.y, 6.5, 0, Math.PI * 2);
+      ctx.arc(cp2.x, cp2.y, 8.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
@@ -192,7 +192,7 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(pMid.x, pMid.y, 8, 0, Math.PI * 2);
+      ctx.arc(pMid.x, pMid.y, 8.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     }

@@ -50,9 +50,9 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
   if (!kf) return;
 
   const prevKf = state.currentKeyframeIndex > 0 ? getCurrentExercise().keyframes[state.currentKeyframeIndex - 1] : null;
-  const handleHitRadius = Math.max(16, 22 / Math.sqrt(state.viewScale));
+  const handleHitRadius = Math.max(22, 28 / Math.sqrt(state.viewScale));
 
-  // 1. Check curve editor handles (ghost or selected arrow)
+  // 1. Check curve editor handles (ghost or selected arrow) - Höchste Priorität!
   const curveHit = handleCurvePointerDown(x, y, kf, prevKf, handleHitRadius);
   if (curveHit) {
     state.activeCurveDrag = curveHit;

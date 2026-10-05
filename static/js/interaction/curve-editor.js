@@ -51,14 +51,15 @@ export function handleCurvePointerDown(x, y, kf, prevKf, handleHitRadius) {
     const { p1: selP1, p2: selP2 } = getArrowCurveControlPoints(selArr);
     const selPMid = getCubicBezierPoint(0.5, { x: selArr.x1, y: selArr.y1 }, selP1, selP2, { x: selArr.x2, y: selArr.y2 });
 
+    // Zuerst P1 (oberer Kontrollpunkt) und P2 (unterer Kontrollpunkt) mit Prio prüfen
     if (Math.hypot(x - selP1.x, y - selP1.y) <= handleHitRadius) {
       return { arrowIndex: state.selectedArrowIndex, handle: "p1", arrow: selArr };
     }
-    if (Math.hypot(x - selPMid.x, y - selPMid.y) <= handleHitRadius) {
-      return { arrowIndex: state.selectedArrowIndex, handle: "mid", arrow: selArr };
-    }
     if (Math.hypot(x - selP2.x, y - selP2.y) <= handleHitRadius) {
       return { arrowIndex: state.selectedArrowIndex, handle: "p2", arrow: selArr };
+    }
+    if (Math.hypot(x - selPMid.x, y - selPMid.y) <= handleHitRadius) {
+      return { arrowIndex: state.selectedArrowIndex, handle: "mid", arrow: selArr };
     }
   }
 
