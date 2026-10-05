@@ -1141,34 +1141,43 @@
     const dataUrl = canvas.toDataURL("image/png");
     const imgEl = document.getElementById("exportSnapshotImg");
     if (imgEl) imgEl.src = dataUrl;
+    const box = document.getElementById("photoPreviewBox");
+    if (box) box.classList.remove("hidden");
   };
 
   window.triggerServerVideoRender = async function () {
     const s = S();
     const btn = document.getElementById("btnRenderVideo");
-    const spinner = document.getElementById("renderSpinner");
+    const statusBox = document.getElementById("videoRenderStatus");
+    const resultBox = document.getElementById("videoResultBox");
     const exId = s.currentExercise.id;
     if (!exId || exId === "ex_initial") {
       window.showToast("Bitte speichere die Übung zuerst!", true);
       return;
     }
     if (btn) btn.disabled = true;
-    if (spinner) spinner.classList.remove("hidden");
+    if (statusBox) statusBox.classList.remove("hidden");
+    if (resultBox) resultBox.classList.add("hidden");
     try {
       const data = await TC().client.renderExerciseVideo(exId);
-      if (data.status === "ok") {
-        window.currentExportVideoUrl = data.video_url;
+      const videoUrl = data.video_url || (data.exercise && data.exercise.video_mp4);
+      if (data.status === "ok" && videoUrl) {
+        window.currentExportVideoUrl = videoUrl;
         const player = document.getElementById("exportVideoPlayer");
-        const actions = document.getElementById("exportVideoActions");
-        if (player) { player.src = data.video_url; player.load(); }
-        if (actions) actions.classList.remove("hidden");
+        if (player) {
+          player.src = `${videoUrl}?t=${Date.now()}`;
+          player.load();
+        }
+        if (resultBox) resultBox.classList.remove("hidden");
         window.showToast("🎬 Video fertig generiert!");
+      } else {
+        throw new Error(data.detail || "Keine Video-URL zurückerhalten");
       }
     } catch (e) {
       window.showToast("Fehler beim Video-Rendern: " + e.message, true);
     } finally {
       if (btn) btn.disabled = false;
-      if (spinner) spinner.classList.add("hidden");
+      if (statusBox) statusBox.classList.add("hidden");
     }
   };
 
