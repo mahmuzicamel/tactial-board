@@ -160,7 +160,30 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
       const p3 = { x: x2, y: y2 };
       const pMid = getCubicBezierPoint(0.5, p0, cp1, cp2, p3);
 
-      // Midpoint handle (Amber/Yellow curve crown handle - genau wie im Screenshot!)
+      // Gestrichelte Verbindungslinien (Leitlinien) zu den Bézier-Griffen
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+
+      // Von Start zu P1 und von Ende zu P2
+      ctx.beginPath();
+      ctx.moveTo(p0.x, p0.y);
+      ctx.lineTo(cp1.x, cp1.y);
+      ctx.moveTo(p3.x, p3.y);
+      ctx.lineTo(cp2.x, cp2.y);
+      ctx.stroke();
+
+      // Von P1 über Mid zu P2 (Bézier-Kontrollkäfig)
+      ctx.beginPath();
+      ctx.strokeStyle = "rgba(245, 158, 11, 0.45)";
+      ctx.moveTo(cp1.x, cp1.y);
+      ctx.lineTo(pMid.x, pMid.y);
+      ctx.lineTo(cp2.x, cp2.y);
+      ctx.stroke();
+      ctx.restore();
+
+      // Midpoint handle (Amber/Yellow curve crown handle)
       ctx.fillStyle = "#f59e0b";
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2.5;

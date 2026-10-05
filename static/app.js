@@ -236,6 +236,20 @@
 
               if (k + 1 === s.currentKeyframeIndex && !s.isPlaying) {
                 const handleR = Math.max(4.5, 6 / Math.sqrt(s.viewScale));
+
+                // Gestrichelte Leitlinien zu den Ghost-Kurven-Griffen
+                ctx.save();
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+                ctx.lineWidth = 1.2;
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.moveTo(fromEl.x, fromEl.y);
+                ctx.lineTo(p1.x, p1.y);
+                ctx.moveTo(toEl.x, toEl.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+                ctx.restore();
+
                 ctx.fillStyle = "#ffffff";
                 ctx.strokeStyle = teamCol;
                 ctx.lineWidth = 2;
