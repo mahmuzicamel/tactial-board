@@ -437,8 +437,8 @@ export function handleCanvasPointerUp(e, canvas, callbacks = {}) {
       if (state.lineDrawMode === "raw_freehand" && state.arrowDrawStrokePoints.length >= 2) {
         rawPoints = state.arrowDrawStrokePoints.map(p => ({ x: Math.round(p.x), y: Math.round(p.y) }));
       } else if (state.lineDrawMode === "freehand" && state.arrowDrawStrokePoints.length >= 3) {
-        // Catmull-Rom Glättung: Erhält alle Schwünge und S-Kurven ohne Begradigung
-        const smoothedPoints = fitCatmullRomPoints(state.arrowDrawStrokePoints, 2.0, 10);
+        // Catmull-Rom Glättung mit Ramer-Douglas-Peucker Entprellung (epsilon = 5.0)
+        const smoothedPoints = fitCatmullRomPoints(state.arrowDrawStrokePoints, 5.0, 12);
         rawPoints = smoothedPoints.map(p => ({ x: Math.round(p.x), y: Math.round(p.y) }));
 
         // Berechne zusätzlich die kubische Approximation für Fallbacks

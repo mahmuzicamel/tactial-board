@@ -1,5 +1,30 @@
 // canvas/arrows.js - Zeichnen von Pässen, Laufwegen, Hilfslinien, Bézier- und Freihandkurven
-import { getCubicBezierPoint } from "../core/geometry.js";
+import { getCubicBezierPoint, catmullRomToBezier } from "../core/geometry.js";
+
+function tracePath(ctx, x1, y1, x2, y2, isRaw, isCurved, cp1, cp2, rawPoints) {
+  if (isRaw) {
+    if (rawPoints.length >= 3) {
+      // Echte kubische Bézier-Segmente (Catmull-Rom) für butterweiche Glättung
+      const segs = catmullRomToBezier(rawPoints);
+      if (segs.length > 0) {
+        ctx.moveTo(segs[0].p0.x, segs[0].p0.y);
+        for (let s = 0; s < segs.length; s++) {
+          ctx.bezierCurveTo(segs[s].cp1.x, segs[s].cp1.y, segs[s].cp2.x, segs[s].cp2.y, segs[s].p3.x, segs[s].p3.y);
+        }
+        return;
+      }
+    }
+    ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
+    for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
+  } else {
+    ctx.moveTo(x1, y1);
+    if (isCurved) {
+      ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+    } else {
+      ctx.lineTo(x2, y2);
+    }
+  }
+}
 
 export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected = false, animTime = null, cp1 = null, cp2 = null, rawPoints = null) {
   const dx = x2 - x1;
@@ -19,17 +44,7 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.beginPath();
-    if (isRaw) {
-      ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
-      for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
-    } else {
-      ctx.moveTo(x1, y1);
-      if (isCurved) {
-        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
-      } else {
-        ctx.lineTo(x2, y2);
-      }
-    }
+    tracePath(ctx, x1, y1, x2, y2, isRaw, isCurved, cp1, cp2, rawPoints);
     ctx.stroke();
   }
 
@@ -72,17 +87,7 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
     ctx.setLineDash([12, 8]);
     ctx.lineDashOffset = dashOffset;
     ctx.beginPath();
-    if (isRaw) {
-      ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
-      for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
-    } else {
-      ctx.moveTo(x1, y1);
-      if (isCurved) {
-        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
-      } else {
-        ctx.lineTo(x2, y2);
-      }
-    }
+    tracePath(ctx, x1, y1, x2, y2, isRaw, isCurved, cp1, cp2, rawPoints);
     ctx.stroke();
 
     // Sharp bright core line (Amber/Gold or custom color)
@@ -93,17 +98,7 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
     ctx.setLineDash([12, 8]);
     ctx.lineDashOffset = dashOffset;
     ctx.beginPath();
-    if (isRaw) {
-      ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
-      for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
-    } else {
-      ctx.moveTo(x1, y1);
-      if (isCurved) {
-        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
-      } else {
-        ctx.lineTo(x2, y2);
-      }
-    }
+    tracePath(ctx, x1, y1, x2, y2, isRaw, isCurved, cp1, cp2, rawPoints);
     ctx.stroke();
 
     // Symmetrical diamond / indicator at both endpoints
@@ -122,32 +117,12 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
     if (type === "pass") {
       ctx.setLineDash([10, 8]);
       ctx.beginPath();
-      if (isRaw) {
-        ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
-        for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
-      } else {
-        ctx.moveTo(x1, y1);
-        if (isCurved) {
-          ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
-        } else {
-          ctx.lineTo(x2, y2);
-        }
-      }
+      tracePath(ctx, x1, y1, x2, y2, isRaw, isCurved, cp1, cp2, rawPoints);
       ctx.stroke();
     } else {
       // Run / dribble solid line
       ctx.beginPath();
-      if (isRaw) {
-        ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
-        for (let p = 1; p < rawPoints.length; p++) ctx.lineTo(rawPoints[p].x, rawPoints[p].y);
-      } else {
-        ctx.moveTo(x1, y1);
-        if (isCurved) {
-          ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
-        } else {
-          ctx.lineTo(x2, y2);
-        }
-      }
+      tracePath(ctx, x1, y1, x2, y2, isRaw, isCurved, cp1, cp2, rawPoints);
       ctx.stroke();
     }
 
