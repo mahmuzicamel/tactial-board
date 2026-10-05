@@ -373,15 +373,114 @@ function drawPitchBackgroundFallback(c, pitchType) {
   }
 }
 
+// -------------------------------------------------------------
+// Fallback implementations in case ESM modules load deferred
+// -------------------------------------------------------------
+function drawElementOnCanvasFallback(c, el, isSelected = false, fRot = 0, gScale = 1.0) {
+  const x = el.x;
+  const y = el.y;
+  c.save();
+  c.translate(x, y);
+
+  if (fRot !== 0) c.rotate((-fRot * Math.PI) / 180);
+  if (el.rotation) c.rotate((el.rotation * Math.PI) / 180);
+
+  const jumpScale = (el.scaleMultiplier !== undefined) ? el.scaleMultiplier : 1.0;
+  const elScale = (gScale || 1.0) * jumpScale;
+  c.scale(elScale, elScale);
+
+  if (isSelected) {
+    c.strokeStyle = "#38bdf8";
+    c.lineWidth = 3;
+    c.beginPath();
+    c.arc(0, 0, 26, 0, Math.PI * 2);
+    c.stroke();
+  }
+
+  if (el.type === "player") {
+    const radius = 18;
+    let fill = el.team === "red" ? "#ef4444" : (el.team === "yellow" ? "#eab308" : "#2563eb");
+    let textCol = el.team === "yellow" ? "#000000" : "#ffffff";
+    c.fillStyle = fill;
+    c.beginPath();
+    c.arc(0, 0, radius, 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = "#ffffff";
+    c.lineWidth = 2.5;
+    c.stroke();
+
+    if (el.number) {
+      c.fillStyle = textCol;
+      c.font = "bold 13px sans-serif";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+      c.fillText(el.number, 0, 1);
+    }
+  } else if (el.type === "ball") {
+    const radius = 10;
+    c.fillStyle = "#ffffff";
+    c.beginPath();
+    c.arc(0, 0, radius, 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = "#111827";
+    c.lineWidth = 2;
+    c.stroke();
+
+    c.fillStyle = "#111827";
+    c.beginPath();
+    c.arc(0, 0, 4, 0, Math.PI * 2);
+    c.fill();
+  } else if (el.type === "cone") {
+    c.fillStyle = "#f97316";
+    c.beginPath();
+    c.moveTo(0, -14);
+    c.lineTo(14, 14);
+    c.lineTo(-14, 14);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = "#ffffff";
+    c.lineWidth = 2;
+    c.stroke();
+  } else if (el.type === "minigoal") {
+    c.fillStyle = "#ffffff";
+    c.fillRect(-20, -10, 40, 20);
+    c.strokeStyle = "#334155";
+    c.lineWidth = 2;
+    c.strokeRect(-20, -10, 40, 20);
+  } else {
+    c.fillStyle = "#94a3b8";
+    c.beginPath();
+    c.arc(0, 0, 14, 0, Math.PI * 2);
+    c.fill();
+  }
+  c.restore();
+}
+
+function drawArrowFallback(c, x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected = false, animTime = null, cp1 = null, cp2 = null, rawPoints = null) {
+  c.save();
+  c.strokeStyle = color;
+  c.lineWidth = 3;
+  if (type === "pass") c.setLineDash([6, 6]);
+  c.beginPath();
+  c.moveTo(x1, y1);
+  if (cp1 && cp2) {
+    c.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
+  } else {
+    c.lineTo(x2, y2);
+  }
+  c.stroke();
+  c.restore();
+}
+
 // Aliases for modules from window.TacticalCoach
 const pitch = {
   drawPitchBackground: (c, type) => (window.TacticalCoach?.pitch?.drawPitchBackground || drawPitchBackgroundFallback)(c, type)
 };
 const elemModule = {
-  drawElementOnCanvas: (c, el, sel, rot, sc) => (window.TacticalCoach?.elements?.drawElementOnCanvas || drawElementOnCanvas)(c, el, sel, rot, sc)
+  drawElementOnCanvas: (c, el, sel, rot, sc) => (window.TacticalCoach?.elements?.drawElementOnCanvas || drawElementOnCanvasFallback)(c, el, sel, rot, sc)
 };
 const arrowModule = {
-  drawArrow: (...args) => (window.TacticalCoach?.arrows?.drawArrow || drawArrow)(...args)
+  drawArrow: (...args) => (window.TacticalCoach?.arrows?.drawArrow || drawArrowFallback)(...args)
 };
 const geomModule = {
   distToSegment: (...args) => (window.TacticalCoach?.geometry?.distToSegment || distToSegment)(...args),
@@ -691,7 +790,11 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
   const { w: dispW, h: dispH } = getDisplayDimensions();
   const dpr = window.devicePixelRatio || 1;
 
-  ctx.clearRect(0, 0, dispW, dispH);
+  // Clear entire physical canvas buffer completely to avoid zoom ghosting/overlapping fields
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
 
   ctx.save();
   // Fit virtual field into dispW x dispH considering rotation
