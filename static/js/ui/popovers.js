@@ -94,6 +94,28 @@ export function closeLineModeMenu() {
   }
 }
 
+export function toggleZoneMenu(event) {
+  if (event) event.stopPropagation();
+  const modal = document.getElementById("zoneMenuModal");
+  if (!modal) return;
+  const isHidden = modal.classList.contains("hidden");
+  closePlaybackSettingsMenu();
+  closeLineModeMenu();
+  closeEquipmentMenu();
+  if (isHidden) {
+    modal.classList.remove("hidden");
+  } else {
+    modal.classList.add("hidden");
+  }
+}
+
+export function closeZoneMenu() {
+  const modal = document.getElementById("zoneMenuModal");
+  if (modal && !modal.classList.contains("hidden")) {
+    modal.classList.add("hidden");
+  }
+}
+
 export function toggleEquipmentMenu(event) {
   if (event) event.stopPropagation();
   const modal = document.getElementById("equipmentMenuModal");
@@ -195,6 +217,14 @@ export function initGlobalClickDismiss() {
     if (equipModal && !equipModal.classList.contains("hidden")) {
       if (e.target === equipModal) {
         equipModal.classList.add("hidden");
+      }
+    }
+
+    const zoneModal = document.getElementById("zoneMenuModal");
+    const zoneBtn = document.getElementById("zoneMenuBtn");
+    if (zoneModal && !zoneModal.classList.contains("hidden")) {
+      if (e.target === zoneModal) {
+        zoneModal.classList.add("hidden");
       }
     }
 

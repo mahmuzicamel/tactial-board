@@ -273,6 +273,107 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(-8, -3, 4, 6);
     ctx.fillRect(4, -3, 4, 6);
+
+  } else if (el.type === "zone_rect") {
+    // Taktik-Zone / Feld: Rechteck (z.B. Rondo / Spielzone)
+    const w = el.width || 120;
+    const h = el.height || 80;
+    const color = el.color || "#38bdf8"; // Standard Himmelblau
+
+    // Halbtransparenter Flächen-Hintergrund
+    ctx.fillStyle = el.fillColor || "rgba(56, 189, 248, 0.18)";
+    ctx.fillRect(-w / 2, -h / 2, w, h);
+
+    // Dezent gestrichelter Rand
+    ctx.strokeStyle = color;
+    ctx.lineWidth = isSelected ? 2.5 : 1.8;
+    ctx.setLineDash(isSelected ? [] : [6, 4]);
+    ctx.strokeRect(-w / 2, -h / 2, w, h);
+    ctx.setLineDash([]);
+
+    // Eck-Markierungen für Trainer-Optik
+    const cornerSize = 8;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    // Oben links
+    ctx.beginPath();
+    ctx.moveTo(-w/2, -h/2 + cornerSize); ctx.lineTo(-w/2, -h/2); ctx.lineTo(-w/2 + cornerSize, -h/2);
+    // Oben rechts
+    ctx.moveTo(w/2 - cornerSize, -h/2); ctx.lineTo(w/2, -h/2); ctx.lineTo(w/2, -h/2 + cornerSize);
+    // Unten links
+    ctx.moveTo(-w/2, h/2 - cornerSize); ctx.lineTo(-w/2, h/2); ctx.lineTo(-w/2 + cornerSize, h/2);
+    // Unten rechts
+    ctx.moveTo(w/2 - cornerSize, h/2); ctx.lineTo(w/2, h/2); ctx.lineTo(w/2, h/2 - cornerSize);
+    ctx.stroke();
+
+    if (el.label) {
+      ctx.font = "bold 11px Inter, sans-serif";
+      ctx.fillStyle = color;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(el.label, 0, 0);
+    }
+
+  } else if (el.type === "zone_circle") {
+    // Taktik-Zone / Kreis (z.B. Druckzone, Passkreis)
+    const radius = el.radius || 50;
+    const color = el.color || "#eab308"; // Standard Warmgelb
+
+    ctx.fillStyle = el.fillColor || "rgba(234, 179, 8, 0.18)";
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = isSelected ? 2.5 : 1.8;
+    ctx.setLineDash(isSelected ? [] : [6, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Zentrales Fadenkreuz / Achsen
+    ctx.strokeStyle = "rgba(234, 179, 8, 0.35)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-6, 0); ctx.lineTo(6, 0);
+    ctx.moveTo(0, -6); ctx.lineTo(0, 6);
+    ctx.stroke();
+
+    if (el.label) {
+      ctx.font = "bold 11px Inter, sans-serif";
+      ctx.fillStyle = color;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(el.label, 0, 0);
+    }
+
+  } else if (el.type === "zone_triangle") {
+    // Taktik-Zone / Dreieck (z.B. Passdreieck / Deckungsschatten)
+    const size = el.size || 70;
+    const color = el.color || "#a855f7"; // Standard Lila
+    const h = size * 0.866; // Gleichseitiges Dreieck
+
+    ctx.beginPath();
+    ctx.moveTo(0, -h * 0.6);
+    ctx.lineTo(size * 0.5, h * 0.4);
+    ctx.lineTo(-size * 0.5, h * 0.4);
+    ctx.closePath();
+
+    ctx.fillStyle = el.fillColor || "rgba(168, 85, 247, 0.18)";
+    ctx.fill();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = isSelected ? 2.5 : 1.8;
+    ctx.setLineDash(isSelected ? [] : [6, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    if (el.label) {
+      ctx.font = "bold 11px Inter, sans-serif";
+      ctx.fillStyle = color;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(el.label, 0, h * 0.1);
+    }
   }
 
   ctx.restore();

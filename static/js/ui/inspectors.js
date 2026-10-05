@@ -39,7 +39,7 @@ export function showInspector(el) {
     numInput.value = el.number || "";
     nameInput.value = el.name || "";
   } else {
-    nameLabel.textContent = el.type === "ball" ? "Ball" : el.type === "cone" ? "Hütchen" : el.type === "minigoal" ? "Minitor" : el.type === "goal_5m" ? "5m Tor (E-Jugend)" : el.type === "pole" ? "Stange" : el.type === "ladder" ? "Leiter" : el.type === "dummy" ? "Dummy" : el.type === "ring" ? "Ring" : el.type === "hurdle" ? "Hürde" : "Objekt";
+    nameLabel.textContent = el.type === "ball" ? "Ball" : el.type === "cone" ? "Hütchen" : el.type === "minigoal" ? "Minitor" : el.type === "goal_5m" ? "5m Tor (E-Jugend)" : el.type === "pole" ? "Stange" : el.type === "ladder" ? "Leiter" : el.type === "dummy" ? "Dummy" : el.type === "ring" ? "Ring" : el.type === "hurdle" ? "Hürde" : el.type === "zone_rect" ? "Rechteck-Zone" : el.type === "zone_circle" ? "Kreis-Zone" : el.type === "zone_triangle" ? "Dreieck-Zone" : "Objekt";
     numInput.classList.add("hidden");
     nameInput.classList.add("hidden");
   }

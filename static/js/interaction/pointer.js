@@ -89,8 +89,18 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
 
   // 2. Check if clicked an element
   const effectiveElScale = Math.max(0.6, state.globalElementScale || 1.0);
-  const hitRadius = Math.max(26 * effectiveElScale, (34 * effectiveElScale) / Math.sqrt(state.viewScale));
-  const clickedElement = [...(kf.elements || [])].reverse().find(el => Math.hypot(el.x - x, el.y - y) <= hitRadius);
+  const baseHitRadius = Math.max(26 * effectiveElScale, (34 * effectiveElScale) / Math.sqrt(state.viewScale));
+  const clickedElement = [...(kf.elements || [])].reverse().find(el => {
+    let hitR = baseHitRadius;
+    if (el.type === "zone_rect") {
+      hitR = Math.max(baseHitRadius, ((el.width || 120) / 2) * effectiveElScale);
+    } else if (el.type === "zone_circle") {
+      hitR = Math.max(baseHitRadius, (el.radius || 50) * effectiveElScale);
+    } else if (el.type === "zone_triangle") {
+      hitR = Math.max(baseHitRadius, ((el.size || 70) * 0.6) * effectiveElScale);
+    }
+    return Math.hypot(el.x - x, el.y - y) <= hitR;
+  });
 
   if (clickedElement) {
     if (state.activeTool !== "select") {

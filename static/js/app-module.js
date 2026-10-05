@@ -26,6 +26,8 @@ window.togglePlaybackSettingsMenu = popovers.togglePlaybackSettingsMenu;
 window.closePlaybackSettingsMenu = popovers.closePlaybackSettingsMenu;
 window.toggleEquipmentMenu = popovers.toggleEquipmentMenu;
 window.closeEquipmentMenu = popovers.closeEquipmentMenu;
+window.toggleZoneMenu = popovers.toggleZoneMenu;
+window.closeZoneMenu = popovers.closeZoneMenu;
 window.toggleLineModeMenu = popovers.toggleLineModeMenu;
 window.closeLineModeMenu = popovers.closeLineModeMenu;
 if (typeof popovers.setLineDrawMode === "function") {
