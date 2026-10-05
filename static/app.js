@@ -271,7 +271,7 @@
     }
 
     // 4. Current Keyframe Arrows
-    const nowTime = performance.now();
+    const nowTime = performance.now() / 1000;
     arrows.forEach((arr, idx) => {
       const isSel = (s.selectedArrowIndex === idx);
       const cp1 = arr.cp1_dx !== undefined ? { x: arr.x1 + arr.cp1_dx, y: arr.y1 + arr.cp1_dy } : null;

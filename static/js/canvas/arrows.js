@@ -54,11 +54,13 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
 
   // Type: "guide" -> Blinking / Pulsing dashed Hilfslinie
   if (type === "guide") {
-    const t = (animTime !== null) ? animTime : (performance.now() / 1000);
-    // Very slow, smooth pulsing opacity between 0.45 and 0.95 (~0.6 Hz)
-    const pulseAlpha = 0.45 + 0.5 * (0.5 + 0.5 * Math.sin(t * Math.PI * 1.2));
-    // Gentle, slow moving animated dash march
-    const dashOffset = -(t * 12) % 24;
+    // animTime must be in seconds; ensure conversion if milliseconds were accidentally passed
+    let t = (animTime !== null) ? animTime : (performance.now() / 1000);
+    if (t > 100000) t = t / 1000;
+    // Ultra-slow, very calm pulsing opacity (~0.4 Hz, calm breath)
+    const pulseAlpha = 0.5 + 0.45 * (0.5 + 0.5 * Math.sin(t * Math.PI * 0.8));
+    // Very slow, gentle dash march
+    const dashOffset = -(t * 8) % 24;
 
     ctx.save();
     ctx.lineCap = "round";
