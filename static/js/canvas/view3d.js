@@ -307,6 +307,13 @@ export class View3DManager {
 
       group.position.set(p3.x, jumpHeight, p3.z);
 
+      // Rotation (Objekt-Drehung)
+      if (el.rotation) {
+        group.rotation.y = -(el.rotation * Math.PI) / 180;
+      } else {
+        group.rotation.y = 0;
+      }
+
       // Skalierung (aus Jump-Effekt & globalem Skalierungs-Slider)
       const scaleMult = (el.scaleMultiplier || 1.0) * (this.state.globalElementScale || 1.0);
       group.scale.set(scaleMult, scaleMult, scaleMult);
@@ -356,54 +363,290 @@ export class View3DManager {
       group.add(ball);
 
     } else if (el.type === "cone") {
-      const coneMat = this.getMaterialForColor(0xf97316); // Orange
-      const cone = new T.Mesh(this.sharedGeometries.cone, coneMat);
-      cone.position.y = 10;
-      cone.castShadow = true;
-      group.add(cone);
+      // Echtes Markierungshütchen: quadratische Basisplatte + konischer Aufbau mit Spitze
+      const coneMat = this.getMaterialForColor(0xf97316, 0.35); // Signalorange
+      const baseGeo = new T.BoxGeometry(16, 1.5, 16);
+      const baseMesh = new T.Mesh(baseGeo, coneMat);
+      baseMesh.position.y = 0.75;
+      baseMesh.castShadow = true;
+      baseMesh.receiveShadow = true;
+      group.add(baseMesh);
+
+      const coneBody = new T.Mesh(new T.ConeGeometry(6.5, 18, 16), coneMat);
+      coneBody.position.y = 10;
+      coneBody.castShadow = true;
+      group.add(coneBody);
+
+      // Weißer Reflektorstreifen in der Mitte
+      const stripeMat = this.getMaterialForColor(0xffffff, 0.2);
+      const stripe = new T.Mesh(new T.CylinderGeometry(4.2, 5.2, 4, 16), stripeMat);
+      stripe.position.y = 9;
+      group.add(stripe);
 
     } else if (el.type === "pole") {
-      const poleMat = this.getMaterialForColor(0xfacc15); // Gelbe Stange
-      const pole = new T.Mesh(this.sharedGeometries.pole, poleMat);
+      // Slalomstange: schwarzer runder Standfuß / Federfuß + neongelbe Stange
+      const baseMat = this.getMaterialForColor(0x1e293b, 0.8);
+      const baseMesh = new T.Mesh(new T.CylinderGeometry(7, 8, 3, 16), baseMat);
+      baseMesh.position.y = 1.5;
+      baseMesh.castShadow = true;
+      baseMesh.receiveShadow = true;
+      group.add(baseMesh);
+
+      const poleMat = this.getMaterialForColor(0xfacc15, 0.3); // Neon-Gelb
+      const pole = new T.Mesh(new T.CylinderGeometry(1.8, 1.8, 55, 12), poleMat);
       pole.position.y = 30;
       pole.castShadow = true;
       group.add(pole);
 
+      // Schwarze Schutzkappe oben
+      const cap = new T.Mesh(new T.SphereGeometry(2.2, 12, 12), baseMat);
+      cap.position.y = 57.5;
+      group.add(cap);
+
     } else if (el.type === "hurdle") {
-      const hMat = this.getMaterialForColor(0x38bdf8);
-      const bar = new T.Mesh(this.sharedGeometries.hurdleBar, hMat);
-      bar.rotation.z = Math.PI / 2;
-      bar.position.y = 16;
-      bar.castShadow = true;
-      group.add(bar);
+      // Agility-Hürde: 2 flache Bodenkufen + 2 senkrechte Steher + Querbalken mit Warnstreifen
+      const frameMat = this.getMaterialForColor(0x0284c7, 0.3); // Cyan/Blau
+      const skidGeo = new T.BoxGeometry(3, 2, 22);
 
-      const legL = new T.Mesh(this.sharedGeometries.hurdleLeg, hMat);
-      legL.position.set(-15, 9, 0);
-      legL.castShadow = true;
-      group.add(legL);
+      const skidL = new T.Mesh(skidGeo, frameMat);
+      skidL.position.set(-18, 1, 0);
+      skidL.castShadow = true;
+      group.add(skidL);
 
-      const legR = new T.Mesh(this.sharedGeometries.hurdleLeg, hMat);
-      legR.position.set(15, 9, 0);
-      legR.castShadow = true;
-      group.add(legR);
+      const skidR = new T.Mesh(skidGeo, frameMat);
+      skidR.position.set(18, 1, 0);
+      skidR.castShadow = true;
+      group.add(skidR);
 
-    } else if (el.type === "goal_mini" || el.type === "goal_large") {
-      const gMat = this.getMaterialForColor(0xffffff, 0.2);
-      const postL = new T.Mesh(this.sharedGeometries.goalPost, gMat);
-      postL.position.set(-45, 25, 0);
+      const postGeo = new T.CylinderGeometry(1.5, 1.5, 18, 10);
+      const postL = new T.Mesh(postGeo, frameMat);
+      postL.position.set(-18, 10, 0);
       postL.castShadow = true;
       group.add(postL);
 
-      const postR = new T.Mesh(this.sharedGeometries.goalPost, gMat);
-      postR.position.set(45, 25, 0);
+      const postR = new T.Mesh(postGeo, frameMat);
+      postR.position.set(18, 10, 0);
       postR.castShadow = true;
       group.add(postR);
 
-      const crossbar = new T.Mesh(this.sharedGeometries.goalBar, gMat);
-      crossbar.rotation.z = Math.PI / 2;
-      crossbar.position.set(0, 50, 0);
-      crossbar.castShadow = true;
-      group.add(crossbar);
+      const barGeo = new T.CylinderGeometry(2, 2, 38, 12);
+      const bar = new T.Mesh(barGeo, this.getMaterialForColor(0xf97316, 0.3));
+      bar.rotation.z = Math.PI / 2;
+      bar.position.set(0, 19, 0);
+      bar.castShadow = true;
+      group.add(bar);
+
+    } else if (el.type === "ring") {
+      // Koordinationsring flach auf dem Rasen (Torus)
+      const ringMat = this.getMaterialForColor(0x06b6d4, 0.35); // Leuchtendes Cyan
+      const ringGeo = new T.TorusGeometry(15, 1.6, 12, 32);
+      const ringMesh = new T.Mesh(ringGeo, ringMat);
+      ringMesh.rotation.x = Math.PI / 2;
+      ringMesh.position.y = 1.2;
+      ringMesh.receiveShadow = true;
+      group.add(ringMesh);
+
+    } else if (el.type === "ladder") {
+      // Koordinationsleiter auf dem Rasen: 2 lange Seile/Bänder + 5 Sprossen
+      const ropeMat = this.getMaterialForColor(0x0284c7, 0.4); // Blaues Band
+      const rungMat = this.getMaterialForColor(0xfacc15, 0.3); // Gelbe Kunststoff-Sprossen
+
+      // Längsbänder
+      const ropeGeo = new T.BoxGeometry(84, 0.8, 1.8);
+      const rope1 = new T.Mesh(ropeGeo, ropeMat);
+      rope1.position.set(0, 0.6, -11);
+      rope1.receiveShadow = true;
+      group.add(rope1);
+
+      const rope2 = new T.Mesh(ropeGeo, ropeMat);
+      rope2.position.set(0, 0.6, 11);
+      rope2.receiveShadow = true;
+      group.add(rope2);
+
+      // 6 Sprossen
+      const rungGeo = new T.BoxGeometry(2.4, 1.2, 24);
+      for (let i = 0; i < 6; i++) {
+        const rung = new T.Mesh(rungGeo, rungMat);
+        rung.position.set(-38 + i * 15.2, 0.8, 0);
+        rung.receiveShadow = true;
+        group.add(rung);
+      }
+
+    } else if (el.type === "dummy") {
+      // Freistoß-Dummy / Trainingsfigur: Standfuß mit 4 Spikes + anatomischer Torso + Kopf
+      const baseMat = this.getMaterialForColor(0x0f172a, 0.8);
+      const baseMesh = new T.Mesh(new T.CylinderGeometry(13, 14, 3, 16), baseMat);
+      baseMesh.position.y = 1.5;
+      baseMesh.castShadow = true;
+      group.add(baseMesh);
+
+      // Zwei Beine/Stangen
+      const legMat = this.getMaterialForColor(0x334155, 0.6);
+      const legGeo = new T.CylinderGeometry(1.8, 1.8, 22, 10);
+      const legL = new T.Mesh(legGeo, legMat);
+      legL.position.set(-6, 13, 0);
+      legL.castShadow = true;
+      group.add(legL);
+
+      const legR = new T.Mesh(legGeo, legMat);
+      legR.position.set(6, 13, 0);
+      legR.castShadow = true;
+      group.add(legR);
+
+      // Torso / Schutzschild (markant Neongelb)
+      const dummyMat = this.getMaterialForColor(0xeab308, 0.3);
+      const torsoGeo = new T.BoxGeometry(22, 28, 7);
+      const torso = new T.Mesh(torsoGeo, dummyMat);
+      torso.position.set(0, 36, 0);
+      torso.castShadow = true;
+      group.add(torso);
+
+      // Kopf
+      const headMat = this.getMaterialForColor(0xca8a04, 0.3);
+      const head = new T.Mesh(new T.SphereGeometry(6, 16, 16), headMat);
+      head.position.set(0, 54, 0);
+      head.castShadow = true;
+      group.add(head);
+
+    } else if (el.type === "minigoal" || el.type === "goal_mini") {
+      // Echtes Minitor (ca. 1.2m x 0.8m) mit Pfosten, Latte, Bodenrahmen und echtem 3D-Netz
+      const frameMat = this.getMaterialForColor(0xffffff, 0.2); // Weiß pulverbeschichtet
+      const postRadius = 1.6;
+      const gw = 40;
+      const gh = 24;
+      const depth = 20;
+
+      // 2 Vorderpfosten
+      const postGeo = new T.CylinderGeometry(postRadius, postRadius, gh, 12);
+      const pL = new T.Mesh(postGeo, frameMat);
+      pL.position.set(-gw / 2, gh / 2, depth / 2);
+      pL.castShadow = true;
+      group.add(pL);
+
+      const pR = new T.Mesh(postGeo, frameMat);
+      pR.position.set(gw / 2, gh / 2, depth / 2);
+      pR.castShadow = true;
+      group.add(pR);
+
+      // Querlatte
+      const crossGeo = new T.CylinderGeometry(postRadius, postRadius, gw, 12);
+      const cross = new T.Mesh(crossGeo, frameMat);
+      cross.rotation.z = Math.PI / 2;
+      cross.position.set(0, gh, depth / 2);
+      cross.castShadow = true;
+      group.add(cross);
+
+      // Bodenrahmen & Tiefenstreben
+      const baseSideGeo = new T.CylinderGeometry(postRadius * 0.8, postRadius * 0.8, depth, 10);
+      const bL = new T.Mesh(baseSideGeo, frameMat);
+      bL.rotation.x = Math.PI / 2;
+      bL.position.set(-gw / 2, postRadius, 0);
+      group.add(bL);
+
+      const bR = new T.Mesh(baseSideGeo, frameMat);
+      bR.rotation.x = Math.PI / 2;
+      bR.position.set(gw / 2, postRadius, 0);
+      group.add(bR);
+
+      const bBack = new T.Mesh(crossGeo, frameMat);
+      bBack.rotation.z = Math.PI / 2;
+      bBack.position.set(0, postRadius, -depth / 2);
+      group.add(bBack);
+
+      // Rückfallbügel oben nach hinten
+      const topSideGeo = new T.CylinderGeometry(postRadius * 0.8, postRadius * 0.8, depth * 0.7, 10);
+      const tL = new T.Mesh(topSideGeo, frameMat);
+      tL.rotation.x = Math.PI / 2.5;
+      tL.position.set(-gw / 2, gh * 0.75, 0);
+      group.add(tL);
+
+      const tR = new T.Mesh(topSideGeo, frameMat);
+      tR.rotation.x = Math.PI / 2.5;
+      tR.position.set(gw / 2, gh * 0.75, 0);
+      group.add(tR);
+
+      // Halbtransparentes Tornetz (Waben/Netz-Optik)
+      const netMat = new T.MeshStandardMaterial({
+        color: 0xf1f5f9,
+        transparent: true,
+        opacity: 0.38,
+        wireframe: true,
+        side: T.DoubleSide
+      });
+      const netBox = new T.BoxGeometry(gw - 1, gh - 1, depth);
+      const netMesh = new T.Mesh(netBox, netMat);
+      netMesh.position.set(0, gh / 2, 0);
+      group.add(netMesh);
+
+    } else if (el.type === "goal_5m" || el.type === "goal_large") {
+      // Großes 5m Jugendtor (5m x 2m) mit weißem Aluminium-Rundrohrrahmen und tiefem Tornetz
+      const frameMat = this.getMaterialForColor(0xffffff, 0.15);
+      const postRadius = 2.6;
+      const gw = 76;
+      const gh = 36;
+      const depth = 32;
+
+      // 2 Senkrechte Torpfosten
+      const postGeo = new T.CylinderGeometry(postRadius, postRadius, gh, 14);
+      const pL = new T.Mesh(postGeo, frameMat);
+      pL.position.set(-gw / 2, gh / 2, depth / 2);
+      pL.castShadow = true;
+      group.add(pL);
+
+      const pR = new T.Mesh(postGeo, frameMat);
+      pR.position.set(gw / 2, gh / 2, depth / 2);
+      pR.castShadow = true;
+      group.add(pR);
+
+      // Waagerechte Querlatte
+      const crossGeo = new T.CylinderGeometry(postRadius, postRadius, gw + postRadius * 2, 14);
+      const cross = new T.Mesh(crossGeo, frameMat);
+      cross.rotation.z = Math.PI / 2;
+      cross.position.set(0, gh, depth / 2);
+      cross.castShadow = true;
+      group.add(cross);
+
+      // Bodenrahmen (U-Profil)
+      const sideGeo = new T.CylinderGeometry(postRadius * 0.8, postRadius * 0.8, depth, 12);
+      const bL = new T.Mesh(sideGeo, frameMat);
+      bL.rotation.x = Math.PI / 2;
+      bL.position.set(-gw / 2, postRadius, 0);
+      group.add(bL);
+
+      const bR = new T.Mesh(sideGeo, frameMat);
+      bR.rotation.x = Math.PI / 2;
+      bR.position.set(gw / 2, postRadius, 0);
+      group.add(bR);
+
+      const bBack = new T.Mesh(crossGeo, frameMat);
+      bBack.rotation.z = Math.PI / 2;
+      bBack.position.set(0, postRadius, -depth / 2);
+      group.add(bBack);
+
+      // Diagonale Netzbügel hinten
+      const diagGeo = new T.CylinderGeometry(postRadius * 0.7, postRadius * 0.7, Math.hypot(gh, depth), 10);
+      const dL = new T.Mesh(diagGeo, frameMat);
+      dL.rotation.x = Math.atan2(depth, gh);
+      dL.position.set(-gw / 2, gh / 2, 0);
+      group.add(dL);
+
+      const dR = new T.Mesh(diagGeo, frameMat);
+      dR.rotation.x = Math.atan2(depth, gh);
+      dR.position.set(gw / 2, gh / 2, 0);
+      group.add(dR);
+
+      // Echtes dreidimensionales Tornetz (Wireframe-Netzstruktur)
+      const netMat = new T.MeshStandardMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.35,
+        wireframe: true,
+        side: T.DoubleSide
+      });
+      const netBox = new T.BoxGeometry(gw - 1, gh - 1, depth);
+      const netMesh = new T.Mesh(netBox, netMat);
+      netMesh.position.set(0, gh / 2, 0);
+      group.add(netMesh);
 
     } else {
       // Fallback: kleiner Zylinder-Pin
