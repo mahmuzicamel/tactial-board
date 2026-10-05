@@ -492,8 +492,8 @@ export function handleCanvasPointerMove(e, canvas, getCanvasCoords, callbacks = 
     draggedElements.forEach(el => {
       const off = state.groupDragOffsets[el.id];
       if (off) {
-        el.x = Math.max(20, Math.min(VIRTUAL_WIDTH - 20, x - off.dx));
-        el.y = Math.max(20, Math.min(VIRTUAL_HEIGHT - 20, y - off.dy));
+        el.x = Math.max(5, Math.min(VIRTUAL_WIDTH - 5, x - off.dx));
+        el.y = Math.max(5, Math.min(VIRTUAL_HEIGHT - 5, y - off.dy));
       }
     });
 
@@ -519,8 +519,8 @@ export function handleCanvasPointerMove(e, canvas, getCanvasCoords, callbacks = 
     const ex = getCurrentExercise();
     const el = (kf.elements || []).find(it => it.id === state.selectedElementId);
     if (el) {
-      el.x = Math.max(20, Math.min(VIRTUAL_WIDTH - 20, x - state.dragStartX));
-      el.y = Math.max(20, Math.min(VIRTUAL_HEIGHT - 20, y - state.dragStartY));
+      el.x = Math.max(5, Math.min(VIRTUAL_WIDTH - 5, x - state.dragStartX));
+      el.y = Math.max(5, Math.min(VIRTUAL_HEIGHT - 5, y - state.dragStartY));
 
       if (isEquipment(el.type) && ex && Array.isArray(ex.keyframes)) {
         ex.keyframes.forEach((otherKf, idx) => {

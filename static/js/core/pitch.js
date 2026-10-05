@@ -18,9 +18,9 @@ export function drawPitchBackground(ctx, pitchType) {
     return;
   }
 
-  // Pitch boundary lines
-  const mx = 30;
-  const my = 25;
+  // Pitch boundary lines (margin around the pitch for goals, benches, runout)
+  const mx = 65; // vorher 30 (mehr Auslauf an den Toren links/rechts bzw. oben/unten)
+  const my = 40; // vorher 25
   const pw = w - 2 * mx;
   const ph = h - 2 * my;
 
