@@ -19,14 +19,16 @@ import * as client from "./api/client.js";
 import { state, getCurrentKeyframe, getCurrentExercise, setCurrentExercise } from "./state/store.js";
 import { HistoryManager } from "./state/history.js";
 
-// Make popover functions globally callable for HTML onclick attributes
+// Make popover functions globally callable for HTML inline handlers
 window.togglePlaybackSettingsMenu = popovers.togglePlaybackSettingsMenu;
 window.closePlaybackSettingsMenu = popovers.closePlaybackSettingsMenu;
 window.toggleEquipmentMenu = popovers.toggleEquipmentMenu;
 window.closeEquipmentMenu = popovers.closeEquipmentMenu;
 window.toggleLineModeMenu = popovers.toggleLineModeMenu;
 window.closeLineModeMenu = popovers.closeLineModeMenu;
-window.setLineDrawMode = popovers.setLineDrawMode;
+if (typeof popovers.setLineDrawMode === "function") {
+  window.setLineDrawMode = popovers.setLineDrawMode;
+}
 
 // Expose HUD and Bottom dock helpers globally
 window.showMobileSelectionHUD = hud.showMobileSelectionHUD;

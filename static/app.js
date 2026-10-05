@@ -1149,7 +1149,7 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
       // Pfeile des Geister-Schritts
       for (const pArrow of (gKf.arrows || [])) {
         const { p1: pArr1, p2: pArr2 } = getArrowCurveControlPoints(pArrow);
-        arrowModule.drawArrow(pArrow.x1, pArrow.y1, pArrow.x2, pArrow.y2, pArrow.type, pArrow.color || "#94a3b8", false, null, pArr1, pArr2, pArrow.raw_points);
+        arrowModule.drawArrow(ctx, pArrow.x1, pArrow.y1, pArrow.x2, pArrow.y2, pArrow.type, pArrow.color || "#94a3b8", false, null, pArr1, pArr2, pArrow.raw_points);
       }
 
       // Elemente des Geister-Schritts
@@ -1211,7 +1211,7 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
     const arrow = arrows[i];
     const isSelected = (selectedArrowIndex === i && selectedElementId === null);
     const { p1, p2 } = getArrowCurveControlPoints(arrow);
-    arrowModule.drawArrow(arrow.x1, arrow.y1, arrow.x2, arrow.y2, arrow.type, arrow.color || (arrow.type === "guide" ? "#fbbf24" : "#facc15"), isSelected, nowSec, p1, p2, arrow.raw_points);
+    arrowModule.drawArrow(ctx, arrow.x1, arrow.y1, arrow.x2, arrow.y2, arrow.type, arrow.color || (arrow.type === "guide" ? "#fbbf24" : "#facc15"), isSelected, nowSec, p1, p2, arrow.raw_points);
   }
 
   // Draw arrow in progress (live freehand trail or fitted preview)
@@ -1227,25 +1227,24 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       if (aType === "pass") {
-        ctx.setLineDash([10, 8]);
+        ctx.setLineDash([8, 8]);
       } else if (aType === "guide") {
-        ctx.setLineDash([12, 8]);
-        ctx.strokeStyle = "#fbbf24";
+        ctx.setLineDash([12, 6]);
       }
       ctx.beginPath();
       ctx.moveTo(arrowDrawStrokePoints[0].x, arrowDrawStrokePoints[0].y);
-      for (let p = 1; p < arrowDrawStrokePoints.length; p++) {
-        ctx.lineTo(arrowDrawStrokePoints[p].x, arrowDrawStrokePoints[p].y);
+      for (let i = 1; i < arrowDrawStrokePoints.length; i++) {
+        ctx.lineTo(arrowDrawStrokePoints[i].x, arrowDrawStrokePoints[i].y);
       }
       ctx.stroke();
 
-      // Draw dynamic arrowhead at the leading tip of the freehand stroke
+      // Arrow tip
       const pLast = arrowDrawStrokePoints[arrowDrawStrokePoints.length - 1];
-      const pPrev = arrowDrawStrokePoints[Math.max(0, arrowDrawStrokePoints.length - 3)];
+      const pPrev = arrowDrawStrokePoints[Math.max(0, arrowDrawStrokePoints.length - 4)];
       const tipAngle = Math.atan2(pLast.y - pPrev.y, pLast.x - pPrev.x);
-      const arrowSize = 14;
+      const arrowSize = (aType === "guide") ? 14 : 10;
+      ctx.fillStyle = col;
       ctx.setLineDash([]);
-      ctx.fillStyle = (aType === "guide") ? "#fbbf24" : col;
       ctx.beginPath();
       ctx.moveTo(pLast.x, pLast.y);
       ctx.lineTo(pLast.x - arrowSize * Math.cos(tipAngle - Math.PI / 6), pLast.y - arrowSize * Math.sin(tipAngle - Math.PI / 6));
@@ -1254,7 +1253,7 @@ function drawScene(customElements = null, customArrows = null, customTitle = nul
       ctx.fill();
       ctx.restore();
     } else {
-      arrowModule.drawArrow(arrowStartX, arrowStartY, arrowCurrentX, arrowCurrentY, aType, col, false, nowSec);
+      arrowModule.drawArrow(ctx, arrowStartX, arrowStartY, arrowCurrentX, arrowCurrentY, aType, col, false, nowSec);
     }
   }
 
@@ -1337,7 +1336,7 @@ function drawPitchBackground(pitchType) {
 }
 
 function drawArrow(x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected = false, animTime = null, cp1 = null, cp2 = null, rawPoints = null) {
-  arrowModule.drawArrow(x1, y1, x2, y2, type, color, isSelected, animTime, cp1, cp2, rawPoints);
+  arrowModule.drawArrow(ctx, x1, y1, x2, y2, type, color, isSelected, animTime, cp1, cp2, rawPoints);
 }
 
 function drawElementOnCanvas(el, isSelected = false) {
