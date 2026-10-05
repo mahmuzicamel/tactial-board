@@ -323,7 +323,7 @@
 
     <!-- Sidebar Footer -->
     <div class="p-3 border-t border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-[11px] text-slate-400">
-      <span>Tactical Coach v109</span>
+      <span>Tactical Coach v110</span>
       <button onclick="closeSidebarMenu()" class="text-emerald-400 hover:underline font-medium">Zurück zum Board</button>
     </div>
   </aside>
@@ -362,6 +362,17 @@
         <button id="actionPopupResetCurveBtn" onclick="resetSelectedElementCurve()" class="hidden w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-90 text-cyan-400 flex items-center justify-center text-xs transition" title="Laufkurve wieder begradigen">
           <i class="fa-solid fa-bezier-curve"></i>
         </button>
+
+        <!-- Quick Color Palette for Zones (Sky, Yellow, Purple, Emerald, Rose, Orange) -->
+        <div id="actionPopupZoneColorControls" class="hidden flex items-center gap-1.5 pl-1 pr-1 border-l border-slate-700">
+          <button data-zone-color="#38bdf8" onclick="setSelectedZoneColor('#38bdf8')" class="w-6 h-6 rounded-full bg-sky-400 hover:scale-110 active:scale-95 transition shadow-sm" title="Blau"></button>
+          <button data-zone-color="#eab308" onclick="setSelectedZoneColor('#eab308')" class="w-6 h-6 rounded-full bg-yellow-400 hover:scale-110 active:scale-95 transition shadow-sm" title="Gelb"></button>
+          <button data-zone-color="#a855f7" onclick="setSelectedZoneColor('#a855f7')" class="w-6 h-6 rounded-full bg-purple-500 hover:scale-110 active:scale-95 transition shadow-sm" title="Lila"></button>
+          <button data-zone-color="#10b981" onclick="setSelectedZoneColor('#10b981')" class="w-6 h-6 rounded-full bg-emerald-500 hover:scale-110 active:scale-95 transition shadow-sm" title="Grün"></button>
+          <button data-zone-color="#f43f5e" onclick="setSelectedZoneColor('#f43f5e')" class="w-6 h-6 rounded-full bg-rose-500 hover:scale-110 active:scale-95 transition shadow-sm" title="Rot/Rosa"></button>
+          <button data-zone-color="#f97316" onclick="setSelectedZoneColor('#f97316')" class="w-6 h-6 rounded-full bg-orange-500 hover:scale-110 active:scale-95 transition shadow-sm" title="Orange"></button>
+          <button data-zone-color="#ffffff" onclick="setSelectedZoneColor('#ffffff')" class="w-6 h-6 rounded-full bg-white hover:scale-110 active:scale-95 transition shadow-sm border border-slate-400" title="Weiß"></button>
+        </div>
       </div>
 
       <!-- Arrow-only action buttons (Persistent across frames toggle & Reset Curve) -->
@@ -1074,7 +1085,7 @@
     <span id="toastMsg">Mitteilung</span>
   </div>
 
-  <script type="module" src="/static/js/app-module.js?v=109"></script>
-  <script src="/static/app.js?v=109"></script>
+  <script type="module" src="/static/js/app-module.js?v=110"></script>
+  <script src="/static/app.js?v=110"></script>
 </body>
 </html>

@@ -713,6 +713,26 @@
       }
       rBtn.classList.toggle("hidden", !hasCurve);
     }
+
+    // Zone Color Palette visibility & active color indicator
+    const zoneColorControls = document.getElementById("actionPopupZoneColorControls");
+    if (zoneColorControls) {
+      const curEl = s.selectedElementId ? kf.elements.find(it => it.id === s.selectedElementId) : null;
+      const isZone = curEl && (curEl.type === "zone_rect" || curEl.type === "zone_circle" || curEl.type === "zone_triangle");
+      zoneColorControls.classList.toggle("hidden", !isZone);
+
+      if (isZone) {
+        const curColor = curEl.color ? curEl.color.toLowerCase() : "";
+        zoneColorControls.querySelectorAll("[data-zone-color]").forEach(dot => {
+          const c = dot.getAttribute("data-zone-color").toLowerCase();
+          if (c === curColor) {
+            dot.classList.add("ring-2", "ring-white", "scale-110");
+          } else {
+            dot.classList.remove("ring-2", "ring-white", "scale-110");
+          }
+        });
+      }
+    }
   };
 
   function getForwardOffset(distance = 45) {
@@ -854,6 +874,38 @@
     TC().inspectors.hideInspector();
     window.drawScene();
     window.updateActionPopupPosition();
+    window.recordHistory();
+  };
+
+  function hexToRgba(hex, alpha = 0.2) {
+    if (!hex) return `rgba(56, 189, 248, ${alpha})`;
+    let c = hex.replace("#", "");
+    if (c.length === 3) c = c.split("").map(x => x + x).join("");
+    const num = parseInt(c, 16);
+    if (isNaN(num)) return `rgba(56, 189, 248, ${alpha})`;
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  window.setSelectedZoneColor = function (colorHex) {
+    const s = S();
+    const kf = TC().getCurrentKeyframe();
+    if (!kf) return;
+    const items = s.selectedElementIds.length > 0
+      ? kf.elements.filter(it => s.selectedElementIds.includes(it.id))
+      : (s.selectedElementId ? [kf.elements.find(it => it.id === s.selectedElementId)].filter(Boolean) : []);
+
+    items.forEach(el => {
+      if (el.type === "zone_rect" || el.type === "zone_circle" || el.type === "zone_triangle") {
+        el.color = colorHex;
+        el.fillColor = hexToRgba(colorHex, 0.2);
+      }
+    });
+
+    window.drawScene();
+    window.updateFocusButtonState();
     window.recordHistory();
   };
 
