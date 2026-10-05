@@ -498,6 +498,16 @@
   window.startAnimation = function () { if (playbackCtrl) playbackCtrl.start(); };
   window.stopAnimation = function () { if (playbackCtrl) playbackCtrl.stop(); };
 
+  // Helper: Stellt sicher, dass View3DManager erzeugt ist
+  window.ensureView3DManager = function () {
+    if (!view3dManager && TC() && TC().View3DManager) {
+      const wrapper = document.getElementById("canvasWrapper");
+      view3dManager = new (TC().View3DManager)(wrapper, S(), () => S().currentExercise);
+      window.view3dManager = view3dManager;
+    }
+    return view3dManager;
+  };
+
   // 3D View Bridge
   window.toggle3DView = function () {
     const s = S();
@@ -509,9 +519,7 @@
     const c2d = document.getElementById("tacticCanvas");
 
     if (!view3dManager && TC().View3DManager) {
-      const wrapper = document.getElementById("canvasWrapper");
-      view3dManager = new (TC().View3DManager)(wrapper, s, () => s.currentExercise);
-      window.view3dManager = view3dManager;
+      window.ensureView3DManager();
     }
 
     if (s.is3DMode) {
@@ -1450,13 +1458,15 @@
     const is3d = window.currentExportPhotoType === "3d";
     let dataUrl = null;
 
-    if (is3d && window.view3dManager) {
-      // Wenn 3D Manager vorhanden ist, Render aktualisieren
-      if (!window.view3dManager.isActive) {
-        window.view3dManager.init();
-        window.view3dManager.syncScene();
+    if (is3d) {
+      const v3d = window.ensureView3DManager();
+      if (v3d) {
+        if (!v3d.isActive) {
+          v3d.init();
+          v3d.syncScene();
+        }
+        dataUrl = v3d.getSnapshotDataURL();
       }
-      dataUrl = window.view3dManager.getSnapshotDataURL();
     } else if (canvas) {
       dataUrl = canvas.toDataURL("image/png");
     }
@@ -1518,14 +1528,16 @@
       return;
     }
 
-    if (!window.view3dManager) {
+    const v3d = window.ensureView3DManager();
+    if (!v3d) {
       window.showToast("3D Manager nicht verfügbar.", true);
       return;
     }
 
     // Sicherstellen, dass 3D initialisiert ist
-    if (!window.view3dManager.isActive) {
-      window.view3dManager.init();
+    if (!v3d.isActive) {
+      v3d.init();
+      v3d.syncScene();
     }
 
     if (btn) btn.disabled = true;
@@ -1534,8 +1546,11 @@
     if (resultBox) resultBox.classList.add("hidden");
 
     try {
-      const result = await window.view3dManager.recordAnimationVideo({
-        durationPerStep: 2000,
+      const speed = (typeof s.currentSpeed === "number" && s.currentSpeed > 0) ? s.currentSpeed : 1.0;
+      const stepDuration = 2000 / speed;
+
+      const result = await v3d.recordAnimationVideo({
+        durationPerStep: stepDuration,
         fps: 30,
         onProgress: (p) => {
           if (statusText) statusText.innerText = `3D-Animation wird aufgezeichnet (${Math.round(p * 100)}%)...`;
@@ -1643,8 +1658,9 @@
         } else if (type === "photo") {
           const is3d = window.currentExportPhotoType === "3d";
           let dataUrl = null;
-          if (is3d && window.view3dManager) {
-            dataUrl = window.view3dManager.getSnapshotDataURL();
+          if (is3d) {
+            const v3d = window.ensureView3DManager();
+            if (v3d) dataUrl = v3d.getSnapshotDataURL();
           } else if (canvas) {
             dataUrl = canvas.toDataURL("image/png");
           }
@@ -1681,8 +1697,9 @@
   window.exportCanvasPNG = function () {
     const is3d = window.currentExportPhotoType === "3d";
     let dataUrl = null;
-    if (is3d && window.view3dManager) {
-      dataUrl = window.view3dManager.getSnapshotDataURL();
+    if (is3d) {
+      const v3d = window.ensureView3DManager();
+      if (v3d) dataUrl = v3d.getSnapshotDataURL();
     } else if (canvas) {
       dataUrl = canvas.toDataURL("image/png");
     }

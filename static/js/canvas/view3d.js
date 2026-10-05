@@ -275,7 +275,7 @@ export class View3DManager {
 
   // Synchronisiert die 3D Szene mit den aktuellen Elementen / Interpolation
   syncScene(customElements = null, customArrows = null) {
-    if (!this.isActive || !this.scene) return;
+    if (!this.scene) return;
 
     const ex = this.getCurrentExercise ? this.getCurrentExercise() : null;
     const curKf = (ex && ex.keyframes && ex.keyframes[this.state.currentKeyframeIndex]) || null;
@@ -344,9 +344,27 @@ export class View3DManager {
     for (const [id, grp] of this.elementMeshes.entries()) {
       if (!activeIds.has(id)) {
         this.scene.remove(grp);
+        this.disposeGroup(grp);
         this.elementMeshes.delete(id);
       }
     }
+  }
+
+  // Hilfsmethode: Ressourcen freigeben
+  disposeGroup(group) {
+    if (!group) return;
+    group.traverse((child) => {
+      if (child.isMesh) {
+        if (child.geometry && !this.isSharedGeometry(child.geometry)) {
+          child.geometry.dispose();
+        }
+      }
+    });
+  }
+
+  isSharedGeometry(geo) {
+    if (!this.sharedGeometries) return false;
+    return Object.values(this.sharedGeometries).includes(geo);
   }
 
   buildElementMesh(el) {
@@ -917,6 +935,15 @@ export class View3DManager {
               posX = el1.x + (el2.x - el1.x) * smoothT;
               posY = el1.y + (el2.y - el1.y) * smoothT;
             }
+
+            // Drehung (Rotation) interpolieren (kürzester Winkel)
+            const rot1 = el1.rotation || 0;
+            const rot2 = el2.rotation !== undefined ? el2.rotation : rot1;
+            let diffRot = (rot2 - rot1) % 360;
+            if (diffRot > 180) diffRot -= 360;
+            if (diffRot < -180) diffRot += 360;
+            const currentRot = rot1 + diffRot * smoothT;
+
             let scaleMult = 1.0;
             let jumpOffset = 0;
             if (el2.jump) {
@@ -926,8 +953,10 @@ export class View3DManager {
             }
             interpolated.push({
               ...el1,
+              ...el2,
               x: posX,
               y: posY,
+              rotation: currentRot,
               scaleMultiplier: scaleMult,
               jumpProgress: jumpOffset
             });
