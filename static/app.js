@@ -618,6 +618,8 @@
     const arrowControls = document.getElementById("actionPopupArrowControls");
     let posX = 0, posY = 0;
 
+    let targetEl = null;
+
     if (s.selectedElementIds.length > 0) {
       const items = (kf.elements || []).filter(it => s.selectedElementIds.includes(it.id));
       if (items.length === 0) { popup.classList.add("hidden"); return; }
@@ -626,13 +628,33 @@
       avgX /= items.length; avgY /= items.length;
       const sp = TC().viewport.getScreenCoords(canvas, avgX, avgY);
       posX = sp.x; posY = sp.y - 38;
+      targetEl = items[0];
       if (elControls) elControls.classList.remove("hidden");
       if (arrowControls) arrowControls.classList.add("hidden");
     } else if (s.selectedElementId) {
       const el = (kf.elements || []).find(it => it.id === s.selectedElementId);
       if (!el) { popup.classList.add("hidden"); return; }
-      const sp = TC().viewport.getScreenCoords(canvas, el.x, el.y);
-      posX = sp.x; posY = sp.y - 32;
+      targetEl = el;
+
+      // Wenn es eine Zone ist (Rechteck, Kreis, Dreieck), platziere das Popup ÜBER der Oberkante der Zone
+      if (el.type === "zone_rect") {
+        const topVirtualY = el.y - (el.height || 80) / 2;
+        const sp = TC().viewport.getScreenCoords(canvas, el.x, topVirtualY);
+        posX = sp.x; posY = sp.y - 20;
+      } else if (el.type === "zone_circle") {
+        const topVirtualY = el.y - (el.radius || 50);
+        const sp = TC().viewport.getScreenCoords(canvas, el.x, topVirtualY);
+        posX = sp.x; posY = sp.y - 20;
+      } else if (el.type === "zone_triangle") {
+        const triH = (el.size || 70) * 0.866;
+        const topVirtualY = el.y - triH * 0.6;
+        const sp = TC().viewport.getScreenCoords(canvas, el.x, topVirtualY);
+        posX = sp.x; posY = sp.y - 20;
+      } else {
+        const sp = TC().viewport.getScreenCoords(canvas, el.x, el.y);
+        posX = sp.x; posY = sp.y - 32;
+      }
+
       if (elControls) elControls.classList.remove("hidden");
       if (arrowControls) arrowControls.classList.add("hidden");
     } else if (s.selectedArrowIndex !== null && kf.arrows && kf.arrows[s.selectedArrowIndex]) {
@@ -648,9 +670,23 @@
       return;
     }
 
+    const isZone = targetEl && (targetEl.type === "zone_rect" || targetEl.type === "zone_circle" || targetEl.type === "zone_triangle");
+
+    // Passe Button-Sichtbarkeiten spezifisch für Zonen vs. Spieler/Objekte an
+    const focusBtn = document.getElementById("actionPopupFocusBtn");
+    const jumpBtn = document.getElementById("actionPopupJumpBtn");
+    const rotateLeftBtn = document.getElementById("actionPopupRotateLeftBtn");
+    const rotateRightBtn = document.getElementById("actionPopupRotateRightBtn");
+
+    if (focusBtn) focusBtn.classList.toggle("hidden", !!isZone);
+    if (jumpBtn) jumpBtn.classList.toggle("hidden", !!isZone);
+    if (rotateLeftBtn) rotateLeftBtn.classList.toggle("hidden", !!isZone);
+    if (rotateRightBtn) rotateRightBtn.classList.toggle("hidden", !!isZone);
+
     const halfW = (popup.offsetWidth || 220) / 2;
     const clampedX = Math.max(halfW + 10, Math.min(window.innerWidth - halfW - 10, posX));
-    const clampedY = Math.max(50, posY);
+    // Nicht zu weit oben am Screenrand abklemmen (mindestens 56px Abstand zur Header-Leiste)
+    const clampedY = Math.max(56, posY);
     popup.style.left = `${clampedX}px`;
     popup.style.top = `${clampedY}px`;
     popup.classList.remove("hidden");

@@ -26,6 +26,13 @@ export function showInspector(el) {
   const nameInput = document.getElementById("floatingPropName");
 
   if (!bar) return;
+  // Für Zonen brauchen wir die redundante Text-Box oben links gar nicht
+  const isZone = (el.type === "zone_rect" || el.type === "zone_circle" || el.type === "zone_triangle");
+  if (isZone) {
+    bar.classList.add("hidden");
+    return;
+  }
+
   if (!state.isMovingElement) {
     bar.classList.remove("hidden");
   } else {
