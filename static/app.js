@@ -1695,11 +1695,33 @@
     window.refreshExerciseBadge();
     window.loadCatalogExercises();
 
-    // Bottom dock scroll listeners
+    // Bottom dock scroll listeners & touch-drag
     const bDock = document.getElementById("bottomDockScrollContainer");
     if (bDock) {
       bDock.addEventListener("scroll", TC().hud.updateBottomDockScrollHints, { passive: true });
       window.addEventListener("resize", TC().hud.updateBottomDockScrollHints, { passive: true });
+
+      // Touch-Drag-Scrolling für Touch-Geräte & Desktop-Maus
+      let isDown = false;
+      let startX = 0;
+      let scrollLeft = 0;
+
+      bDock.addEventListener("touchstart", (e) => {
+        isDown = true;
+        startX = e.touches[0].pageX - bDock.offsetLeft;
+        scrollLeft = bDock.scrollLeft;
+      }, { passive: true });
+
+      bDock.addEventListener("touchmove", (e) => {
+        if (!isDown) return;
+        const x = e.touches[0].pageX - bDock.offsetLeft;
+        const walk = (x - startX);
+        bDock.scrollLeft = scrollLeft - walk;
+      }, { passive: true });
+
+      const stopTouch = () => { isDown = false; };
+      bDock.addEventListener("touchend", stopTouch, { passive: true });
+      bDock.addEventListener("touchcancel", stopTouch, { passive: true });
     }
 
     setTimeout(() => {

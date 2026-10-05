@@ -35,6 +35,12 @@
       user-select: none;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
+    /* Erlaube natives horizontales Wischen/Scrollen für Scroll-Container auf Touch-Geräten */
+    .touch-pan-x, #bottomDockScrollContainer, #keyframesList {
+      touch-action: pan-x !important;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-x: contain;
+    }
     .safe-top {
       padding-top: max(env(safe-area-inset-top, 0px), 0px);
     }
@@ -332,7 +338,7 @@
 
     <!-- Sidebar Footer -->
     <div class="p-3 border-t border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-[11px] text-slate-400">
-      <span>Tactical Coach v127</span>
+      <span>Tactical Coach v128</span>
       <button onclick="closeSidebarMenu()" class="text-emerald-400 hover:underline font-medium">Zurück zum Board</button>
     </div>
   </aside>
@@ -508,7 +514,7 @@
         </div>
 
         <!-- Keyframe Steps Pills (Horizontal scrollable) -->
-        <div class="flex items-center space-x-1 overflow-x-auto no-scrollbar py-0.5 flex-1 mx-1.5" id="keyframesList">
+        <div class="flex items-center space-x-1 overflow-x-auto no-scrollbar py-0.5 flex-1 mx-1.5 touch-pan-x" id="keyframesList" style="touch-action: pan-x !important; -webkit-overflow-scrolling: touch;">
           <!-- Rendered dynamically -->
         </div>
 
@@ -536,7 +542,7 @@
         </div>
 
         <!-- Scrollable Bar -->
-        <div id="bottomDockScrollContainer" class="w-full glass-panel rounded-lg px-2 py-1 flex items-center justify-between gap-1.5 shadow-lg border border-slate-800 overflow-x-auto no-scrollbar scroll-smooth">
+        <div id="bottomDockScrollContainer" class="w-full glass-panel rounded-lg px-2 py-1 flex items-center justify-between gap-1.5 shadow-lg border border-slate-800 overflow-x-auto no-scrollbar scroll-smooth touch-pan-x" style="touch-action: pan-x !important; -webkit-overflow-scrolling: touch;">
         
         <!-- Action Modes (Select, Pass, Run, Guide with Curve Mode Settings) -->
         <div class="flex items-center gap-1 shrink-0 pr-1.5 border-r border-slate-800">
@@ -1112,7 +1118,7 @@
     <span id="toastMsg">Mitteilung</span>
   </div>
 
-  <script type="module" src="/static/js/app-module.js?v=127"></script>
-  <script src="/static/app.js?v=127"></script>
+  <script type="module" src="/static/js/app-module.js?v=128"></script>
+  <script src="/static/app.js?v=128"></script>
 </body>
 </html>

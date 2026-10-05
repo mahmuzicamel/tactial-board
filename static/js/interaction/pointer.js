@@ -18,6 +18,10 @@ import { showInspector, showGroupInspector, showArrowInspector, hideInspector } 
 import { setActiveTool } from "./tools.js";
 
 export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = {}) {
+  // Wenn der Touch auf einem UI-Element / Dock / Buttons liegt, nicht das Canvas blockieren!
+  if (e.target && e.target.closest && e.target.closest("#bottomDockScrollContainer, #keyframesList, #dockScrollLeftHint, #dockScrollRightHint, .touch-pan-x")) {
+    return;
+  }
   if (state.isPlaying) return;
   if (e.cancelable) e.preventDefault();
 
@@ -361,6 +365,10 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
 }
 
 export function handleCanvasPointerMove(e, canvas, getCanvasCoords, callbacks = {}) {
+  // Wenn der Touch auf einem UI-Element / Dock / Buttons liegt, nicht das Canvas blockieren!
+  if (e.target && e.target.closest && e.target.closest("#bottomDockScrollContainer, #keyframesList, #dockScrollLeftHint, #dockScrollRightHint, .touch-pan-x")) {
+    return;
+  }
   if (state.isPlaying) return;
   if (e.cancelable) e.preventDefault();
 
