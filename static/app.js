@@ -1516,6 +1516,18 @@
     }
   };
 
+  // Hilfsfunktion: Lädt CCapture.js asynchron nur bei Bedarf für Video-Export
+  window.loadCCaptureIfNeeded = function () {
+    if (typeof window.CCapture !== "undefined") return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "/static/vendor/CCapture.all.min.js?v=136";
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("CCapture.js konnte nicht geladen werden."));
+      document.head.appendChild(script);
+    });
+  };
+
   window.trigger2DVideoRender = async function () {
     const s = S();
     const btn = document.getElementById("btnRenderVideo");
@@ -1536,10 +1548,11 @@
 
     if (btn) btn.disabled = true;
     if (statusBox) statusBox.classList.remove("hidden");
-    if (statusText) statusText.innerText = "2D-Animation wird aufgezeichnet (0%)...";
+    if (statusText) statusText.innerText = "CCapture.js wird vorbereitet...";
     if (resultBox) resultBox.classList.add("hidden");
 
     try {
+      await window.loadCCaptureIfNeeded();
       const speed = (typeof s.currentSpeed === "number" && s.currentSpeed > 0) ? s.currentSpeed : 1.0;
       const stepDuration = 2000 / speed;
 
@@ -1607,6 +1620,9 @@
     if (resultBox) resultBox.classList.add("hidden");
 
     try {
+      if (typeof window.loadCCaptureIfNeeded === "function") {
+        await window.loadCCaptureIfNeeded();
+      }
       const speed = (typeof s.currentSpeed === "number" && s.currentSpeed > 0) ? s.currentSpeed : 1.0;
       const stepDuration = 2000 / speed;
 
