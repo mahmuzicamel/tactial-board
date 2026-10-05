@@ -6,19 +6,19 @@ export function setActiveTool(tool, onToolChange = null) {
   state.activeTool = tool;
 
   const toolBtns = [
-    { id: "toolSelect", name: "select" },
-    { id: "toolPass", name: "pass" },
-    { id: "toolRun", name: "run" },
-    { id: "toolGuide", name: "guide" }
+    { id: "toolSelectBtn", name: "select" },
+    { id: "toolPassBtn", name: "pass" },
+    { id: "toolRunBtn", name: "run" },
+    { id: "toolGuideBtn", name: "guide" }
   ];
 
   toolBtns.forEach(t => {
     const btn = document.getElementById(t.id);
     if (!btn) return;
     if (t.name === tool) {
-      btn.className = "px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition bg-emerald-600 text-white shadow ring-1 ring-emerald-400";
+      btn.className = "px-2 py-1 rounded-md bg-emerald-600 text-white flex items-center gap-1 border border-emerald-500 transition text-[11px] font-semibold";
     } else {
-      btn.className = "px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition text-slate-300 hover:text-white hover:bg-slate-800";
+      btn.className = "px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-1 border border-slate-700 transition text-[11px] font-medium";
     }
   });
 

@@ -112,6 +112,62 @@ export function closeEquipmentMenu() {
   }
 }
 
+export function setLineDrawMode(mode) {
+  if (window.state) {
+    window.state.lineDrawMode = mode;
+  }
+  closeLineModeMenu();
+
+  const label = document.getElementById("lineModeCurrentLabel");
+  const icon = document.getElementById("lineModeCurrentIcon");
+  const checkRawFreehand = document.getElementById("lineModeCheckRawFreehand");
+  const checkFreehand = document.getElementById("lineModeCheckFreehand");
+  const checkBezier = document.getElementById("lineModeCheckBezier");
+  const checkStraight = document.getElementById("lineModeCheckStraight");
+
+  const optRawFreehand = document.getElementById("lineModeOptRawFreehand");
+  const optFreehand = document.getElementById("lineModeOptFreehand");
+  const optBezier = document.getElementById("lineModeOptBezier");
+  const optStraight = document.getElementById("lineModeOptStraight");
+
+  // Reset all option styles
+  [optRawFreehand, optFreehand, optBezier, optStraight].forEach(opt => {
+    if (opt) {
+      opt.className = "w-full text-left px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-transparent text-slate-300 flex items-center justify-between text-xs transition";
+    }
+  });
+  if (checkRawFreehand) checkRawFreehand.classList.add("hidden");
+  if (checkFreehand) checkFreehand.classList.add("hidden");
+  if (checkBezier) checkBezier.classList.add("hidden");
+  if (checkStraight) checkStraight.classList.add("hidden");
+
+  if (mode === "raw_freehand") {
+    if (label) label.innerText = "Full Freihand";
+    if (icon) icon.className = "fa-solid fa-pen-nib text-[11px] text-amber-400";
+    if (optRawFreehand) optRawFreehand.className = "w-full text-left px-2 py-1.5 rounded-lg bg-amber-950/60 border border-amber-500/50 text-amber-300 hover:bg-amber-900/60 flex items-center justify-between text-xs transition";
+    if (checkRawFreehand) checkRawFreehand.classList.remove("hidden");
+  } else if (mode === "freehand") {
+    if (label) label.innerText = "Freihand";
+    if (icon) icon.className = "fa-solid fa-signature text-[11px] text-emerald-400";
+    if (optFreehand) optFreehand.className = "w-full text-left px-2 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/60 flex items-center justify-between text-xs transition";
+    if (checkFreehand) checkFreehand.classList.remove("hidden");
+  } else if (mode === "bezier") {
+    if (label) label.innerText = "Bézier";
+    if (icon) icon.className = "fa-solid fa-bezier-curve text-[11px] text-cyan-400";
+    if (optBezier) optBezier.className = "w-full text-left px-2 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-500/50 text-cyan-300 hover:bg-cyan-900/60 flex items-center justify-between text-xs transition";
+    if (checkBezier) checkBezier.classList.remove("hidden");
+  } else if (mode === "straight") {
+    if (label) label.innerText = "Gerade";
+    if (icon) icon.className = "fa-solid fa-minus text-[11px] text-slate-300";
+    if (optStraight) optStraight.className = "w-full text-left px-2 py-1.5 rounded-lg bg-slate-700/60 border border-slate-500/50 text-white hover:bg-slate-700 flex items-center justify-between text-xs transition";
+    if (checkStraight) checkStraight.classList.remove("hidden");
+  }
+
+  if (window.state && window.state.activeTool === "select" && typeof window.setActiveTool === "function") {
+    window.setActiveTool("run");
+  }
+}
+
 export function initGlobalClickDismiss() {
   document.addEventListener("pointerdown", (e) => {
     const playbackPopup = document.getElementById("playbackSettingsPopup");
