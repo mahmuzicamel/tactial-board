@@ -141,7 +141,13 @@ export class PlaybackController {
     const playText = document.getElementById("playText");
     const playingBadge = document.getElementById("playingBadge");
 
-    if (playIcon) playIcon.className = playing ? "fa-solid fa-pause" : "fa-solid fa-play";
+    if (playIcon) {
+      if (typeof playIcon.className === "string") {
+        playIcon.className = playing ? "fa-solid fa-pause text-[10px]" : "fa-solid fa-play text-[10px]";
+      } else {
+        playIcon.setAttribute("class", playing ? "fa-solid fa-pause text-[10px]" : "fa-solid fa-play text-[10px]");
+      }
+    }
     if (playText) playText.innerText = playing ? "Pause" : "Play";
     if (playingBadge) {
       if (playing) playingBadge.classList.remove("hidden");
