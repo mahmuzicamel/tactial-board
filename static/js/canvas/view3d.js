@@ -309,10 +309,23 @@ export class View3DManager {
       group.position.set(p3.x, jumpHeight, p3.z);
 
       // Rotation (Objekt-Drehung)
-      // Standard-Ausrichtung im 2D-Canvas: Tor steht waagerecht, Netz nach oben/unten (-Y / +Y)
-      // Wenn das Spielfeld rotiert ist oder das Element gedreht wurde, soll das Tor exakt wie im 2D-Board stehen
+      // Standard-Ausrichtung im 2D-Canvas (pitchType: half / full):
+      // Das Tor steht links auf der Grundlinie. Die Pfosten/Querlatte zeigen nach RECHTS (+X ins Feld),
+      // und das Netz zieht sich nach LINKS (-X hinter die Auslinie).
+      //
+      // In 3D: group.rotation.y = -(elRot * Math.PI) / 180 - Math.PI / 2
+      // - Bei rotation = 0° (Standard wie auf der linken Torlinie platziert):
+      //   Zeigt die Toröffnung nach +X (ins Spielfeld hinein) und das Netz nach -X (hinter die Torlinie)!
+      // - Bei rotation = 180° (z. B. auf der rechten Seite des Feldes platziert):
+      //   Zeigt die Toröffnung nach -X (ins Feld) und das Netz nach +X!
+      // - Bei rotation = 90° oder 270° (z. B. Querfeld oder Funino-Minitore):
+      //   Dreht sich das Tor exakt mit der 2D-Ausrichtung mit.
       const elRot = el.rotation || 0;
-      group.rotation.y = -(elRot * Math.PI) / 180;
+      if (el.type === "goal_5m" || el.type === "goal_large" || el.type === "minigoal" || el.type === "goal_mini") {
+        group.rotation.y = -(elRot * Math.PI) / 180 - Math.PI / 2;
+      } else {
+        group.rotation.y = -(elRot * Math.PI) / 180;
+      }
 
       // Skalierung (aus Jump-Effekt & globalem Skalierungs-Slider)
       const scaleMult = (el.scaleMultiplier || 1.0) * (this.state.globalElementScale || 1.0);
