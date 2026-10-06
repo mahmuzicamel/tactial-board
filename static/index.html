@@ -398,10 +398,14 @@
         </div>
       </div>
 
-      <!-- Arrow-only action buttons (Persistent across frames toggle & Reset Curve) -->
+      <!-- Arrow-only action buttons (Persistent across frames toggle, Copy to next step & Reset Curve) -->
       <div id="actionPopupArrowControls" class="hidden flex items-center gap-1">
         <button id="actionPopupArrowResetCurveBtn" onclick="resetSelectedArrowCurve()" class="hidden w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-90 text-cyan-400 flex items-center justify-center text-xs transition" title="Laufkurve wieder begradigen">
           <i class="fa-solid fa-bezier-curve"></i>
+        </button>
+        <button id="actionPopupCopyToNextBtn" onclick="copyArrowToNextKeyframe()" class="h-8 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-90 text-emerald-400 flex items-center gap-1 text-[11px] font-bold border border-slate-700 transition" title="In den nächsten Schritt übernehmen">
+          <i class="fa-solid fa-share text-[10px]"></i>
+          <span class="hidden xs:inline sm:inline">Nächster Schritt</span>
         </button>
         <button id="actionPopupPersistentBtn" onclick="toggleArrowPersistent()" class="h-8 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-90 text-amber-400 flex items-center gap-1 text-[11px] font-bold transition" title="Linie über alle Schritte/Frames hinweg beibehalten">
           <i class="fa-solid fa-layer-group text-[10px]"></i>
@@ -1158,7 +1162,7 @@
     <span id="toastMsg">Mitteilung</span>
   </div>
 
-  <script type="module" src="/static/js/app-module.js?v=143"></script>
-  <script src="/static/app.js?v=143"></script>
+  <script type="module" src="/static/js/app-module.js?v=144"></script>
+  <script src="/static/app.js?v=144"></script>
 </body>
 </html>

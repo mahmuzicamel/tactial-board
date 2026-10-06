@@ -1167,6 +1167,49 @@
     window.showToast("Pfeilkurve begradigt");
   };
 
+  window.copyArrowToNextKeyframe = function () {
+    const s = S();
+    const ex = s.currentExercise;
+    const kf = TC().getCurrentKeyframe();
+    if (!kf || s.selectedArrowIndex === null || !kf.arrows || !kf.arrows[s.selectedArrowIndex]) return;
+    if (!ex || !Array.isArray(ex.keyframes)) return;
+
+    const sourceArrow = kf.arrows[s.selectedArrowIndex];
+    const currentIndex = s.currentKeyframeIndex;
+
+    // Wenn es noch keinen nächsten Schritt gibt, neuen Schritt erzeugen
+    if (currentIndex >= ex.keyframes.length - 1) {
+      if (typeof window.addKeyframe === "function") {
+        window.addKeyframe();
+      } else {
+        window.showToast("Kein nächster Schritt vorhanden");
+        return;
+      }
+    }
+
+    const nextIndex = currentIndex + 1;
+    const nextKf = ex.keyframes[nextIndex];
+    if (!nextKf) return;
+    if (!nextKf.arrows) nextKf.arrows = [];
+
+    // Erstelle eine saubere Kopie der Linie mit neuer ID
+    const copiedArrow = JSON.parse(JSON.stringify(sourceArrow));
+    copiedArrow.id = "arrow_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    nextKf.arrows.push(copiedArrow);
+
+    // Optional: Direkt in den nächsten Schritt wechseln und die kopierte Linie markieren
+    TC().selectKeyframe(nextIndex);
+    s.selectedArrowIndex = nextKf.arrows.length - 1;
+    s.selectedArrowPart = null;
+    s.selectedElementId = null;
+    s.selectedElementIds = [];
+
+    window.drawScene();
+    window.updateActionPopupPosition();
+    window.recordHistory();
+    window.showToast(`Linie in Schritt ${nextIndex + 1} übernommen`);
+  };
+
   window.toggleArrowPersistent = function () {
     const s = S();
     const kf = TC().getCurrentKeyframe();
