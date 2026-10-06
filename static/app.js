@@ -1568,24 +1568,42 @@
   function prepareNextKeyframeWithAutoPass(sourceKf, newKf) {
     if (!sourceKf || !newKf || !Array.isArray(sourceKf.arrows)) return;
     
-    // Finde den letzten Pass-Pfeil im Quell-Schritt
     const passArrows = sourceKf.arrows.filter(a => a.type === "pass");
     if (passArrows.length === 0) return;
-    const lastPass = passArrows[passArrows.length - 1];
     
-    // Finde den Ball im neuen Keyframe
-    const ball = (newKf.elements || []).find(e => e.type === "ball");
-    if (!ball) return;
-    
-    // Setze die Position des Balls im neuen Schritt exakt auf den Zielpunkt des Passes
-    ball.x = Math.round(lastPass.x2);
-    ball.y = Math.round(lastPass.y2);
-    
-    // Falls der Pass eine Bogen-/Flugbahn hatte, Kurvenkontrollpunkte am Ball initial resetten
-    delete ball.cp1_dx;
-    delete ball.cp1_dy;
-    delete ball.cp2_dx;
-    delete ball.cp2_dy;
+    const balls = (newKf.elements || []).filter(e => e.type === "ball");
+    if (balls.length === 0) return;
+
+    // Ordne jeden Pass-Pfeil dem Ball zu, an dem er tatsächlich gestartet ist (Startpunkt x1, y1 nahe Ball)
+    const assignedBalls = new Set();
+    passArrows.forEach(pass => {
+      // Finde den Ball im Quell-Schritt, der dem Startpunkt des Passes am nächsten liegt
+      let closestBall = null;
+      let minDistance = 50; // Max Fang-Radius: Pass muss beim Ball starten
+
+      balls.forEach(b => {
+        if (assignedBalls.has(b.id)) return;
+        const srcB = (sourceKf.elements || []).find(e => e.id === b.id);
+        const refX = srcB ? srcB.x : b.x;
+        const refY = srcB ? srcB.y : b.y;
+        const d = Math.hypot(pass.x1 - refX, pass.y1 - refY);
+        if (d < minDistance) {
+          minDistance = d;
+          closestBall = b;
+        }
+      });
+
+      // Wenn ein zugehöriger Ball gefunden wurde, wandert GENAU dieser Ball an das Ziel seines Passes
+      if (closestBall) {
+        closestBall.x = Math.round(pass.x2);
+        closestBall.y = Math.round(pass.y2);
+        delete closestBall.cp1_dx;
+        delete closestBall.cp1_dy;
+        delete closestBall.cp2_dx;
+        delete closestBall.cp2_dy;
+        assignedBalls.add(closestBall.id);
+      }
+    });
   }
 
   window.insertKeyframeAfterCurrent = function () {
