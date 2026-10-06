@@ -3,6 +3,56 @@ import { state, getCurrentExercise } from "../state/store.js";
 
 let draggedKfIndex = null;
 
+// Aktualisiert nur die Active-Klassen der bereits gerenderten Tabs/Cards, ohne DOM-Neubau (100% flackerfrei)
+export function updateKeyframeActiveTabs(activeIndex) {
+  const listMobile = document.getElementById("keyframesList");
+  const listDesktop = document.getElementById("keyframesListDesktop");
+
+  if (listMobile) {
+    const items = listMobile.children;
+    for (let i = 0; i < items.length; i++) {
+      const el = items[i];
+      const isActive = (i === activeIndex);
+      el.className = `rounded-lg text-xs font-semibold whitespace-nowrap transition-colors duration-100 flex items-center gap-1 px-2 py-1 shrink-0 ${
+        isActive
+          ? "bg-emerald-600 text-white shadow ring-1 ring-emerald-400"
+          : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
+      }`;
+      const editBtn = el.querySelector(".keyframe-edit-btn");
+      if (editBtn) {
+        editBtn.className = `keyframe-edit-btn p-0.5 rounded hover:bg-black/20 ${isActive ? "text-emerald-100 hover:text-white" : "text-slate-400 hover:text-slate-200"}`;
+      }
+    }
+  }
+
+  if (listDesktop) {
+    const cards = listDesktop.children;
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      const isActive = (i === activeIndex);
+      card.className = `group relative rounded-xl p-2.5 transition-colors duration-100 cursor-pointer border flex items-center justify-between gap-2 ${
+        isActive
+          ? "bg-slate-800/95 border-emerald-500 shadow-lg ring-1 ring-emerald-500/50"
+          : "bg-slate-900/70 hover:bg-slate-800/80 border-slate-800 hover:border-slate-700 text-slate-300"
+      }`;
+      const badge = card.querySelector(".keyframe-index-badge");
+      if (badge) {
+        badge.className = `keyframe-index-badge w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors duration-100 ${
+          isActive
+            ? "bg-emerald-500 text-white shadow-sm"
+            : "bg-slate-800 text-slate-400 group-hover:text-slate-200"
+        }`;
+      }
+      const titleSpan = card.querySelector(".keyframe-title-span");
+      if (titleSpan) {
+        titleSpan.className = `keyframe-title-span text-xs font-medium truncate flex-1 ${
+          isActive ? "text-white font-semibold" : "text-slate-300"
+        }`;
+      }
+    }
+  }
+}
+
 export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
   const listMobile = document.getElementById("keyframesList");
   const listDesktop = document.getElementById("keyframesListDesktop");
@@ -23,7 +73,7 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
     ex.keyframes.forEach((kf, idx) => {
       const container = document.createElement("div");
       const isActive = idx === state.currentKeyframeIndex;
-      container.className = `rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1 px-2 py-1 shrink-0 ${
+      container.className = `rounded-lg text-xs font-semibold whitespace-nowrap transition-colors duration-100 flex items-center gap-1 px-2 py-1 shrink-0 ${
         isActive
           ? "bg-emerald-600 text-white shadow ring-1 ring-emerald-400"
           : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
@@ -55,7 +105,7 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
 
       // Edit Title Button (Pen Icon)
       const editBtn = document.createElement("button");
-      editBtn.className = `p-0.5 rounded hover:bg-black/20 ${isActive ? "text-emerald-100 hover:text-white" : "text-slate-400 hover:text-slate-200"}`;
+      editBtn.className = `keyframe-edit-btn p-0.5 rounded hover:bg-black/20 ${isActive ? "text-emerald-100 hover:text-white" : "text-slate-400 hover:text-slate-200"}`;
       editBtn.title = "Schrittname umbenennen";
       editBtn.innerHTML = `<i class="fa-solid fa-pen text-[9px]"></i>`;
       editBtn.onclick = (e) => {
@@ -86,7 +136,7 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
     ex.keyframes.forEach((kf, idx) => {
       const card = document.createElement("div");
       const isActive = idx === state.currentKeyframeIndex;
-      card.className = `group relative rounded-xl p-2.5 transition-all cursor-pointer border flex items-center justify-between gap-2 ${
+      card.className = `group relative rounded-xl p-2.5 transition-colors duration-100 cursor-pointer border flex items-center justify-between gap-2 ${
         isActive
           ? "bg-slate-800/95 border-emerald-500 shadow-lg ring-1 ring-emerald-500/50"
           : "bg-slate-900/70 hover:bg-slate-800/80 border-slate-800 hover:border-slate-700 text-slate-300"
@@ -130,7 +180,7 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
       leftCol.className = "flex items-center gap-2.5 min-w-0 flex-1";
 
       const badge = document.createElement("span");
-      badge.className = `w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition ${
+      badge.className = `keyframe-index-badge w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors duration-100 ${
         isActive
           ? "bg-emerald-500 text-white shadow-sm"
           : "bg-slate-800 text-slate-400 group-hover:text-slate-200"
@@ -139,7 +189,7 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
       leftCol.appendChild(badge);
 
       const titleSpan = document.createElement("span");
-      titleSpan.className = `text-xs font-medium truncate flex-1 ${
+      titleSpan.className = `keyframe-title-span text-xs font-medium truncate flex-1 ${
         isActive ? "text-white font-semibold" : "text-slate-300"
       }`;
       titleSpan.innerText = kf.title || `Schritt ${idx + 1}`;

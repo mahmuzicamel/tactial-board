@@ -1517,7 +1517,11 @@
     if (index === s.currentKeyframeIndex) return;
     s.currentKeyframeIndex = index;
     window.deselectElement();
-    window.renderKeyframeTabs();
+    if (TC() && TC().timeline && typeof TC().timeline.updateKeyframeActiveTabs === "function") {
+      TC().timeline.updateKeyframeActiveTabs(index);
+    } else {
+      window.renderKeyframeTabs();
+    }
     window.drawScene();
   };
 
