@@ -1910,6 +1910,102 @@
         }
       } else if (e.key === " " && !e.repeat) {
         e.preventDefault(); window.togglePlayAnimation();
+      } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        const s = S();
+        const kf = TC().getCurrentKeyframe();
+        if (!kf) return;
+
+        // Schrittweite: Normal = 1px (extrem präzise), mit Shift = 8px
+        const step = e.shiftKey ? 8 : 1;
+        let dx = 0;
+        let dy = 0;
+
+        // Berücksichtige die aktuelle Feldrotation (z.B. 270° im Hochformat / Handy),
+        // damit Pfeiltaste "Oben" immer nach oben auf dem Bildschirm bewegt!
+        const rotRad = ((s.fieldRotation || 0) * Math.PI) / 180;
+        let screenDx = 0;
+        let screenDy = 0;
+        if (e.key === "ArrowUp") screenDy = -step;
+        else if (e.key === "ArrowDown") screenDy = step;
+        else if (e.key === "ArrowLeft") screenDx = -step;
+        else if (e.key === "ArrowRight") screenDx = step;
+
+        // Rücktransformation von Bildschirm-Koordinaten auf virtuelle Spielfeld-Koordinaten
+        dx = Math.round(screenDx * Math.cos(-rotRad) - screenDy * Math.sin(-rotRad));
+        dy = Math.round(screenDx * Math.sin(-rotRad) + screenDy * Math.cos(-rotRad));
+        if (dx === 0 && dy === 0) {
+          if (screenDx !== 0) dx = Math.sign(screenDx);
+          if (screenDy !== 0) dy = Math.sign(screenDy);
+        }
+
+        let moved = false;
+
+        // 1. Wenn eine Linie ausgewählt ist
+        if (s.selectedArrowIndex !== null && kf.arrows && kf.arrows[s.selectedArrowIndex]) {
+          e.preventDefault();
+          const arr = kf.arrows[s.selectedArrowIndex];
+          const part = s.selectedArrowPart || "body";
+
+          if (part === "start") {
+            arr.x1 = Math.max(5, Math.min(1000 - 5, arr.x1 + dx));
+            arr.y1 = Math.max(5, Math.min(700 - 5, arr.y1 + dy));
+          } else if (part === "end") {
+            arr.x2 = Math.max(5, Math.min(1000 - 5, arr.x2 + dx));
+            arr.y2 = Math.max(5, Math.min(700 - 5, arr.y2 + dy));
+          } else {
+            arr.x1 = Math.max(5, Math.min(1000 - 5, arr.x1 + dx));
+            arr.y1 = Math.max(5, Math.min(700 - 5, arr.y1 + dy));
+            arr.x2 = Math.max(5, Math.min(1000 - 5, arr.x2 + dx));
+            arr.y2 = Math.max(5, Math.min(700 - 5, arr.y2 + dy));
+            if (arr.raw_points && arr.raw_points.length > 0) {
+              arr.raw_points.forEach(pt => {
+                pt.x += dx;
+                pt.y += dy;
+              });
+            }
+          }
+
+          if (arr.persistent && arr.id && s.currentExercise && Array.isArray(s.currentExercise.keyframes)) {
+            s.currentExercise.keyframes.forEach((otherKf, idx) => {
+              if (idx !== s.currentKeyframeIndex && otherKf.arrows) {
+                const matched = otherKf.arrows.find(it => it.id === arr.id);
+                if (matched) {
+                  matched.x1 = arr.x1; matched.y1 = arr.y1;
+                  matched.x2 = arr.x2; matched.y2 = arr.y2;
+                  matched.raw_points = arr.raw_points ? JSON.parse(JSON.stringify(arr.raw_points)) : null;
+                }
+              }
+            });
+          }
+          moved = true;
+
+        // 2. Wenn Spieler oder Objekte ausgewählt sind (auch mit Pfeiltasten präzise verschiebbar!)
+        } else if (s.selectedElementIds.length > 0) {
+          e.preventDefault();
+          kf.elements.forEach(el => {
+            if (s.selectedElementIds.includes(el.id)) {
+              el.x = Math.max(5, Math.min(1000 - 5, el.x + dx));
+              el.y = Math.max(5, Math.min(700 - 5, el.y + dy));
+              syncEquipmentElementAcrossAllKeyframes(el);
+            }
+          });
+          moved = true;
+        } else if (s.selectedElementId) {
+          e.preventDefault();
+          const el = kf.elements.find(it => it.id === s.selectedElementId);
+          if (el) {
+            el.x = Math.max(5, Math.min(1000 - 5, el.x + dx));
+            el.y = Math.max(5, Math.min(700 - 5, el.y + dy));
+            syncEquipmentElementAcrossAllKeyframes(el);
+            moved = true;
+          }
+        }
+
+        if (moved) {
+          window.drawScene();
+          window.updateActionPopupPosition();
+          window.recordHistory();
+        }
       }
     });
 
