@@ -891,49 +891,87 @@ export class View3DManager {
     this.arrowLines.forEach(l => this.scene.remove(l));
     this.arrowLines = [];
 
+    const TC_REF = window.TacticalCoach || (typeof TC === "function" ? TC() : null);
+
     arrows.forEach(arr => {
       const pStart = this.to3DCoords(arr.x1, arr.y1);
       const pEnd = this.to3DCoords(arr.x2, arr.y2);
 
-      const col = new T.Color(arr.color || (arr.type === "pass" ? "#facc15" : "#38bdf8"));
-      const points = [];
+      const col = new T.Color(arr.color || (arr.type === "pass" ? "#facc15" : (arr.type === "guide" ? "#fbbf24" : "#38bdf8")));
+      let curve3D = null;
 
-      // Bézier-Kurve oder Direktverbindung in 3D
-      if (arr.cp1_dx !== undefined && (arr.cp1_dx !== 0 || arr.cp1_dy !== 0)) {
-        const p1_3d = this.to3DCoords(arr.x1 + arr.cp1_dx, arr.y1 + arr.cp1_dy);
-        const p2_3d = this.to3DCoords(arr.x2 + (arr.cp2_dx || 0), arr.y2 + (arr.cp2_dy || 0));
-        const curve = new T.CubicBezierCurve3(
-          new T.Vector3(pStart.x, 1.5, pStart.z),
-          new T.Vector3(p1_3d.x, 1.5, p1_3d.z),
-          new T.Vector3(p2_3d.x, 1.5, p2_3d.z),
-          new T.Vector3(pEnd.x, 1.5, pEnd.z)
-        );
-        points.push(...curve.getPoints(30));
-      } else {
-        points.push(new T.Vector3(pStart.x, 1.5, pStart.z));
-        points.push(new T.Vector3(pEnd.x, 1.5, pEnd.z));
+      // Ermittle exakte Kontrollpunkte (inklusive Mittelpunkt-Wölbung & Handles)
+      let p1_2d = null;
+      let p2_2d = null;
+      if (TC_REF && TC_REF.geometry && typeof TC_REF.geometry.getArrowCurveControlPoints === "function") {
+        const cp = TC_REF.geometry.getArrowCurveControlPoints(arr);
+        p1_2d = cp.p1;
+        p2_2d = cp.p2;
+      } else if (arr.cp1_dx !== undefined && (arr.cp1_dx !== 0 || arr.cp1_dy !== 0 || arr.cp2_dx !== 0 || arr.cp2_dy !== 0)) {
+        p1_2d = { x: arr.x1 + arr.cp1_dx, y: arr.y1 + arr.cp1_dy };
+        p2_2d = { x: arr.x2 + (arr.cp2_dx || 0), y: arr.y2 + (arr.cp2_dy || 0) };
       }
 
-      const geo = new T.BufferGeometry().setFromPoints(points);
-      const mat = new T.LineBasicMaterial({
+      const isCurved = p1_2d && p2_2d && (
+        Math.hypot(p1_2d.x - (arr.x1 + (arr.x2 - arr.x1) / 3), p1_2d.y - (arr.y1 + (arr.y2 - arr.y1) / 3)) > 1 ||
+        Math.hypot(p2_2d.x - (arr.x1 + (arr.x2 - arr.x1) * 2 / 3), p2_2d.y - (arr.y1 + (arr.y2 - arr.y1) * 2 / 3)) > 1
+      );
+
+      if (isCurved) {
+        const p1_3d = this.to3DCoords(p1_2d.x, p1_2d.y);
+        const p2_3d = this.to3DCoords(p2_2d.x, p2_2d.y);
+        curve3D = new T.CubicBezierCurve3(
+          new T.Vector3(pStart.x, 2.2, pStart.z),
+          new T.Vector3(p1_3d.x, 2.2, p1_3d.z),
+          new T.Vector3(p2_3d.x, 2.2, p2_3d.z),
+          new T.Vector3(pEnd.x, 2.2, pEnd.z)
+        );
+      } else {
+        curve3D = new T.LineCurve3(
+          new T.Vector3(pStart.x, 2.2, pStart.z),
+          new T.Vector3(pEnd.x, 2.2, pEnd.z)
+        );
+      }
+
+      // Echte 3D-Röhren-Geometrie für dicke, plastische und überall sichtbare Linien
+      // Radius: 2.2 (Pass/Lauf) bzw 2.8 für markante Taktiklinien
+      const tubeRadius = (arr.type === "guide") ? 1.8 : 2.5;
+      const tubularSegments = isCurved ? 36 : 12;
+      const tubeGeo = new T.TubeGeometry(curve3D, tubularSegments, tubeRadius, 8, false);
+      const tubeMat = new T.MeshStandardMaterial({
         color: col,
-        linewidth: 3
+        roughness: 0.35,
+        metalness: 0.1,
+        emissive: col,
+        emissiveIntensity: 0.25
       });
-      const line = new T.Line(geo, mat);
-      this.scene.add(line);
-      this.arrowLines.push(line);
+      const tubeMesh = new T.Mesh(tubeGeo, tubeMat);
+      tubeMesh.castShadow = true;
+      tubeMesh.receiveShadow = false;
+      this.scene.add(tubeMesh);
+      this.arrowLines.push(tubeMesh);
 
-      // Pfeilspitze (Kegel) am Endpunkt
-      const tipGeo = new T.ConeGeometry(5, 12, 12);
-      const tipMat = new T.MeshBasicMaterial({ color: col });
+      // Pfeilspitze (Kegel) am Endpunkt - proportional vergrößert
+      const tipRadius = tubeRadius * 2.8;
+      const tipHeight = tubeRadius * 5.5;
+      const tipGeo = new T.ConeGeometry(tipRadius, tipHeight, 16);
+      const tipMat = new T.MeshStandardMaterial({
+        color: col,
+        roughness: 0.3,
+        metalness: 0.1,
+        emissive: col,
+        emissiveIntensity: 0.25
+      });
       const tip = new T.Mesh(tipGeo, tipMat);
-      tip.position.set(pEnd.x, 1.5, pEnd.z);
+      tip.castShadow = true;
 
-      // Richtung berechnen
-      const lastPt = points[points.length - 1];
-      const prevPt = points[Math.max(0, points.length - 3)];
-      const dir = new T.Vector3().subVectors(lastPt, prevPt).normalize();
-      tip.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), dir);
+      // Richtung der Spitze präzise aus der Tangente am Kurvenende berechnen
+      const tangent = curve3D.getTangent(1.0).normalize();
+      // Verschiebe die Spitze minimal entlang der Tangente
+      const tipPos = new T.Vector3(pEnd.x, 2.2, pEnd.z).addScaledVector(tangent, tipHeight * 0.35);
+      tip.position.copy(tipPos);
+      tip.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), tangent);
+
       this.scene.add(tip);
       this.arrowLines.push(tip);
     });
