@@ -210,6 +210,36 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
     }
   }
 
+  // 1c. Wenn Pass-, Lauf- oder Hilfslinien-Werkzeug aktiv ist: NICHT das Element greifen/verschieben,
+  // sondern direkt die Linie vom Klickpunkt (bzw. vom Ball angedockt) starten!
+  if (state.activeTool !== "select" && state.activeTool !== "shape") {
+    state.selectedElementId = null;
+    state.selectedElementIds = [];
+    state.selectedArrowIndex = null;
+    state.selectedArrowPart = null;
+    hideInspector();
+    updateActionPopupPosition();
+
+    let startX = x;
+    let startY = y;
+
+    // Wenn der Klick in der Nähe des Balls startet (Radius ~32px), docke exakt an das Ball-Zentrum an!
+    const nearBall = (kf.elements || []).find(el => el.type === "ball" && Math.hypot(el.x - x, el.y - y) <= 32);
+    if (nearBall) {
+      startX = nearBall.x;
+      startY = nearBall.y;
+    }
+
+    state.isDrawingArrow = true;
+    state.arrowStartX = startX;
+    state.arrowStartY = startY;
+    state.arrowCurrentX = x;
+    state.arrowCurrentY = y;
+    state.arrowDrawStrokePoints = [{ x: startX, y: startY }];
+    drawScene();
+    return;
+  }
+
   // 2. Element (Spieler, Bälle, Hütchen, Tore, etc.) oder Linie prüfen:
   // Wenn der Klick direkt auf den Körper eines Spielers/Balls/Geräts zielt, hat der Spieler IMMER Vorrang!
   const effectiveElScale = Math.max(0.6, state.globalElementScale || 1.0);

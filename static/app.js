@@ -438,30 +438,32 @@
       }
     });
 
-    // 6-ballAnchor. Magnetischer Ankerpunkt über dem Ball anzeigen (wenn Pass/Lauf aktiv ist oder Ball hovered)
-    if (!s.isPlaying && (s.activeTool === "pass" || s.activeTool === "run" || s.hoveredBallAnchorId)) {
+    // 6-ballAnchor. Feiner magnetischer Ankerpunkt über dem Ball anzeigen (wenn Pass aktiv ist oder Ball hovered)
+    if (!s.isPlaying && (s.activeTool === "pass" || s.hoveredBallAnchorId)) {
       elements.forEach(el => {
         if (el.type === "ball") {
           const isHovered = (s.hoveredBallAnchorId === el.id);
           const invZoom = 1 / (s.viewScale || 1.0);
-          const anchorRadius = (isHovered ? 5.5 : 4) * Math.max(0.7, invZoom);
+          const anchorRadius = (isHovered ? 4 : 3) * Math.max(0.7, invZoom);
 
           ctx.save();
-          // Äußerer Puls-/Leucht-Ring
-          ctx.strokeStyle = isHovered ? "rgba(250, 204, 21, 0.95)" : "rgba(250, 204, 21, 0.65)";
-          ctx.lineWidth = 2 * Math.max(0.7, invZoom);
-          ctx.beginPath();
-          ctx.arc(el.x, el.y, (isHovered ? 13 : 11) * Math.max(0.7, invZoom), 0, Math.PI * 2);
-          ctx.stroke();
-
-          // Zentrierter magnetischer Anker-Punkt direkt über dem Ball
+          // Feiner Anker-Punkt zentriert auf dem Ball (Gelb mit dezentem dunklem Rand)
           ctx.fillStyle = "#facc15";
-          ctx.strokeStyle = "#0f172a";
-          ctx.lineWidth = 1.5 * Math.max(0.7, invZoom);
+          ctx.strokeStyle = "rgba(15, 23, 42, 0.85)";
+          ctx.lineWidth = 1.2 * Math.max(0.7, invZoom);
           ctx.beginPath();
           ctx.arc(el.x, el.y, anchorRadius, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
+
+          // Bei Maus-Hover: dezenter gelber Ring zur Bestätigung
+          if (isHovered) {
+            ctx.strokeStyle = "rgba(250, 204, 21, 0.8)";
+            ctx.lineWidth = 1.5 * Math.max(0.7, invZoom);
+            ctx.beginPath();
+            ctx.arc(el.x, el.y, 8 * Math.max(0.7, invZoom), 0, Math.PI * 2);
+            ctx.stroke();
+          }
           ctx.restore();
         }
       });
@@ -937,9 +939,12 @@
         const topVirtualY = el.y - triH * 0.6;
         const sp = TC().viewport.getScreenCoords(canvas, el.x, topVirtualY);
         posX = sp.x; posY = sp.y - 20;
+      } else if (el.type === "ball") {
+        const sp = TC().viewport.getScreenCoords(canvas, el.x, el.y);
+        posX = sp.x; posY = sp.y - 26;
       } else {
         const sp = TC().viewport.getScreenCoords(canvas, el.x, el.y);
-        posX = sp.x; posY = sp.y - 32;
+        posX = sp.x; posY = sp.y - 36;
       }
 
       if (elControls) elControls.classList.remove("hidden");
