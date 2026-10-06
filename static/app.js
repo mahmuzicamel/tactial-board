@@ -1516,6 +1516,10 @@
 
   window.selectKeyframe = function (index) {
     const s = S();
+    // Wenn gerade Wiedergabe aktiv ist, stoppen wir sie sofort und springen zum Schritt
+    if (s.isPlaying && typeof window.stopAnimation === "function") {
+      window.stopAnimation();
+    }
     if (index === s.currentKeyframeIndex) return;
     s.currentKeyframeIndex = index;
     window.deselectElement(true);
