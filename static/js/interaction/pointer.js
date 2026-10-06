@@ -207,18 +207,53 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
     }
   }
 
-  // 2. Check if clicked an element (Spieler, Trainingsgeräte, Bälle etc. - HÖCHSTE Priorität vor Zonen!)
+  // 2. Element (Spieler, Bälle, Hütchen, Tore, etc.) oder Linie prüfen:
+  // Wenn der Klick direkt auf den Körper eines Spielers/Balls/Geräts zielt, hat der Spieler IMMER Vorrang!
   const effectiveElScale = Math.max(0.6, state.globalElementScale || 1.0);
+  const playerBodyRadius = 20 * effectiveElScale; // Reeller Spielerkreis
   const baseHitRadius = Math.max(26 * effectiveElScale, (34 * effectiveElScale) / Math.sqrt(state.viewScale));
 
-  // 2a. Zuerst normale Elemente (Spieler, Bälle, Hütchen, Tore, etc.) prüfen
-  const clickedRealElement = [...(kf.elements || [])]
+  // 2a. Zuerst exakten Treffer auf ein reales Element (Spieler, Ball etc.) prüfen:
+  const directHitElement = [...(kf.elements || [])]
     .filter(el => el.type !== "zone_rect" && el.type !== "zone_circle" && el.type !== "zone_triangle")
     .reverse()
-    .find(el => Math.hypot(el.x - x, el.y - y) <= baseHitRadius);
+    .find(el => {
+      // Wenn der Klick innerhalb des sichtbaren Spieler-/Ball-Kreises liegt:
+      const r = (el.type === "ball" ? 14 : playerBodyRadius);
+      return Math.hypot(el.x - x, el.y - y) <= r;
+    });
 
-  // 2a-bis. Check arrows/lines FIRST before general elements, IF click hits an arrow directly!
-  // Dadurch lassen sich Linien, die unter/neben Spielern oder Ghost-Bahnen liegen, super leicht greifen.
+  // Wenn direkt auf den Spieler geklickt wurde, SOFORT Spieler auswählen (keine Pfeile fangen das ab!):
+  if (directHitElement) {
+    if (state.activeTool !== "select") {
+      setActiveTool("select");
+    }
+    if (state.selectedElementIds.includes(directHitElement.id)) {
+      state.isDragging = true;
+      state.isDraggingArrow = false;
+      state.groupDragOffsets = {};
+      kf.elements.filter(it => state.selectedElementIds.includes(it.id)).forEach(it => {
+        state.groupDragOffsets[it.id] = { dx: x - it.x, dy: y - it.y };
+      });
+      drawScene();
+      updateActionPopupPosition();
+      return;
+    }
+    state.selectedElementIds = [];
+    state.selectedElementId = directHitElement.id;
+    state.selectedArrowIndex = null;
+    state.selectedArrowPart = null;
+    state.isDragging = true;
+    state.isDraggingArrow = false;
+    state.dragStartX = x - directHitElement.x;
+    state.dragStartY = y - directHitElement.y;
+    showInspector(directHitElement);
+    drawScene();
+    updateActionPopupPosition();
+    return;
+  }
+
+  // 2b. Wenn kein direkter Treffer auf den Spielerkörper: Linien/Pfeile prüfen
   if (kf.arrows && kf.arrows.length > 0) {
     const arrowHitThreshold = Math.max(18, 26 / Math.sqrt(state.viewScale));
     const handleThreshold = Math.max(20, 28 / Math.sqrt(state.viewScale));
@@ -233,11 +268,7 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
       const hitsBody = (arr.raw_points && distToPolyline(x, y, arr.raw_points) <= arrowHitThreshold) ||
                        (!arr.raw_points && distToCubicBezier(x, y, { x: arr.x1, y: arr.y1 }, p1, p2, { x: arr.x2, y: arr.y2 }) <= arrowHitThreshold);
 
-      // Falls die Linie bereits vor-selektiert ist ODER kein Spieler direkt im Zentrum getroffen wurde:
-      // Bevorzuge immer die Pfeil-Interaktion!
-      const playerDirectHit = clickedRealElement && Math.hypot(clickedRealElement.x - x, clickedRealElement.y - y) <= (baseHitRadius * 0.8);
-
-      if ((hitsHandle || hitsBody) && (!playerDirectHit || state.selectedArrowIndex === i)) {
+      if (hitsHandle || hitsBody) {
         if (state.activeTool !== "select") setActiveTool("select");
         state.selectedArrowIndex = i;
         state.selectedArrowPart = (distEnd <= handleThreshold) ? "end" : ((distStart <= handleThreshold) ? "start" : "body");
@@ -254,6 +285,12 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
       }
     }
   }
+
+  // 2c. Erweiterte Toleranz-Trefferzone für Elemente (z.B. knapp neben den Spieler getippt):
+  const clickedRealElement = [...(kf.elements || [])]
+    .filter(el => el.type !== "zone_rect" && el.type !== "zone_circle" && el.type !== "zone_triangle")
+    .reverse()
+    .find(el => Math.hypot(el.x - x, el.y - y) <= baseHitRadius);
 
   // 2b. Falls kein Spieler/Element angeklickt wurde: Zonen (Flächen) prüfen
   const clickedZoneElement = !clickedRealElement
