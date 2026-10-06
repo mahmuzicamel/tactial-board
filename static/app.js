@@ -1374,6 +1374,58 @@
     window.showToast(`Linie in Schritt ${nextIndex + 1} übernommen`);
   };
 
+  window.propagateSelectedElementToAllKeyframes = function () {
+    const s = S();
+    const ex = s.currentExercise;
+    const kf = TC().getCurrentKeyframe();
+    if (!kf || !ex || !Array.isArray(ex.keyframes)) return;
+
+    const items = s.selectedElementIds.length > 0
+      ? kf.elements.filter(it => s.selectedElementIds.includes(it.id))
+      : (s.selectedElementId ? [kf.elements.find(it => it.id === s.selectedElementId)].filter(Boolean) : []);
+
+    if (items.length === 0) return;
+
+    let addedCount = 0;
+    let updatedCount = 0;
+
+    ex.keyframes.forEach((otherKf, idx) => {
+      if (!otherKf.elements) otherKf.elements = [];
+
+      items.forEach(sourceEl => {
+        const existingIdx = otherKf.elements.findIndex(it => it.id === sourceEl.id);
+        const clone = JSON.parse(JSON.stringify(sourceEl));
+
+        // Wenn der Keyframe nicht der aktuelle Bearbeitungsschritt ist, Kurvenabweichungen entfernen,
+        // damit das Element an seiner definierten Position stabil steht.
+        if (idx !== s.currentKeyframeIndex) {
+          delete clone.cp1_dx;
+          delete clone.cp1_dy;
+          delete clone.cp2_dx;
+          delete clone.cp2_dy;
+        }
+
+        if (existingIdx >= 0) {
+          // Nur überschreiben wenn nicht der aktuelle Ausgangsframe
+          if (idx !== s.currentKeyframeIndex) {
+            otherKf.elements[existingIdx] = clone;
+            updatedCount++;
+          }
+        } else {
+          otherKf.elements.push(clone);
+          addedCount++;
+        }
+      });
+    });
+
+    window.drawScene();
+    window.updateActionPopupPosition();
+    window.recordHistory();
+
+    const name = items.length === 1 ? (items[0].label || items[0].number || "Element") : `${items.length} Elemente`;
+    window.showToast(`${name} in alle ${ex.keyframes.length} Schritte übernommen`);
+  };
+
   window.toggleArrowPersistent = function () {
     const s = S();
     const kf = TC().getCurrentKeyframe();
