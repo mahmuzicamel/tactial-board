@@ -3,42 +3,44 @@ import { state, getCurrentExercise } from "../state/store.js";
 import { getEffectiveCurveControlPoints, getArrowCurveControlPoints, getCubicBezierPoint } from "../core/geometry.js";
 
 export function handleCurvePointerDown(x, y, kf, prevKf, handleHitRadius) {
-  // 1. Ghost motion curve handles
-  if (state.isGhostMode !== "off" && prevKf) {
-    for (const currEl of (kf.elements || [])) {
-      if (currEl.type === "player" || currEl.type === "ball") {
-        const prevEl = (prevKf.elements || []).find(it => it.id === currEl.id);
-        if (prevEl) {
-          const dist = Math.hypot(currEl.x - prevEl.x, currEl.y - prevEl.y);
-          if (dist > 8) {
-            const { p1, p2 } = getEffectiveCurveControlPoints(prevEl, currEl);
-            const pMid = getCubicBezierPoint(0.5, prevEl, p1, p2, currEl);
+  // 1. Ghost motion curve handles:
+  // USABILITY-FIX: Nur aktiv, wenn der zugehörige Spieler aktuell auch markiert/ausgewählt ist!
+  // Dadurch blockieren Ghost-Kurvengriffe NIEMALS das Anklicken von Linien oder anderen Spielern.
+  if (state.isGhostMode !== "off" && prevKf && state.selectedElementId) {
+    const currEl = (kf.elements || []).find(it => it.id === state.selectedElementId);
+    if (currEl && (currEl.type === "player" || currEl.type === "ball")) {
+      const prevEl = (prevKf.elements || []).find(it => it.id === currEl.id);
+      if (prevEl) {
+        const dist = Math.hypot(currEl.x - prevEl.x, currEl.y - prevEl.y);
+        if (dist > 8) {
+          const { p1, p2 } = getEffectiveCurveControlPoints(prevEl, currEl);
+          const pMid = getCubicBezierPoint(0.5, prevEl, p1, p2, currEl);
+          const ghostHitR = Math.min(handleHitRadius, 20);
 
-            if (Math.hypot(x - p1.x, y - p1.y) <= handleHitRadius) {
-              return {
-                elementId: currEl.id,
-                handle: "p1",
-                fromEl: { x: prevEl.x, y: prevEl.y },
-                toEl: currEl
-              };
-            }
-            if (Math.hypot(x - pMid.x, y - pMid.y) <= handleHitRadius) {
-              return {
-                elementId: currEl.id,
-                handle: "mid",
-                fromEl: { x: prevEl.x, y: prevEl.y },
-                toEl: currEl,
-                initialMid: { x: pMid.x, y: pMid.y }
-              };
-            }
-            if (Math.hypot(x - p2.x, y - p2.y) <= handleHitRadius) {
-              return {
-                elementId: currEl.id,
-                handle: "p2",
-                fromEl: { x: prevEl.x, y: prevEl.y },
-                toEl: currEl
-              };
-            }
+          if (Math.hypot(x - p1.x, y - p1.y) <= ghostHitR) {
+            return {
+              elementId: currEl.id,
+              handle: "p1",
+              fromEl: { x: prevEl.x, y: prevEl.y },
+              toEl: currEl
+            };
+          }
+          if (Math.hypot(x - pMid.x, y - pMid.y) <= ghostHitR) {
+            return {
+              elementId: currEl.id,
+              handle: "mid",
+              fromEl: { x: prevEl.x, y: prevEl.y },
+              toEl: currEl,
+              initialMid: { x: pMid.x, y: pMid.y }
+            };
+          }
+          if (Math.hypot(x - p2.x, y - p2.y) <= ghostHitR) {
+            return {
+              elementId: currEl.id,
+              handle: "p2",
+              fromEl: { x: prevEl.x, y: prevEl.y },
+              toEl: currEl
+            };
           }
         }
       }

@@ -217,6 +217,44 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
     .reverse()
     .find(el => Math.hypot(el.x - x, el.y - y) <= baseHitRadius);
 
+  // 2a-bis. Check arrows/lines FIRST before general elements, IF click hits an arrow directly!
+  // Dadurch lassen sich Linien, die unter/neben Spielern oder Ghost-Bahnen liegen, super leicht greifen.
+  if (kf.arrows && kf.arrows.length > 0) {
+    const arrowHitThreshold = Math.max(18, 26 / Math.sqrt(state.viewScale));
+    const handleThreshold = Math.max(20, 28 / Math.sqrt(state.viewScale));
+
+    for (let i = kf.arrows.length - 1; i >= 0; i--) {
+      const arr = kf.arrows[i];
+      const { p1, p2 } = getArrowCurveControlPoints(arr);
+      const distStart = Math.hypot(arr.x1 - x, arr.y1 - y);
+      const distEnd = Math.hypot(arr.x2 - x, arr.y2 - y);
+
+      const hitsHandle = (distEnd <= handleThreshold) || (distStart <= handleThreshold);
+      const hitsBody = (arr.raw_points && distToPolyline(x, y, arr.raw_points) <= arrowHitThreshold) ||
+                       (!arr.raw_points && distToCubicBezier(x, y, { x: arr.x1, y: arr.y1 }, p1, p2, { x: arr.x2, y: arr.y2 }) <= arrowHitThreshold);
+
+      // Falls die Linie bereits vor-selektiert ist ODER kein Spieler direkt im Zentrum getroffen wurde:
+      // Bevorzuge immer die Pfeil-Interaktion!
+      const playerDirectHit = clickedRealElement && Math.hypot(clickedRealElement.x - x, clickedRealElement.y - y) <= (baseHitRadius * 0.8);
+
+      if ((hitsHandle || hitsBody) && (!playerDirectHit || state.selectedArrowIndex === i)) {
+        if (state.activeTool !== "select") setActiveTool("select");
+        state.selectedArrowIndex = i;
+        state.selectedArrowPart = (distEnd <= handleThreshold) ? "end" : ((distStart <= handleThreshold) ? "start" : "body");
+        state.selectedElementId = null;
+        state.selectedElementIds = [];
+        state.isDraggingArrow = true;
+        state.isDragging = false;
+        state.arrowDragOffsetX = x;
+        state.arrowDragOffsetY = y;
+        showArrowInspector(arr);
+        drawScene();
+        updateActionPopupPosition();
+        return;
+      }
+    }
+  }
+
   // 2b. Falls kein Spieler/Element angeklickt wurde: Zonen (Flächen) prüfen
   const clickedZoneElement = !clickedRealElement
     ? [...(kf.elements || [])]
