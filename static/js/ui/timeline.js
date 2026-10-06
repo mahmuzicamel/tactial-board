@@ -13,7 +13,7 @@ export function updateKeyframeActiveTabs(activeIndex) {
     for (let i = 0; i < items.length; i++) {
       const el = items[i];
       const isActive = (i === activeIndex);
-      el.className = `rounded-lg text-xs font-semibold whitespace-nowrap transition-colors duration-100 flex items-center gap-1 px-2 py-1 shrink-0 ${
+      el.className = `rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1 px-2 py-1 shrink-0 ${
         isActive
           ? "bg-emerald-600 text-white shadow ring-1 ring-emerald-400"
           : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
@@ -30,14 +30,14 @@ export function updateKeyframeActiveTabs(activeIndex) {
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i];
       const isActive = (i === activeIndex);
-      card.className = `group relative rounded-xl p-2.5 transition-colors duration-100 cursor-pointer border flex items-center justify-between gap-2 ${
+      card.className = `group relative rounded-xl p-2.5 cursor-pointer border flex items-center justify-between gap-2 ${
         isActive
           ? "bg-slate-800/95 border-emerald-500 shadow-lg ring-1 ring-emerald-500/50"
           : "bg-slate-900/70 hover:bg-slate-800/80 border-slate-800 hover:border-slate-700 text-slate-300"
       }`;
       const badge = card.querySelector(".keyframe-index-badge");
       if (badge) {
-        badge.className = `keyframe-index-badge w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors duration-100 ${
+        badge.className = `keyframe-index-badge w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
           isActive
             ? "bg-emerald-500 text-white shadow-sm"
             : "bg-slate-800 text-slate-400 group-hover:text-slate-200"
@@ -73,7 +73,7 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
     ex.keyframes.forEach((kf, idx) => {
       const container = document.createElement("div");
       const isActive = idx === state.currentKeyframeIndex;
-      container.className = `rounded-lg text-xs font-semibold whitespace-nowrap transition-colors duration-100 flex items-center gap-1 px-2 py-1 shrink-0 ${
+      container.className = `rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1 px-2 py-1 shrink-0 ${
         isActive
           ? "bg-emerald-600 text-white shadow ring-1 ring-emerald-400"
           : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
@@ -136,7 +136,7 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
     ex.keyframes.forEach((kf, idx) => {
       const card = document.createElement("div");
       const isActive = idx === state.currentKeyframeIndex;
-      card.className = `group relative rounded-xl p-2.5 transition-colors duration-100 cursor-pointer border flex items-center justify-between gap-2 ${
+      card.className = `group relative rounded-xl p-2.5 cursor-pointer border flex items-center justify-between gap-2 ${
         isActive
           ? "bg-slate-800/95 border-emerald-500 shadow-lg ring-1 ring-emerald-500/50"
           : "bg-slate-900/70 hover:bg-slate-800/80 border-slate-800 hover:border-slate-700 text-slate-300"
@@ -180,7 +180,7 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
       leftCol.className = "flex items-center gap-2.5 min-w-0 flex-1";
 
       const badge = document.createElement("span");
-      badge.className = `keyframe-index-badge w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors duration-100 ${
+      badge.className = `keyframe-index-badge w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
         isActive
           ? "bg-emerald-500 text-white shadow-sm"
           : "bg-slate-800 text-slate-400 group-hover:text-slate-200"

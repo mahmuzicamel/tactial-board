@@ -1459,7 +1459,7 @@
     window.recordHistory();
   };
 
-  window.deselectElement = function () {
+  window.deselectElement = function (skipDraw = false) {
     const s = S();
     if (!s) return;
     s.selectedElementId = null;
@@ -1468,7 +1468,9 @@
     s.selectedArrowPart = null;
     TC()?.inspectors?.hideInspector();
     window.updateActionPopupPosition();
-    window.drawScene();
+    if (!skipDraw) {
+      window.drawScene();
+    }
   };
 
   window.syncFloatingProps = function () {
@@ -1516,7 +1518,7 @@
     const s = S();
     if (index === s.currentKeyframeIndex) return;
     s.currentKeyframeIndex = index;
-    window.deselectElement();
+    window.deselectElement(true);
     if (TC() && TC().timeline && typeof TC().timeline.updateKeyframeActiveTabs === "function") {
       TC().timeline.updateKeyframeActiveTabs(index);
     } else {
