@@ -54,7 +54,10 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
   if (!kf) return;
 
   const prevKf = state.currentKeyframeIndex > 0 ? getCurrentExercise().keyframes[state.currentKeyframeIndex - 1] : null;
-  const handleHitRadius = Math.max(28, 36 / Math.sqrt(state.viewScale));
+  // Zoom-invarianter Fangradius: Bleibt auf dem physischen Bildschirm konstant (z.B. ca. 24-28 Bildschirm-Pixel),
+  // wächst also in virtuellen Koordinaten beim Rauszoomen, schrumpft beim Reinzoomen!
+  const invZoom = 1 / (state.viewScale || 1.0);
+  const handleHitRadius = Math.max(16, Math.min(60, 24 * invZoom));
 
   // 1. Check curve editor handles (ghost or selected arrow) - Höchste Priorität!
   const curveHit = handleCurvePointerDown(x, y, kf, prevKf, handleHitRadius);
@@ -95,8 +98,8 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
   if (state.selectedElementId) {
     const selEl = kf.elements.find(it => it.id === state.selectedElementId);
     if (selEl && (selEl.type === "zone_rect" || selEl.type === "zone_circle" || selEl.type === "zone_triangle")) {
-      // Touch-Toleranz: Für mobile Touchscreens 24px Radius, damit man nicht daneben tippt, aber nicht zu weit weg
-      const zHitR = Math.max(20, 26 / Math.sqrt(state.viewScale));
+      // Zoom-invarianter Touch-Toleranz-Radius für Zonen-Handles (Resize-Bubbles)
+      const zHitR = Math.max(14, Math.min(50, 22 * invZoom));
 
       // Bei Zonen (Rechteck, Kreis, Dreieck) rotiert das Element mit dem Spielfeld mit (kein Counter-Rotate)
       // Daher ist die Ausrichtung auf dem Canvas gleich el.rotation (ohne -fieldRotation)
@@ -211,7 +214,7 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
   // Wenn der Klick direkt auf den Körper eines Spielers/Balls/Geräts zielt, hat der Spieler IMMER Vorrang!
   const effectiveElScale = Math.max(0.6, state.globalElementScale || 1.0);
   const playerBodyRadius = 22 * effectiveElScale; // Reeller Spielerkreis
-  const baseHitRadius = Math.max(26 * effectiveElScale, (34 * effectiveElScale) / Math.sqrt(state.viewScale));
+  const baseHitRadius = Math.max(26 * effectiveElScale, Math.min(65, (30 * effectiveElScale) * invZoom));
 
   // 2a. Zuerst exakten Treffer auf ein reales Element (Spieler, Ball etc.) prüfen:
   const directHitElement = [...(kf.elements || [])]
@@ -255,8 +258,8 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
 
   // 2b. Wenn kein direkter Treffer auf den Spielerkörper: Linien/Pfeile prüfen
   if (kf.arrows && kf.arrows.length > 0) {
-    const arrowHitThreshold = Math.max(14, 18 / Math.sqrt(state.viewScale));
-    const handleThreshold = Math.max(16, 20 / Math.sqrt(state.viewScale));
+    const arrowHitThreshold = Math.max(12, Math.min(35, 16 * invZoom));
+    const handleThreshold = Math.max(14, Math.min(45, 18 * invZoom));
 
     for (let i = kf.arrows.length - 1; i >= 0; i--) {
       const arr = kf.arrows[i];
@@ -343,8 +346,8 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
 
   // 3. Check arrows / lines (nur wenn vorher nichts getroffen wurde)
   if (kf.arrows && kf.arrows.length > 0) {
-    const arrowHitThreshold = Math.max(14, 18 / Math.sqrt(state.viewScale));
-    const handleThreshold = Math.max(16, 20 / Math.sqrt(state.viewScale));
+    const arrowHitThreshold = Math.max(12, Math.min(35, 16 * invZoom));
+    const handleThreshold = Math.max(14, Math.min(45, 18 * invZoom));
 
     for (let i = kf.arrows.length - 1; i >= 0; i--) {
       const arr = kf.arrows[i];

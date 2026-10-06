@@ -1,7 +1,7 @@
 // canvas/elements.js - Zeichnen von Spielern, Trainingsgeräten, Bällen & Spotlight
 import { COLORS } from "../core/constants.js";
 
-export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation = 0, globalElementScale = 1.0) {
+export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation = 0, globalElementScale = 1.0, zoomScale = 1.0) {
   const x = el.x;
   const y = el.y;
 
@@ -432,7 +432,8 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
 
     // Wenn selektiert: Deutliche Resize-Handles an den 4 Ecken und 4 Kantenmitten rendern
     if (isSelected) {
-      const handleR = 7; // Größere, gut greifbare Griffe (Bubbles)
+      const invScale = Math.max(0.4, Math.min(2.5, 1 / (zoomScale || 1.0)));
+      const handleR = 7 * invScale; // Zoom-invariante Bubbles (skalieren nicht riesig mit)
       const handles = [
         // 4 Ecken
         { x: -w/2, y: -h/2 },
@@ -451,10 +452,10 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
         // Weißer Button mit farbigem Rand und Schlagschatten für optimale Touch-Sichtbarkeit
         ctx.save();
         ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
-        ctx.shadowBlur = 4;
+        ctx.shadowBlur = 4 * invScale;
         ctx.fillStyle = "#ffffff";
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2.5 * invScale;
         ctx.beginPath();
         ctx.arc(c.x, c.y, handleR, 0, Math.PI * 2);
         ctx.fill();
@@ -463,7 +464,7 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
         // Innerer kleiner Akzent-Punkt
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(c.x, c.y, 2.5, 0, Math.PI * 2);
+        ctx.arc(c.x, c.y, 2.5 * invScale, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       });
@@ -503,23 +504,24 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
 
     // Wenn selektiert: Resize-Handle am Kreisrand rendern
     if (isSelected) {
-      const handleR = 7;
+      const invScale = Math.max(0.4, Math.min(2.5, 1 / (zoomScale || 1.0)));
+      const handleR = 7 * invScale;
       [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].forEach(angle => {
         const hx = Math.cos(angle) * radius;
         const hy = Math.sin(angle) * radius;
         ctx.save();
         ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
-        ctx.shadowBlur = 4;
+        ctx.shadowBlur = 4 * invScale;
         ctx.fillStyle = "#ffffff";
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2.5 * invScale;
         ctx.beginPath();
         ctx.arc(hx, hy, handleR, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(hx, hy, 2.5, 0, Math.PI * 2);
+        ctx.arc(hx, hy, 2.5 * invScale, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       });
@@ -556,7 +558,8 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
 
     // Wenn selektiert: Resize-Handles an den 3 Spitzen rendern
     if (isSelected) {
-      const handleR = 7;
+      const invScale = Math.max(0.4, Math.min(2.5, 1 / (zoomScale || 1.0)));
+      const handleR = 7 * invScale;
       const tips = [
         { x: 0, y: -h * 0.6 },
         { x: size * 0.5, y: h * 0.4 },
@@ -565,17 +568,17 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
       tips.forEach(t => {
         ctx.save();
         ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
-        ctx.shadowBlur = 4;
+        ctx.shadowBlur = 4 * invScale;
         ctx.fillStyle = "#ffffff";
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2.5 * invScale;
         ctx.beginPath();
         ctx.arc(t.x, t.y, handleR, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(t.x, t.y, 2.5, 0, Math.PI * 2);
+        ctx.arc(t.x, t.y, 2.5 * invScale, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       });

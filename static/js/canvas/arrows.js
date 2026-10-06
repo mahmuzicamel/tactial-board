@@ -26,7 +26,7 @@ function tracePath(ctx, x1, y1, x2, y2, isRaw, isCurved, cp1, cp2, rawPoints) {
   }
 }
 
-export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected = false, animTime = null, cp1 = null, cp2 = null, rawPoints = null) {
+export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected = false, animTime = null, cp1 = null, cp2 = null, rawPoints = null, zoomScale = 1.0) {
   const dx = x2 - x1;
   const dy = y2 - y1;
   const dist = Math.hypot(dx, dy);
@@ -139,18 +139,24 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
 
   // Draw interactive handle rings when selected
   if (isSelected) {
+    // Zoom-invariante Handle-Größen: Skalieren nicht mit dem Zoom mit, bleiben auf dem Screen konstant scharf & handlich
+    const invScale = Math.max(0.4, Math.min(2.5, 1 / (zoomScale || 1.0)));
+    const handleR = 8 * invScale;
+    const curveHandleR = 8.5 * invScale;
+    const controlHandleR = 7.5 * invScale;
+
     // Start handle
     ctx.fillStyle = "#38bdf8";
     ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2 * invScale;
     ctx.beginPath();
-    ctx.arc(x1, y1, 8, 0, Math.PI * 2);
+    ctx.arc(x1, y1, handleR, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
     // End handle (tip)
     ctx.beginPath();
-    ctx.arc(x2, y2, 8, 0, Math.PI * 2);
+    ctx.arc(x2, y2, handleR, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
@@ -163,8 +169,8 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
       // Gestrichelte Verbindungslinien (Leitlinien) zu den Bézier-Griffen
       ctx.save();
       ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1.5 * invScale;
+      ctx.setLineDash([4 * invScale, 4 * invScale]);
 
       // Von Start zu P1 und von Ende zu P2
       ctx.beginPath();
@@ -186,24 +192,27 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
       // Midpoint handle (Amber/Yellow curve crown handle)
       ctx.fillStyle = "#f59e0b";
       ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 2.5 * invScale;
       ctx.beginPath();
-      ctx.arc(pMid.x, pMid.y, 8.5, 0, Math.PI * 2);
+      ctx.arc(pMid.x, pMid.y, curveHandleR, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
       // P1 handle (cyan, oberer Wölbungs-Griff für Bogen 1)
       ctx.fillStyle = "#06b6d4";
       ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 2.5 * invScale;
       ctx.beginPath();
-      ctx.arc(cp1.x, cp1.y, 7.5, 0, Math.PI * 2);
+      ctx.arc(cp1.x, cp1.y, controlHandleR, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // P2 handle (cyan, unterer Wölbungs-Griff für Bogen 2)
+      // P2 handle (emerald, unterer Wölbungs-Griff für Bogen 2)
+      ctx.fillStyle = "#10b981";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2.5 * invScale;
       ctx.beginPath();
-      ctx.arc(cp2.x, cp2.y, 7.5, 0, Math.PI * 2);
+      ctx.arc(cp2.x, cp2.y, controlHandleR, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     }

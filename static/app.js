@@ -217,7 +217,7 @@
       const isZone = (el.type === "zone_rect" || el.type === "zone_circle" || el.type === "zone_triangle");
       if (isZone) {
         const isSel = (s.selectedElementId === el.id || s.selectedElementIds.includes(el.id));
-        TC().elements.drawElementOnCanvas(ctx, el, isSel, s.fieldRotation, s.globalElementScale);
+        TC().elements.drawElementOnCanvas(ctx, el, isSel, s.fieldRotation, s.globalElementScale, s.viewScale);
       }
     });
 
@@ -276,13 +276,14 @@
               ctx.fill();
 
               if (k + 1 === s.currentKeyframeIndex && !s.isPlaying) {
-                const handleR = Math.max(4.5, 6 / Math.sqrt(s.viewScale));
+                const invScale = Math.max(0.4, Math.min(2.5, 1 / (s.viewScale || 1.0)));
+                const handleR = Math.max(3.5, 6 * invScale);
 
                 // Gestrichelte Leitlinien zu den Ghost-Kurven-Griffen
                 ctx.save();
                 ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-                ctx.lineWidth = 1.2;
-                ctx.setLineDash([3, 3]);
+                ctx.lineWidth = 1.2 * invScale;
+                ctx.setLineDash([3 * invScale, 3 * invScale]);
                 ctx.beginPath();
                 ctx.moveTo(fromEl.x, fromEl.y);
                 ctx.lineTo(p1.x, p1.y);
@@ -293,7 +294,7 @@
 
                 ctx.fillStyle = "#ffffff";
                 ctx.strokeStyle = teamCol;
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 2 * invScale;
                 ctx.globalAlpha = 0.95;
                 ctx.beginPath();
                 ctx.arc(p1.x, p1.y, handleR, 0, Math.PI * 2);
@@ -320,7 +321,7 @@
           if (arr.persistent) {
             const isSel = (idx === s.selectedArrowPersistentKfIdx && arr === s.selectedArrowPersistentObj);
             const { p1, p2 } = TC().geometry.getArrowCurveControlPoints(arr);
-            TC().arrows.drawArrow(ctx, arr.x1, arr.y1, arr.x2, arr.y2, arr.type, arr.color, isSel, null, p1, p2, arr.raw_points);
+            TC().arrows.drawArrow(ctx, arr.x1, arr.y1, arr.x2, arr.y2, arr.type, arr.color, isSel, null, p1, p2, arr.raw_points, s.viewScale);
           }
         });
       });
@@ -331,7 +332,7 @@
     arrows.forEach((arr, idx) => {
       const isSel = (s.selectedArrowIndex === idx);
       const { p1, p2 } = TC().geometry.getArrowCurveControlPoints(arr);
-      TC().arrows.drawArrow(ctx, arr.x1, arr.y1, arr.x2, arr.y2, arr.type, arr.color, isSel, arr.type === "guide" ? nowTime : null, p1, p2, arr.raw_points);
+      TC().arrows.drawArrow(ctx, arr.x1, arr.y1, arr.x2, arr.y2, arr.type, arr.color, isSel, arr.type === "guide" ? nowTime : null, p1, p2, arr.raw_points, s.viewScale);
     });
 
     // 5. In-flight Arrow Drawing
@@ -433,7 +434,7 @@
       const isZone = (el.type === "zone_rect" || el.type === "zone_circle" || el.type === "zone_triangle");
       if (!isZone) {
         const isSel = (s.selectedElementId === el.id || s.selectedElementIds.includes(el.id));
-        TC().elements.drawElementOnCanvas(ctx, el, isSel, s.fieldRotation, s.globalElementScale);
+        TC().elements.drawElementOnCanvas(ctx, el, isSel, s.fieldRotation, s.globalElementScale, s.viewScale);
       }
     });
 
@@ -456,11 +457,12 @@
     // 8. Debug Overlay: Subtile Umrandung aller interaktiven Hitboxen / Auswahlflächen
     if (s.isDebugHitAreas && !s.isPlaying) {
       ctx.save();
+      const invZoom = 1 / (s.viewScale || 1.0);
       const effectiveElScale = Math.max(0.6, s.globalElementScale || 1.0);
-      const baseHitRadius = Math.max(26 * effectiveElScale, (34 * effectiveElScale) / Math.sqrt(s.viewScale));
+      const baseHitRadius = Math.max(26 * effectiveElScale, Math.min(65, (30 * effectiveElScale) * invZoom));
       const playerBodyRadius = 22 * effectiveElScale;
-      const arrowHitThreshold = Math.max(14, 18 / Math.sqrt(s.viewScale));
-      const handleThreshold = Math.max(16, 20 / Math.sqrt(s.viewScale));
+      const arrowHitThreshold = Math.max(12, Math.min(35, 16 * invZoom));
+      const handleThreshold = Math.max(14, Math.min(45, 18 * invZoom));
 
       // Elemente / Spieler: Kern-Hitbox (grün) und Toleranz-Zone (gepunktet cyan)
       (elements || []).forEach(el => {
