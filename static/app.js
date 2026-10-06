@@ -321,18 +321,18 @@
           if (arr.persistent) {
             const isSel = (idx === s.selectedArrowPersistentKfIdx && arr === s.selectedArrowPersistentObj);
             const { p1, p2 } = TC().geometry.getArrowCurveControlPoints(arr);
-            TC().arrows.drawArrow(ctx, arr.x1, arr.y1, arr.x2, arr.y2, arr.type, arr.color, isSel, null, p1, p2, arr.raw_points, s.viewScale);
+            TC().arrows.drawArrow(ctx, arr.x1, arr.y1, arr.x2, arr.y2, arr.type, arr.color, isSel, null, p1, p2, arr.raw_points, s.viewScale, true);
           }
         });
       });
     }
 
-    // 4. Current Keyframe Arrows
+    // 4. Current Keyframe Arrows (Linienkörper und Spitzen unter den Spielern zeichnen, Handles werden darüber gerendert)
     const nowTime = performance.now() / 1000;
     arrows.forEach((arr, idx) => {
       const isSel = (s.selectedArrowIndex === idx);
       const { p1, p2 } = TC().geometry.getArrowCurveControlPoints(arr);
-      TC().arrows.drawArrow(ctx, arr.x1, arr.y1, arr.x2, arr.y2, arr.type, arr.color, isSel, arr.type === "guide" ? nowTime : null, p1, p2, arr.raw_points, s.viewScale);
+      TC().arrows.drawArrow(ctx, arr.x1, arr.y1, arr.x2, arr.y2, arr.type, arr.color, isSel, arr.type === "guide" ? nowTime : null, p1, p2, arr.raw_points, s.viewScale, true);
     });
 
     // 5. In-flight Arrow Drawing
@@ -437,6 +437,13 @@
         TC().elements.drawElementOnCanvas(ctx, el, isSel, s.fieldRotation, s.globalElementScale, s.viewScale);
       }
     });
+
+    // 6b. Interactive Handles für selektierte Linien/Pfeile (ÜBER den Spielern zeichnen, damit man verdeckte Punkte direkt greifen und positionieren kann!)
+    if (s.selectedArrowIndex !== null && arrows && arrows[s.selectedArrowIndex]) {
+      const selArr = arrows[s.selectedArrowIndex];
+      const { p1, p2 } = TC().geometry.getArrowCurveControlPoints(selArr);
+      TC().arrows.drawArrowHandles(ctx, selArr.x1, selArr.y1, selArr.x2, selArr.y2, p1, p2, s.viewScale);
+    }
 
     // 7. Lasso Selection Polygon
     if (s.isLassoSelecting && s.lassoPoints && s.lassoPoints.length > 1) {

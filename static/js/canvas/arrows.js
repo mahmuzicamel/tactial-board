@@ -26,7 +26,90 @@ function tracePath(ctx, x1, y1, x2, y2, isRaw, isCurved, cp1, cp2, rawPoints) {
   }
 }
 
-export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected = false, animTime = null, cp1 = null, cp2 = null, rawPoints = null, zoomScale = 1.0) {
+export function drawArrowHandles(ctx, x1, y1, x2, y2, cp1 = null, cp2 = null, zoomScale = 1.0) {
+  // Zoom-invariante Handle-Größen: Skalieren nicht mit dem Zoom mit, bleiben auf dem Screen konstant scharf & handlich
+  const invScale = Math.max(0.4, Math.min(2.5, 1 / (zoomScale || 1.0)));
+  const handleR = 8 * invScale;
+  const curveHandleR = 8.5 * invScale;
+  const controlHandleR = 7.5 * invScale;
+
+  ctx.save();
+
+  // Start handle
+  ctx.fillStyle = "#38bdf8";
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2 * invScale;
+  ctx.beginPath();
+  ctx.arc(x1, y1, handleR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // End handle (tip)
+  ctx.beginPath();
+  ctx.arc(x2, y2, handleR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Interactive Curve Control Handles (mid, p1, p2)
+  if (cp1 && cp2) {
+    const p0 = { x: x1, y: y1 };
+    const p3 = { x: x2, y: y2 };
+    const pMid = getCubicBezierPoint(0.5, p0, cp1, cp2, p3);
+
+    // Gestrichelte Verbindungslinien (Leitlinien) zu den Bézier-Griffen
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+    ctx.lineWidth = 1.5 * invScale;
+    ctx.setLineDash([4 * invScale, 4 * invScale]);
+
+    // Von Start zu P1 und von Ende zu P2
+    ctx.beginPath();
+    ctx.moveTo(p0.x, p0.y);
+    ctx.lineTo(cp1.x, cp1.y);
+    ctx.moveTo(p3.x, p3.y);
+    ctx.lineTo(cp2.x, cp2.y);
+    ctx.stroke();
+
+    // Von P1 über Mid zu P2 (Bézier-Kontrollkäfig)
+    ctx.beginPath();
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.45)";
+    ctx.moveTo(cp1.x, cp1.y);
+    ctx.lineTo(pMid.x, pMid.y);
+    ctx.lineTo(cp2.x, cp2.y);
+    ctx.stroke();
+
+    // Midpoint handle (Amber/Yellow curve crown handle)
+    ctx.fillStyle = "#f59e0b";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2.5 * invScale;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(pMid.x, pMid.y, curveHandleR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // P1 handle (cyan, oberer Wölbungs-Griff für Bogen 1)
+    ctx.fillStyle = "#06b6d4";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2.5 * invScale;
+    ctx.beginPath();
+    ctx.arc(cp1.x, cp1.y, controlHandleR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // P2 handle (emerald, unterer Wölbungs-Griff für Bogen 2)
+    ctx.fillStyle = "#10b981";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2.5 * invScale;
+    ctx.beginPath();
+    ctx.arc(cp2.x, cp2.y, controlHandleR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15", isSelected = false, animTime = null, cp1 = null, cp2 = null, rawPoints = null, zoomScale = 1.0, skipHandles = false) {
   const dx = x2 - x1;
   const dy = y2 - y1;
   const dist = Math.hypot(dx, dy);
@@ -137,85 +220,9 @@ export function drawArrow(ctx, x1, y1, x2, y2, type = "pass", color = "#facc15",
     ctx.fill();
   }
 
-  // Draw interactive handle rings when selected
-  if (isSelected) {
-    // Zoom-invariante Handle-Größen: Skalieren nicht mit dem Zoom mit, bleiben auf dem Screen konstant scharf & handlich
-    const invScale = Math.max(0.4, Math.min(2.5, 1 / (zoomScale || 1.0)));
-    const handleR = 8 * invScale;
-    const curveHandleR = 8.5 * invScale;
-    const controlHandleR = 7.5 * invScale;
-
-    // Start handle
-    ctx.fillStyle = "#38bdf8";
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2 * invScale;
-    ctx.beginPath();
-    ctx.arc(x1, y1, handleR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // End handle (tip)
-    ctx.beginPath();
-    ctx.arc(x2, y2, handleR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Interactive Curve Control Handles (mid, p1, p2)
-    if (cp1 && cp2) {
-      const p0 = { x: x1, y: y1 };
-      const p3 = { x: x2, y: y2 };
-      const pMid = getCubicBezierPoint(0.5, p0, cp1, cp2, p3);
-
-      // Gestrichelte Verbindungslinien (Leitlinien) zu den Bézier-Griffen
-      ctx.save();
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-      ctx.lineWidth = 1.5 * invScale;
-      ctx.setLineDash([4 * invScale, 4 * invScale]);
-
-      // Von Start zu P1 und von Ende zu P2
-      ctx.beginPath();
-      ctx.moveTo(p0.x, p0.y);
-      ctx.lineTo(cp1.x, cp1.y);
-      ctx.moveTo(p3.x, p3.y);
-      ctx.lineTo(cp2.x, cp2.y);
-      ctx.stroke();
-
-      // Von P1 über Mid zu P2 (Bézier-Kontrollkäfig)
-      ctx.beginPath();
-      ctx.strokeStyle = "rgba(245, 158, 11, 0.45)";
-      ctx.moveTo(cp1.x, cp1.y);
-      ctx.lineTo(pMid.x, pMid.y);
-      ctx.lineTo(cp2.x, cp2.y);
-      ctx.stroke();
-      ctx.restore();
-
-      // Midpoint handle (Amber/Yellow curve crown handle)
-      ctx.fillStyle = "#f59e0b";
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2.5 * invScale;
-      ctx.beginPath();
-      ctx.arc(pMid.x, pMid.y, curveHandleR, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // P1 handle (cyan, oberer Wölbungs-Griff für Bogen 1)
-      ctx.fillStyle = "#06b6d4";
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2.5 * invScale;
-      ctx.beginPath();
-      ctx.arc(cp1.x, cp1.y, controlHandleR, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // P2 handle (emerald, unterer Wölbungs-Griff für Bogen 2)
-      ctx.fillStyle = "#10b981";
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2.5 * invScale;
-      ctx.beginPath();
-      ctx.arc(cp2.x, cp2.y, controlHandleR, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
+  // Draw interactive handle rings when selected (unless deferred to be on top of players)
+  if (isSelected && !skipHandles) {
+    drawArrowHandles(ctx, x1, y1, x2, y2, cp1, cp2, zoomScale);
   }
 
   ctx.restore();
