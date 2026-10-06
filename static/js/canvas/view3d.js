@@ -404,7 +404,7 @@ export class View3DManager {
       // Namens-Label (z.B. Spielername / Trainer) als 3D-Billboard über der Nummer
       if (el.name || el.label) {
         const nameSprite = this.createNameSprite(el.name || el.label);
-        nameSprite.position.y = 74;
+        nameSprite.position.y = 82;
         nameSprite.name = "nameSprite";
         group.add(nameSprite);
       }
@@ -734,7 +734,7 @@ export class View3DManager {
       }
       if (el.name || el.label) {
         const newNameSprite = this.createNameSprite(el.name || el.label);
-        newNameSprite.position.y = 74;
+        newNameSprite.position.y = 82;
         newNameSprite.name = "nameSprite";
         group.add(newNameSprite);
       }
@@ -770,17 +770,17 @@ export class View3DManager {
 
   createNameSprite(nameText) {
     const canvas = document.createElement("canvas");
-    canvas.width = 384;
-    canvas.height = 96;
+    canvas.width = 512;
+    canvas.height = 128;
     const ctx = canvas.getContext("2d");
 
     // Pill-Hintergrund für optimale Lesbarkeit im 3D-Raum
-    ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-    ctx.lineWidth = 4;
+    ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 5;
 
-    const r = 36;
-    const x = 12, y = 10, w = 360, h = 76;
+    const r = 48;
+    const x = 16, y = 14, w = 480, h = 100;
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.lineTo(x + w - r, y);
@@ -795,17 +795,18 @@ export class View3DManager {
     ctx.fill();
     ctx.stroke();
 
-    ctx.font = "bold 40px Inter, sans-serif";
+    // Großer, klar lesbarer Font
+    ctx.font = "bold 64px Inter, sans-serif";
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(nameText, 192, 48);
+    ctx.fillText(nameText, 256, 64);
 
     const texture = new window.THREE.CanvasTexture(canvas);
     const mat = new window.THREE.SpriteMaterial({ map: texture, depthTest: false });
     const sprite = new window.THREE.Sprite(mat);
-    // Deutlich größer skaliert (54 x 13.5 Einheiten statt 36 x 9)
-    sprite.scale.set(54, 13.5, 1);
+    // Extragroß: 96 Einheiten breit, 24 hoch (doppelt so groß wie vorher)
+    sprite.scale.set(96, 24, 1);
     return sprite;
   }
 
