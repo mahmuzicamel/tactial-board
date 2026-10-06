@@ -86,7 +86,7 @@
 <body class="bg-slate-950 text-slate-100 flex flex-col select-none inset-0 absolute">
 
   <!-- Floating / Collapsible Top Bar (Maximizes Canvas Workspace) -->
-  <header class="relative shrink-0 z-30 shadow-md safe-top">
+  <header class="relative shrink-0 z-30 shadow-md safe-top transform-gpu isolate">
     <!-- Slim Status / Toggle Bar (always accessible & safe on notch/island) -->
     <div class="h-10 sm:h-11 bg-slate-900 border-b border-slate-800 px-1.5 sm:px-3 flex items-center justify-between gap-1">
       <div class="flex items-center space-x-1 sm:space-x-2 shrink-0">
@@ -429,7 +429,7 @@
     </div>
 
     <!-- Center Column: Canvas + Bottom Tool Dock -->
-    <div class="relative flex-1 min-w-0 h-full flex flex-col items-center justify-between overflow-hidden">
+    <div class="relative flex-1 min-w-0 h-full flex flex-col items-center justify-between overflow-hidden transform-gpu isolate">
       <!-- Canvas Container (Fills 100% of space, no fixed max-height) -->
       <div id="canvasWrapper" class="relative flex-1 w-full min-h-0 overflow-hidden bg-[#24533e] flex items-center justify-center">
       <canvas id="tacticCanvas" width="1000" height="700" class="w-full h-full object-fill cursor-crosshair"></canvas>
@@ -670,7 +670,7 @@
     </div>
 
     <!-- Desktop Vertical Keyframe Steps Sidebar (Only visible on lg: / Desktop) -->
-    <aside id="desktopTimelineSidebar" class="hidden lg:flex flex-col w-72 shrink-0 h-full border-l border-slate-800 bg-slate-900 z-20 select-none">
+    <aside id="desktopTimelineSidebar" class="hidden lg:flex flex-col w-72 shrink-0 h-full border-l border-slate-800 bg-slate-900 z-20 select-none transform-gpu isolate">
       <!-- Sidebar Header: Title & Playback Controls -->
       <div class="p-3 border-b border-slate-800 flex flex-col gap-2.5 bg-slate-950/40">
         <div class="flex items-center justify-between">
@@ -1236,7 +1236,7 @@
     <span id="toastMsg">Mitteilung</span>
   </div>
 
-  <script type="module" src="/static/js/app-module.js?v=166"></script>
-  <script src="/static/app.js?v=166"></script>
+  <script type="module" src="/static/js/app-module.js?v=167"></script>
+  <script src="/static/app.js?v=167"></script>
 </body>
 </html>

@@ -51,7 +51,8 @@ export function updateKeyframeActiveTabs(activeIndex) {
     if (indicator && cards[activeIndex]) {
       const targetCard = cards[activeIndex];
       indicator.style.display = "block";
-      indicator.style.transform = `translateY(${targetCard.offsetTop}px)`;
+      const padTop = 8; // p-2 padding vom keyframesListDesktop
+      indicator.style.transform = `translateY(${targetCard.offsetTop - padTop}px)`;
       indicator.style.height = `${targetCard.offsetHeight}px`;
     }
   }
@@ -257,7 +258,8 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
       if (indicator && cards[activeIdx]) {
         const targetCard = cards[activeIdx];
         indicator.style.display = "block";
-        indicator.style.transform = `translateY(${targetCard.offsetTop}px)`;
+        const padTop = 8;
+        indicator.style.transform = `translateY(${targetCard.offsetTop - padTop}px)`;
         indicator.style.height = `${targetCard.offsetHeight}px`;
       }
     });

@@ -2368,7 +2368,11 @@
       },
       (stepIdx) => {
         S().currentKeyframeIndex = stepIdx;
-        window.renderKeyframeTabs();
+        if (TC() && TC().timeline && typeof TC().timeline.updateKeyframeActiveTabs === "function") {
+          TC().timeline.updateKeyframeActiveTabs(stepIdx);
+        } else {
+          window.renderKeyframeTabs();
+        }
       }
     );
 
