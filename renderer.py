@@ -539,43 +539,54 @@ def _draw_element_direct(draw: ImageDraw.ImageDraw, el: Dict[str, Any], scale: f
         draw.ellipse([x - 6, y + 6, x + 6, y + 12], fill="#000000")
 
     elif el_type == "minigoal":
-        # Refined minigoal: semi-transparent net pattern with crisp white posts
-        # Check if rotated (e.g. angle around 90 or 270)
-        angle = el.get("angle", 0)
-        is_rotated = (angle % 180) != 0
-        gw = 22 if is_rotated else 36
-        gh = 36 if is_rotated else 22
-        # Net fill
-        draw.rectangle([x - gw/2, y - gh/2, x + gw/2, y + gh/2], fill="#ffffff33", outline="#ffffff", width=3)
-        # Net cross lines
-        if not is_rotated:
-            for net_x in [x - 6, x + 6]:
-                draw.line([(net_x, y - gh/2), (net_x, y + gh/2)], fill="#ffffff55", width=1)
-            draw.line([(x - gw/2, y), (x + gw/2, y)], fill="#ffffff55", width=1)
-        else:
-            for net_y in [y - 6, y + 6]:
-                draw.line([(x - gw/2, net_y), (x + gw/2, net_y)], fill="#ffffff55", width=1)
-            draw.line([(x, y - gh/2), (x, y + gh/2)], fill="#ffffff55", width=1)
+        # Refined minigoal with crystal clear front (opening) vs back (net)
+        # In local coords: front line at y = -gh/2, back net at y = +gh/2
+        gw = 38
+        gh = 22
+        # Net background shadow
+        draw.rectangle([x - gw/2, y - gh/2, x + gw/2, y + gh/2], fill="#00000040")
+        # Net mesh lines
+        for net_x in range(int(x - gw/2 + 6), int(x + gw/2), 6):
+            draw.line([(net_x, y - gh/2), (net_x, y + gh/2)], fill="#ffffff44", width=1)
+        for net_y in range(int(y - gh/2 + 5), int(y + gh/2), 5):
+            draw.line([(x - gw/2, net_y), (x + gw/2, net_y)], fill="#ffffff44", width=1)
+        # Back and side ground frame (thinner, grey-white)
+        draw.line([(x - gw/2, y - gh/2), (x - gw/2, y + gh/2)], fill="#ffffffaa", width=2)
+        draw.line([(x - gw/2, y + gh/2), (x + gw/2, y + gh/2)], fill="#ffffffaa", width=2)
+        draw.line([(x + gw/2, y + gh/2), (x + gw/2, y - gh/2)], fill="#ffffffaa", width=2)
+        # FRONT: Thick solid white crossbar / goal line (opening)
+        draw.line([(x - gw/2, y - gh/2), (x + gw/2, y - gh/2)], fill="#ffffff", width=5)
+        # Front goal posts (circular markings on front edge)
+        draw.ellipse([x - gw/2 - 3, y - gh/2 - 3, x - gw/2 + 3, y - gh/2 + 3], fill="#ffffff", outline="#111827", width=1)
+        draw.ellipse([x + gw/2 - 3, y - gh/2 - 3, x + gw/2 + 3, y - gh/2 + 3], fill="#ffffff", outline="#111827", width=1)
 
     elif el_type == "goal_5m":
         # 5m x 2m Jugendtor (E-Jugend / Kleinfeldtor)
-        gw = 70
-        gh = 30
-        draw.rectangle([x - gw/2, y - gh/2, x + gw/2, y + gh/2], fill="#ffffff26", outline="#ffffff", width=4)
+        # Front line at y = -gh/2, back net at y = +gh/2
+        gw = 74
+        gh = 32
+        # Net background shadow
+        draw.rectangle([x - gw/2, y - gh/2, x + gw/2, y + gh/2], fill="#00000048")
         # Net grid lines
-        for gx in range(int(x - gw/2 + 10), int(x + gw/2), 10):
+        for gx in range(int(x - gw/2 + 8), int(x + gw/2), 8):
             draw.line([(gx, y - gh/2), (gx, y + gh/2)], fill="#ffffff55", width=1)
-        for gy in range(int(y - gh/2 + 10), int(y + gh/2), 10):
+        for gy in range(int(y - gh/2 + 7), int(y + gh/2), 7):
             draw.line([(x - gw/2, gy), (x + gw/2, gy)], fill="#ffffff55", width=1)
-        # Post markings
-        draw.rectangle([x - gw/2 - 3, y - gh/2 - 3, x - gw/2 + 3, y - gh/2 + 3], fill="#ffffff")
-        draw.rectangle([x + gw/2 - 3, y - gh/2 - 3, x + gw/2 + 3, y - gh/2 + 3], fill="#ffffff")
-        # Text label
+        # Rear and side frame
+        draw.line([(x - gw/2, y - gh/2), (x - gw/2 + 2, y + gh/2)], fill="#ffffffcc", width=2)
+        draw.line([(x - gw/2 + 2, y + gh/2), (x + gw/2 - 2, y + gh/2)], fill="#ffffffcc", width=2)
+        draw.line([(x + gw/2 - 2, y + gh/2), (x + gw/2, y - gh/2)], fill="#ffffffcc", width=2)
+        # FRONT: Heavy solid white goal line / crossbar
+        draw.line([(x - gw/2, y - gh/2), (x + gw/2, y - gh/2)], fill="#ffffff", width=6)
+        # Front heavy square posts
+        draw.rectangle([x - gw/2 - 4, y - gh/2 - 4, x - gw/2 + 4, y - gh/2 + 4], fill="#ffffff", outline="#0f172a", width=1)
+        draw.rectangle([x + gw/2 - 4, y - gh/2 - 4, x + gw/2 + 4, y - gh/2 + 4], fill="#ffffff", outline="#0f172a", width=1)
+        # Text label inside net
         lbl_font = get_font(9, bold=True)
         lbl_bbox = draw.textbbox((0, 0), "5m Tor", font=lbl_font)
         lw = lbl_bbox[2] - lbl_bbox[0]
         lh = lbl_bbox[3] - lbl_bbox[1]
-        draw.text((x - lw / 2 - lbl_bbox[0], y - lh / 2 - lbl_bbox[1]), "5m Tor", fill="#ffffffd9", font=lbl_font)
+        draw.text((x - lw / 2 - lbl_bbox[0], y - lh / 2 - lbl_bbox[1] + 2), "5m Tor", fill="#ffffffd9", font=lbl_font)
 
     elif el_type == "ladder":
         # Coordination ladder

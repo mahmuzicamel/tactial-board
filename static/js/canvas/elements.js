@@ -176,52 +176,135 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
     ctx.fill();
 
   } else if (el.type === "minigoal") {
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(-18, -11, 36, 22);
-    ctx.fillStyle = "rgba(255,255,255,0.2)";
-    ctx.fillRect(-18, -11, 36, 22);
+    // Minitor: Draufsicht mit klarer Ausrichtung
+    // VORNE (Toröffnung / Torlinie): y = -11 (starke weiße Linie / Pfosten)
+    // HINTEN (Netzboden): y = +11 (abgerundetes Netz nach hinten)
+    const gw = 38;
+    const gh = 22;
 
-  } else if (el.type === "goal_5m") {
-    // 5m x 2m Jugendtor (E-Jugend / Kleinfeldtor)
-    const gw = 70;
-    const gh = 30;
-    // Goal net background
-    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-    ctx.fillRect(-gw / 2, -gh / 2, gw, gh);
-    // Net pattern (cross hatch)
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    // 1. Netztiefe / Innenraum: Halbtransparenter Schatten
+    ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+    ctx.beginPath();
+    ctx.rect(-gw / 2, -gh / 2, gw, gh);
+    ctx.fill();
+
+    // 2. Netz-Muster (Gitter im hinteren Torraum)
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
     ctx.lineWidth = 1;
-    for (let gx = -gw / 2 + 10; gx < gw / 2; gx += 10) {
+    for (let gx = -gw / 2 + 6; gx < gw / 2; gx += 6) {
       ctx.beginPath();
       ctx.moveTo(gx, -gh / 2);
       ctx.lineTo(gx, gh / 2);
       ctx.stroke();
     }
-    for (let gy = -gh / 2 + 10; gy < gh / 2; gy += 10) {
+    for (let gy = -gh / 2 + 5; gy <= gh / 2; gy += 5) {
       ctx.beginPath();
       ctx.moveTo(-gw / 2, gy);
       ctx.lineTo(gw / 2, gy);
       ctx.stroke();
     }
-    // Goal frame (post and crossbar)
+
+    // 3. Hinterer Bodenrahmen & Seitenbügel (dünner weiß / grau)
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    // Linke Seitenstrebe nach hinten, Hintere Bodenleiste, Rechte Seitenstrebe nach vorne
+    ctx.moveTo(-gw / 2, -gh / 2);
+    ctx.lineTo(-gw / 2, gh / 2);
+    ctx.lineTo(gw / 2, gh / 2);
+    ctx.lineTo(gw / 2, -gh / 2);
+    ctx.stroke();
+
+    // 4. VORNE: Dicke markante weiße Querlatte / Torlinie (ÖFFNUNG)
     ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 4;
-    ctx.strokeRect(-gw / 2, -gh / 2, gw, gh);
-    // Post markings
+    ctx.lineWidth = 5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(-gw / 2, -gh / 2);
+    ctx.lineTo(gw / 2, -gh / 2);
+    ctx.stroke();
+
+    // 5. Zwei markante Torpfosten (runde weiße Punkte vorne links & rechts)
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(-gw / 2 - 3, -gh / 2 - 3, 6, 6);
-    ctx.fillRect(gw / 2 - 3, -gh / 2 - 3, 6, 6);
-    // Label "5m Tor" inside net (always upright for viewer)
+    ctx.beginPath();
+    ctx.arc(-gw / 2, -gh / 2, 4, 0, Math.PI * 2);
+    ctx.arc(gw / 2, -gh / 2, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#1e293b";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // 6. Kleiner Richtungspfeil / Netzbogen-Markierung hinten
+    ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+    ctx.beginPath();
+    ctx.arc(0, gh / 2 - 2, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+  } else if (el.type === "goal_5m") {
+    // 5m x 2m Jugendtor (E-Jugend / Kleinfeldtor)
+    // VORNE (Toröffnung / Linie): y = -gh/2 (-16) mit dicken Torpfosten & Querlatte
+    // HINTEN (Tornetz): y = +gh/2 (+16) trapezförmig/nach hinten vertieft
+    const gw = 74;
+    const gh = 32;
+
+    // 1. Schatten & Netzraum
+    ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+    ctx.fillRect(-gw / 2, -gh / 2, gw, gh);
+
+    // 2. Echtes Maschen-Netz (grau-weiß)
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.lineWidth = 1;
+    for (let gx = -gw / 2 + 8; gx < gw / 2; gx += 8) {
+      ctx.beginPath();
+      ctx.moveTo(gx, -gh / 2);
+      ctx.lineTo(gx, gh / 2);
+      ctx.stroke();
+    }
+    for (let gy = -gh / 2 + 7; gy <= gh / 2; gy += 7) {
+      ctx.beginPath();
+      ctx.moveTo(-gw / 2, gy);
+      ctx.lineTo(gw / 2, gy);
+      ctx.stroke();
+    }
+
+    // 3. Hinterer Bodenrahmen & Netzbügel
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(-gw / 2, -gh / 2);
+    ctx.lineTo(-gw / 2 + 2, gh / 2);
+    ctx.lineTo(gw / 2 - 2, gh / 2);
+    ctx.lineTo(gw / 2, -gh / 2);
+    ctx.stroke();
+
+    // 4. VORNE: Massive weiße Torlatte / Toröffnung mit starkem Kontrast
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 6;
+    ctx.lineCap = "square";
+    ctx.beginPath();
+    ctx.moveTo(-gw / 2, -gh / 2);
+    ctx.lineTo(gw / 2, -gh / 2);
+    ctx.stroke();
+
+    // 5. Massive quadratische Pfosten vorne links & rechts
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(-gw / 2 - 4, -gh / 2 - 4, 8, 8);
+    ctx.fillRect(gw / 2 - 4, -gh / 2 - 4, 8, 8);
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(-gw / 2 - 4, -gh / 2 - 4, 8, 8);
+    ctx.strokeRect(gw / 2 - 4, -gh / 2 - 4, 8, 8);
+
+    // 6. Label \"5m Tor\" im Netzraum
     ctx.save();
     if (el.rotation) {
       ctx.rotate((-el.rotation * Math.PI) / 180);
     }
-    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-    ctx.font = "bold 10px sans-serif";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.font = "bold 9px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("5m Tor", 0, 0);
+    ctx.fillText("5m Tor", 0, 2);
     ctx.restore();
 
   } else if (el.type === "ladder") {
