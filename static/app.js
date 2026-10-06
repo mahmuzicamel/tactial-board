@@ -453,6 +453,78 @@
       ctx.restore();
     }
 
+    // 8. Debug Overlay: Subtile Umrandung aller interaktiven Hitboxen / Auswahlflächen
+    if (s.isDebugHitAreas && !s.isPlaying) {
+      ctx.save();
+      const effectiveElScale = Math.max(0.6, s.globalElementScale || 1.0);
+      const baseHitRadius = Math.max(26 * effectiveElScale, (34 * effectiveElScale) / Math.sqrt(s.viewScale));
+      const playerBodyRadius = 20 * effectiveElScale;
+      const arrowHitThreshold = Math.max(18, 26 / Math.sqrt(s.viewScale));
+      const handleThreshold = Math.max(20, 28 / Math.sqrt(s.viewScale));
+
+      // Elemente / Spieler: Kern-Hitbox (grün) und Toleranz-Zone (gepunktet cyan)
+      (elements || []).forEach(el => {
+        const isZone = (el.type === "zone_rect" || el.type === "zone_circle" || el.type === "zone_triangle");
+        if (isZone) return;
+        const r = (el.type === "ball" ? 14 : playerBodyRadius);
+
+        // Direkte Klick-Fläche (Spieler-Körper)
+        ctx.strokeStyle = "rgba(16, 185, 129, 0.75)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.arc(el.x, el.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Erweiterte Toleranzzone
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.35)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.arc(el.x, el.y, baseHitRadius, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+
+      // Linien & Pfeile: Klick-Hitboxen für Start/Ende (orange) und Pfad (gelb gepunktet)
+      (arrows || []).forEach(arr => {
+        const { p1, p2 } = TC().geometry.getArrowCurveControlPoints(arr);
+
+        // Start Handle Hitbox
+        ctx.strokeStyle = "rgba(249, 115, 22, 0.7)";
+        ctx.fillStyle = "rgba(249, 115, 22, 0.12)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.arc(arr.x1, arr.y1, handleThreshold, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // End Handle Hitbox
+        ctx.beginPath();
+        ctx.arc(arr.x2, arr.y2, handleThreshold, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Linienkörper Hitbox-Schlauch
+        ctx.strokeStyle = "rgba(234, 179, 8, 0.3)";
+        ctx.lineWidth = arrowHitThreshold * 2;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        if (arr.raw_points && arr.raw_points.length >= 2) {
+          ctx.moveTo(arr.raw_points[0].x, arr.raw_points[0].y);
+          for (let i = 1; i < arr.raw_points.length; i++) ctx.lineTo(arr.raw_points[i].x, arr.raw_points[i].y);
+        } else {
+          ctx.moveTo(arr.x1, arr.y1);
+          ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, arr.x2, arr.y2);
+        }
+        ctx.stroke();
+      });
+
+      ctx.restore();
+    }
+
     ctx.restore();
 
     // Check guide pulsing loop
@@ -585,6 +657,23 @@
       } else {
         btn.className = "px-1.5 py-1 bg-slate-800 text-slate-400 font-bold text-[11px] rounded-md border border-slate-700 transition flex items-center gap-1";
         lbl.innerText = "Ghost";
+      }
+    }
+    window.drawScene();
+  };
+
+  window.toggleDebugHitAreas = function () {
+    const s = S();
+    s.isDebugHitAreas = !s.isDebugHitAreas;
+    const btn = document.getElementById("debugHitboxToggleBtn");
+    const lbl = document.getElementById("debugHitboxToggleLabel");
+    if (btn && lbl) {
+      if (s.isDebugHitAreas) {
+        btn.className = "px-2 py-0.5 bg-rose-950/70 text-rose-300 font-bold text-[11px] rounded-md border border-rose-600/60 transition flex items-center gap-1";
+        lbl.innerText = "Ein";
+      } else {
+        btn.className = "px-2 py-0.5 bg-slate-800 text-slate-400 font-bold text-[11px] rounded-md border border-slate-700 transition flex items-center gap-1";
+        lbl.innerText = "Aus";
       }
     }
     window.drawScene();
