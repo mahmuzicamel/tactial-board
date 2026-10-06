@@ -52,7 +52,7 @@ export function updateKeyframeActiveTabs(activeIndex) {
       const targetCard = cards[activeIndex];
       indicator.style.display = "block";
       indicator.style.transform = `translateY(${targetCard.offsetTop}px)`;
-      indicator.style.height = `${targetCard.offsetHeight}px`;
+      indicator.style.height = `${targetCard.offsetHeight || 55}px`;
     }
   }
 }
@@ -141,6 +141,7 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
   const indicator = document.createElement("div");
   indicator.id = "desktopKeyframeIndicator";
   indicator.className = "absolute left-2 right-2 top-0 rounded-xl pointer-events-none border-2 border-emerald-500 bg-emerald-500/10 shadow-lg shadow-emerald-500/20 z-10 transition-all duration-300 ease-out";
+  indicator.style.height = "55px";
   indicator.style.display = "none";
   listDesktop.appendChild(indicator);
 
@@ -250,16 +251,19 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
       listDesktop.appendChild(card);
     });
 
-    // Initialen Indikator auf aktiven Keyframe ausrichten
-    requestAnimationFrame(() => {
+    // Initialen Indikator auf aktiven Keyframe ausrichten (mit 55px Baseline)
+    const alignInitialIndicator = () => {
       const cards = listDesktop.querySelectorAll(".keyframe-desktop-card");
       const activeIdx = state.currentKeyframeIndex || 0;
       if (indicator && cards[activeIdx]) {
         const targetCard = cards[activeIdx];
+        const h = targetCard.offsetHeight || 55;
         indicator.style.display = "block";
         indicator.style.transform = `translateY(${targetCard.offsetTop}px)`;
-        indicator.style.height = `${targetCard.offsetHeight}px`;
+        indicator.style.height = `${h}px`;
       }
-    });
+    };
+    requestAnimationFrame(alignInitialIndicator);
+    setTimeout(alignInitialIndicator, 50);
   }
 }
