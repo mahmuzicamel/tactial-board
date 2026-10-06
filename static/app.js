@@ -2239,6 +2239,21 @@
         }
       } else if (e.key === " " && !e.repeat) {
         e.preventDefault(); window.togglePlayAnimation();
+      } else if (e.key === "p" || e.key === "P") {
+        if (typeof window.setActiveTool === "function") window.setActiveTool("pass");
+      } else if (e.key === "l" || e.key === "L") {
+        if (typeof window.setActiveTool === "function") window.setActiveTool("run");
+      } else if (e.key === "v" || e.key === "V" || e.key === "Escape") {
+        if (typeof window.setActiveTool === "function") window.setActiveTool("select");
+      } else if (e.altKey && (e.key === "ArrowLeft" || e.key === "PageUp")) {
+        e.preventDefault();
+        const cur = S().currentKeyframeIndex;
+        if (cur > 0) window.selectKeyframe(cur - 1);
+      } else if (e.altKey && (e.key === "ArrowRight" || e.key === "PageDown")) {
+        e.preventDefault();
+        const cur = S().currentKeyframeIndex;
+        const total = (S().currentExercise?.keyframes || []).length;
+        if (cur < total - 1) window.selectKeyframe(cur + 1);
       } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
         const s = S();
         const kf = TC().getCurrentKeyframe();
