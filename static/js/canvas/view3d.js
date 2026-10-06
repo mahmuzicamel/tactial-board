@@ -4,6 +4,8 @@
 
 import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from "../core/constants.js";
 import { drawPitchBackground } from "../core/pitch.js";
+import { drawArrow } from "./arrows.js";
+import { getArrowCurveControlPoints } from "../core/geometry.js";
 
 export class View3DManager {
   constructor(containerEl, stateRef, getCurrentExerciseFn) {
@@ -27,6 +29,7 @@ export class View3DManager {
     // Object Pools / Meshes
     this.elementMeshes = new Map(); // id -> THREE.Group
     this.arrowLines = []; // array of THREE.Line / THREE.Mesh
+    this.currentArrows = [];
     this.zoneMeshes = new Map(); // id -> THREE.Mesh
 
     this.sharedMaterials = {};
@@ -122,14 +125,14 @@ export class View3DManager {
 
   createPitch() {
     const T = window.THREE;
-    // 2D-Textur aus unserer vorhandenen pitch.js Zeichenlogik rendern!
+    // 2D-Textur aus unserer vorhandenen pitch.js Zeichenlogik rendern! (2048x1434 für gestochen scharfe 2D-Linien)
     this.pitchTextureCanvas = document.createElement("canvas");
-    this.pitchTextureCanvas.width = 1024;
-    this.pitchTextureCanvas.height = 716;
+    this.pitchTextureCanvas.width = 2048;
+    this.pitchTextureCanvas.height = 1432;
     this.pitchTextureCtx = this.pitchTextureCanvas.getContext("2d");
 
     this.pitchTexture = new T.CanvasTexture(this.pitchTextureCanvas);
-    this.pitchTexture.anisotropy = 8;
+    this.pitchTexture.anisotropy = 16;
 
     this.updatePitchTexture();
 
@@ -162,14 +165,50 @@ export class View3DManager {
   updatePitchTexture() {
     if (!this.pitchTextureCtx) return;
     const ctx = this.pitchTextureCtx;
-    ctx.clearRect(0, 0, 1024, 716);
+    ctx.clearRect(0, 0, 2048, 1432);
 
     ctx.save();
-    // Skaliere virtuelle Spielfeld-Koordinaten (1000x700) auf 1024x716
-    ctx.scale(1024 / VIRTUAL_WIDTH, 716 / VIRTUAL_HEIGHT);
+    // Skaliere virtuelle Spielfeld-Koordinaten (1000x700) auf 2048x1432
+    ctx.scale(2048 / VIRTUAL_WIDTH, 1432 / VIRTUAL_HEIGHT);
     const ex = this.getCurrentExercise ? this.getCurrentExercise() : null;
     const pitchType = (ex && ex.pitch_type) || this.state.pitchType || "half";
     drawPitchBackground(ctx, pitchType);
+
+    // Zeichne 2D-Taktiklinien direkt gestochen scharf auf den Rasen
+    if (this.currentArrows && this.currentArrows.length > 0) {
+      this.currentArrows.forEach(arr => {
+        let cp1 = null;
+        let cp2 = null;
+        try {
+          const cp = getArrowCurveControlPoints(arr);
+          cp1 = cp.p1;
+          cp2 = cp.p2;
+        } catch (e) {
+          if (arr.cp1_dx !== undefined && (arr.cp1_dx !== 0 || arr.cp1_dy !== 0 || arr.cp2_dx !== 0 || arr.cp2_dy !== 0)) {
+            cp1 = { x: arr.x1 + arr.cp1_dx, y: arr.y1 + arr.cp1_dy };
+            cp2 = { x: arr.x2 + (arr.cp2_dx || 0), y: arr.y2 + (arr.cp2_dy || 0) };
+          }
+        }
+        // In 3D etwas kräftigerer Stroke (zoomScale = 1.35), flach und sauber als 2D-Linie auf dem Rasen
+        drawArrow(
+          ctx,
+          arr.x1,
+          arr.y1,
+          arr.x2,
+          arr.y2,
+          arr.type || "pass",
+          arr.color || (arr.type === "pass" ? "#facc15" : (arr.type === "guide" ? "#fbbf24" : "#38bdf8")),
+          false,
+          null,
+          cp1,
+          cp2,
+          arr.rawPoints || null,
+          1.35,
+          true // keine interaktiven Bearbeitungs-Griffe in 3D
+        );
+      });
+    }
+
     ctx.restore();
 
     if (this.pitchTexture) this.pitchTexture.needsUpdate = true;
@@ -886,95 +925,12 @@ export class View3DManager {
   }
 
   render3DArrows(arrows) {
-    const T = window.THREE;
-    // Bereinige alte Linien
-    this.arrowLines.forEach(l => this.scene.remove(l));
-    this.arrowLines = [];
-
-    const TC_REF = window.TacticalCoach || (typeof TC === "function" ? TC() : null);
-
-    arrows.forEach(arr => {
-      const pStart = this.to3DCoords(arr.x1, arr.y1);
-      const pEnd = this.to3DCoords(arr.x2, arr.y2);
-
-      const col = new T.Color(arr.color || (arr.type === "pass" ? "#facc15" : (arr.type === "guide" ? "#fbbf24" : "#38bdf8")));
-      let curve3D = null;
-
-      // Ermittle exakte Kontrollpunkte (inklusive Mittelpunkt-Wölbung & Handles)
-      let p1_2d = null;
-      let p2_2d = null;
-      if (TC_REF && TC_REF.geometry && typeof TC_REF.geometry.getArrowCurveControlPoints === "function") {
-        const cp = TC_REF.geometry.getArrowCurveControlPoints(arr);
-        p1_2d = cp.p1;
-        p2_2d = cp.p2;
-      } else if (arr.cp1_dx !== undefined && (arr.cp1_dx !== 0 || arr.cp1_dy !== 0 || arr.cp2_dx !== 0 || arr.cp2_dy !== 0)) {
-        p1_2d = { x: arr.x1 + arr.cp1_dx, y: arr.y1 + arr.cp1_dy };
-        p2_2d = { x: arr.x2 + (arr.cp2_dx || 0), y: arr.y2 + (arr.cp2_dy || 0) };
-      }
-
-      const isCurved = p1_2d && p2_2d && (
-        Math.hypot(p1_2d.x - (arr.x1 + (arr.x2 - arr.x1) / 3), p1_2d.y - (arr.y1 + (arr.y2 - arr.y1) / 3)) > 1 ||
-        Math.hypot(p2_2d.x - (arr.x1 + (arr.x2 - arr.x1) * 2 / 3), p2_2d.y - (arr.y1 + (arr.y2 - arr.y1) * 2 / 3)) > 1
-      );
-
-      if (isCurved) {
-        const p1_3d = this.to3DCoords(p1_2d.x, p1_2d.y);
-        const p2_3d = this.to3DCoords(p2_2d.x, p2_2d.y);
-        curve3D = new T.CubicBezierCurve3(
-          new T.Vector3(pStart.x, 2.2, pStart.z),
-          new T.Vector3(p1_3d.x, 2.2, p1_3d.z),
-          new T.Vector3(p2_3d.x, 2.2, p2_3d.z),
-          new T.Vector3(pEnd.x, 2.2, pEnd.z)
-        );
-      } else {
-        curve3D = new T.LineCurve3(
-          new T.Vector3(pStart.x, 2.2, pStart.z),
-          new T.Vector3(pEnd.x, 2.2, pEnd.z)
-        );
-      }
-
-      // Echte 3D-Röhren-Geometrie für dicke, plastische und überall sichtbare Linien
-      // Radius: 2.2 (Pass/Lauf) bzw 2.8 für markante Taktiklinien
-      const tubeRadius = (arr.type === "guide") ? 1.8 : 2.5;
-      const tubularSegments = isCurved ? 36 : 12;
-      const tubeGeo = new T.TubeGeometry(curve3D, tubularSegments, tubeRadius, 8, false);
-      const tubeMat = new T.MeshStandardMaterial({
-        color: col,
-        roughness: 0.35,
-        metalness: 0.1,
-        emissive: col,
-        emissiveIntensity: 0.25
-      });
-      const tubeMesh = new T.Mesh(tubeGeo, tubeMat);
-      tubeMesh.castShadow = true;
-      tubeMesh.receiveShadow = false;
-      this.scene.add(tubeMesh);
-      this.arrowLines.push(tubeMesh);
-
-      // Pfeilspitze (Kegel) am Endpunkt - proportional vergrößert
-      const tipRadius = tubeRadius * 2.8;
-      const tipHeight = tubeRadius * 5.5;
-      const tipGeo = new T.ConeGeometry(tipRadius, tipHeight, 16);
-      const tipMat = new T.MeshStandardMaterial({
-        color: col,
-        roughness: 0.3,
-        metalness: 0.1,
-        emissive: col,
-        emissiveIntensity: 0.25
-      });
-      const tip = new T.Mesh(tipGeo, tipMat);
-      tip.castShadow = true;
-
-      // Richtung der Spitze präzise aus der Tangente am Kurvenende berechnen
-      const tangent = curve3D.getTangent(1.0).normalize();
-      // Verschiebe die Spitze minimal entlang der Tangente
-      const tipPos = new T.Vector3(pEnd.x, 2.2, pEnd.z).addScaledVector(tangent, tipHeight * 0.35);
-      tip.position.copy(tipPos);
-      tip.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), tangent);
-
-      this.scene.add(tip);
-      this.arrowLines.push(tip);
-    });
+    // Aktualisiere gecachte Linien und zeichne sie als flache, saubere 2D-Linien direkt auf die Spielfeld-Textur
+    const arrowsChanged = JSON.stringify(this.currentArrows) !== JSON.stringify(arrows);
+    this.currentArrows = arrows ? JSON.parse(JSON.stringify(arrows)) : [];
+    if (arrowsChanged) {
+      this.updatePitchTexture();
+    }
   }
 
   // Nimmt eine vollständige Animation als Video via CCapture.js frame-by-frame auf (100% flüssig, keine Framedrops)
