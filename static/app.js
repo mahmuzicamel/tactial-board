@@ -1118,10 +1118,12 @@
     s.selectedElementIds = [];
     s.selectedArrowIndex = null;
 
-    // Stationary Training Equipment propagates to ALL keyframes in the exercise!
-    if (TC().constants.isEquipment(type) && s.currentExercise && Array.isArray(s.currentExercise.keyframes)) {
+    // Elements (Player, Ball, Equipment) propagate automatically to ALL keyframes in the exercise!
+    // So the trainer never loses newly added players/balls in other steps.
+    if (s.currentExercise && Array.isArray(s.currentExercise.keyframes)) {
       s.currentExercise.keyframes.forEach((otherKf, idx) => {
         if (idx !== s.currentKeyframeIndex) {
+          if (!otherKf.elements) otherKf.elements = [];
           const exists = otherKf.elements.some(it => it.id === newEl.id);
           if (!exists) {
             otherKf.elements.push(JSON.parse(JSON.stringify(newEl)));
@@ -1151,6 +1153,16 @@
           clone.y = Math.max(30, Math.min(670, clone.y + offset.dy));
           kf.elements.push(clone);
           newIds.push(clone.id);
+
+          // Propagate cloned element to all other keyframes
+          if (s.currentExercise && Array.isArray(s.currentExercise.keyframes)) {
+            s.currentExercise.keyframes.forEach((otherKf, oIdx) => {
+              if (oIdx !== s.currentKeyframeIndex) {
+                if (!otherKf.elements) otherKf.elements = [];
+                otherKf.elements.push(JSON.parse(JSON.stringify(clone)));
+              }
+            });
+          }
         }
       });
       s.selectedElementIds = newIds;
@@ -1173,6 +1185,17 @@
         }
         kf.elements.push(clone);
         s.selectedElementId = clone.id;
+
+        // Propagate cloned element to all other keyframes
+        if (s.currentExercise && Array.isArray(s.currentExercise.keyframes)) {
+          s.currentExercise.keyframes.forEach((otherKf, oIdx) => {
+            if (oIdx !== s.currentKeyframeIndex) {
+              if (!otherKf.elements) otherKf.elements = [];
+              otherKf.elements.push(JSON.parse(JSON.stringify(clone)));
+            }
+          });
+        }
+
         TC().inspectors.showInspector(clone);
         window.drawScene();
         window.updateActionPopupPosition();
