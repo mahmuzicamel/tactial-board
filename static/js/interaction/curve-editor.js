@@ -15,7 +15,7 @@ export function handleCurvePointerDown(x, y, kf, prevKf, handleHitRadius) {
         if (dist > 8) {
           const { p1, p2 } = getEffectiveCurveControlPoints(prevEl, currEl);
           const pMid = getCubicBezierPoint(0.5, prevEl, p1, p2, currEl);
-          const ghostHitR = Math.min(handleHitRadius, 20);
+          const ghostHitR = Math.max(14, handleHitRadius);
 
           if (Math.hypot(x - p1.x, y - p1.y) <= ghostHitR) {
             return {

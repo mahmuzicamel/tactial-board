@@ -438,6 +438,72 @@
       }
     });
 
+    // 6a-ghost. Ghost-Kurven-Griffe (P1, P2, Mid) für selektierte Elemente (Spieler/Ball) ÜBER den Elementen rendern!
+    // So kann man auch bei Dribblings oder Ball am Fuß den Wölbungs-Griff direkt greifen, selbst wenn er unter/auf dem Spieler liegt.
+    if (s.isGhostMode !== "off" && !s.isPlaying && s.currentKeyframeIndex > 0) {
+      const selElemIds = s.selectedElementIds.length > 0 ? s.selectedElementIds : (s.selectedElementId ? [s.selectedElementId] : []);
+      const prevKf = s.currentExercise.keyframes[s.currentKeyframeIndex - 1];
+      if (prevKf && selElemIds.length > 0) {
+        const invScale = Math.max(0.4, Math.min(2.5, 1 / (s.viewScale || 1.0)));
+        const handleR = Math.max(4, 7 * invScale);
+        const midHandleR = Math.max(4.5, 8 * invScale);
+
+        selElemIds.forEach(selId => {
+          const currEl = (elements || []).find(it => it.id === selId);
+          if (!currEl || (currEl.type !== "player" && currEl.type !== "ball")) return;
+          const prevEl = (prevKf.elements || []).find(it => it.id === selId);
+          if (!prevEl || Math.hypot(currEl.x - prevEl.x, currEl.y - prevEl.y) <= 8) return;
+
+          const teamCol = currEl.type === "ball" ? "#facc15" : (currEl.team === "red" ? "#f87171" : currEl.team === "blue" ? "#60a5fa" : (currEl.team === "orange" ? "#fb923c" : "#34d399"));
+          const { p1, p2 } = TC().geometry.getEffectiveCurveControlPoints(prevEl, currEl);
+          const pMid = TC().geometry.getCubicBezierPoint(0.5, prevEl, p1, p2, currEl);
+
+          ctx.save();
+          // Gestrichelte Leitlinien
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.65)";
+          ctx.lineWidth = 1.4 * invScale;
+          ctx.setLineDash([3 * invScale, 3 * invScale]);
+          ctx.beginPath();
+          ctx.moveTo(prevEl.x, prevEl.y);
+          ctx.lineTo(p1.x, p1.y);
+          ctx.lineTo(pMid.x, pMid.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.lineTo(currEl.x, currEl.y);
+          ctx.stroke();
+
+          // P1 Wölbungsgriff
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = teamCol;
+          ctx.lineWidth = 2.2 * invScale;
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.arc(p1.x, p1.y, handleR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Midpoint Kurvenkrone / Dribbel-Bogen-Griff (Bernsteinfarben für intuitive Bogenkrümmung)
+          ctx.fillStyle = "#f59e0b";
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2.5 * invScale;
+          ctx.beginPath();
+          ctx.arc(pMid.x, pMid.y, midHandleR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // P2 Wölbungsgriff
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = teamCol;
+          ctx.lineWidth = 2.2 * invScale;
+          ctx.beginPath();
+          ctx.arc(p2.x, p2.y, handleR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.restore();
+        });
+      }
+    }
+
     // 6b. Interactive Handles für selektierte Linien/Pfeile (ÜBER den Spielern zeichnen, damit man verdeckte Punkte direkt greifen und positionieren kann!)
     if (s.selectedArrowIndex !== null && arrows && arrows[s.selectedArrowIndex]) {
       const selArr = arrows[s.selectedArrowIndex];
