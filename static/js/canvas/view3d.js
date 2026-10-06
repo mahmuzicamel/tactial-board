@@ -31,6 +31,7 @@ export class View3DManager {
 
     this.sharedMaterials = {};
     this.sharedGeometries = {};
+    this.showNames = true; // Steuerung für Spieler-Namen im 3D-Modus
   }
 
   isSupported() {
@@ -406,6 +407,7 @@ export class View3DManager {
         const nameSprite = this.createNameSprite(el.name || el.label);
         nameSprite.position.y = 82;
         nameSprite.name = "nameSprite";
+        nameSprite.visible = !!this.showNames;
         group.add(nameSprite);
       }
 
@@ -736,6 +738,7 @@ export class View3DManager {
         const newNameSprite = this.createNameSprite(el.name || el.label);
         newNameSprite.position.y = 82;
         newNameSprite.name = "nameSprite";
+        newNameSprite.visible = !!this.showNames;
         group.add(newNameSprite);
       }
     }
@@ -808,6 +811,23 @@ export class View3DManager {
     // Extragroß: 96 Einheiten breit, 24 hoch (doppelt so groß wie vorher)
     sprite.scale.set(96, 24, 1);
     return sprite;
+  }
+
+  toggleNamesVisibility(show = null) {
+    if (show === null) {
+      this.showNames = !this.showNames;
+    } else {
+      this.showNames = !!show;
+    }
+
+    this.elementMeshes.forEach(group => {
+      const nameSprite = group.getObjectByName("nameSprite");
+      if (nameSprite) {
+        nameSprite.visible = this.showNames;
+      }
+    });
+
+    return this.showNames;
   }
 
   render3DZones(elements) {

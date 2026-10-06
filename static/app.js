@@ -704,6 +704,28 @@
     }
   };
 
+  window.toggle3DNames = function () {
+    if (view3dManager) {
+      const isVisible = view3dManager.toggleNamesVisibility();
+      const btn = document.getElementById("view3dToggleNamesBtn");
+      const lbl = document.getElementById("view3dToggleNamesLabel");
+      const icon = document.getElementById("view3dToggleNamesIcon");
+      if (btn && lbl) {
+        if (isVisible) {
+          btn.className = "px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/60 text-cyan-300 text-[11px] font-medium flex items-center gap-1 shadow-sm";
+          lbl.innerText = "Namen: An";
+          if (icon) icon.className = "fa-solid fa-tag text-[10px]";
+          window.showToast("Spielernamen in 3D eingeblendet");
+        } else {
+          btn.className = "px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[11px] font-medium flex items-center gap-1";
+          lbl.innerText = "Namen: Aus";
+          if (icon) icon.className = "fa-solid fa-tag-slash text-[10px]";
+          window.showToast("Spielernamen in 3D ausgeblendet");
+        }
+      }
+    }
+  };
+
   window.toggleLoopMode = function () {
     const s = S();
     s.isLoopMode = !s.isLoopMode;
