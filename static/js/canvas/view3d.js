@@ -401,6 +401,14 @@ export class View3DManager {
       sprite.name = "numberSprite";
       group.add(sprite);
 
+      // Namens-Label (z.B. Spielername / Trainer) als 3D-Billboard über der Nummer
+      if (el.name || el.label) {
+        const nameSprite = this.createNameSprite(el.name || el.label);
+        nameSprite.position.y = 66;
+        nameSprite.name = "nameSprite";
+        group.add(nameSprite);
+      }
+
     } else if (el.type === "ball") {
       const ball = new T.Mesh(this.sharedGeometries.ball, this.sharedMaterials.ball);
       ball.position.y = 8.5;
@@ -719,6 +727,17 @@ export class View3DManager {
         newSprite.name = "numberSprite";
         group.add(newSprite);
       }
+
+      const existingNameSprite = group.getObjectByName("nameSprite");
+      if (existingNameSprite) {
+        group.remove(existingNameSprite);
+      }
+      if (el.name || el.label) {
+        const newNameSprite = this.createNameSprite(el.name || el.label);
+        newNameSprite.position.y = 66;
+        newNameSprite.name = "nameSprite";
+        group.add(newNameSprite);
+      }
     }
   }
 
@@ -746,6 +765,46 @@ export class View3DManager {
     const mat = new window.THREE.SpriteMaterial({ map: texture, depthTest: false });
     const sprite = new window.THREE.Sprite(mat);
     sprite.scale.set(24, 24, 1);
+    return sprite;
+  }
+
+  createNameSprite(nameText) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 64;
+    const ctx = canvas.getContext("2d");
+
+    // Pill-Hintergrund für optimale Lesbarkeit im 3D-Raum
+    ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+    ctx.lineWidth = 3;
+
+    const r = 24;
+    const x = 12, y = 8, w = 232, h = 48;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.font = "bold 26px Inter, sans-serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(nameText, 128, 32);
+
+    const texture = new window.THREE.CanvasTexture(canvas);
+    const mat = new window.THREE.SpriteMaterial({ map: texture, depthTest: false });
+    const sprite = new window.THREE.Sprite(mat);
+    sprite.scale.set(36, 9, 1);
     return sprite;
   }
 
