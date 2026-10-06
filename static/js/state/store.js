@@ -75,7 +75,7 @@ export const state = {
   isPlaying: false,
   isLoopMode: true,
   isGhostMode: "all", // 'off', 'prev', 'all'
-  isDebugHitAreas: true, // Debug-Modus: Hitboxen & Auswahlflächen dezent umranden
+  isDebugHitAreas: false, // Debug-Modus: Hitboxen & Auswahlflächen dezent umranden
   animReqId: null,
   animStartTime: null,
   currentSpeed: 1.0,
