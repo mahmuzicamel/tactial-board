@@ -1365,8 +1365,8 @@
 
     // Wenn es noch keinen nächsten Schritt gibt, neuen Schritt erzeugen
     if (currentIndex >= ex.keyframes.length - 1) {
-      if (typeof window.addKeyframe === "function") {
-        window.addKeyframe();
+      if (typeof window.duplicateKeyframe === "function") {
+        window.duplicateKeyframe();
       } else {
         window.showToast("Kein nächster Schritt vorhanden");
         return;
@@ -1531,12 +1531,36 @@
     window.drawScene();
   };
 
+  function prepareNextKeyframeWithAutoPass(sourceKf, newKf) {
+    if (!sourceKf || !newKf || !Array.isArray(sourceKf.arrows)) return;
+    
+    // Finde den letzten Pass-Pfeil im Quell-Schritt
+    const passArrows = sourceKf.arrows.filter(a => a.type === "pass");
+    if (passArrows.length === 0) return;
+    const lastPass = passArrows[passArrows.length - 1];
+    
+    // Finde den Ball im neuen Keyframe
+    const ball = (newKf.elements || []).find(e => e.type === "ball");
+    if (!ball) return;
+    
+    // Setze die Position des Balls im neuen Schritt exakt auf den Zielpunkt des Passes
+    ball.x = Math.round(lastPass.x2);
+    ball.y = Math.round(lastPass.y2);
+    
+    // Falls der Pass eine Bogen-/Flugbahn hatte, Kurvenkontrollpunkte am Ball initial resetten
+    delete ball.cp1_dx;
+    delete ball.cp1_dy;
+    delete ball.cp2_dx;
+    delete ball.cp2_dy;
+  }
+
   window.insertKeyframeAfterCurrent = function () {
     const s = S();
     const ex = s.currentExercise;
     const curKf = TC().getCurrentKeyframe();
     const newKf = JSON.parse(JSON.stringify(curKf));
     newKf.title = `Schritt ${s.currentKeyframeIndex + 2}`;
+    prepareNextKeyframeWithAutoPass(curKf, newKf);
     ex.keyframes.splice(s.currentKeyframeIndex + 1, 0, newKf);
     s.currentKeyframeIndex++;
     window.renderKeyframeTabs();
@@ -1551,6 +1575,7 @@
     const curKf = TC().getCurrentKeyframe();
     const newKf = JSON.parse(JSON.stringify(curKf));
     newKf.title = `Schritt ${ex.keyframes.length + 1}`;
+    prepareNextKeyframeWithAutoPass(curKf, newKf);
     ex.keyframes.push(newKf);
     s.currentKeyframeIndex = ex.keyframes.length - 1;
     window.renderKeyframeTabs();
