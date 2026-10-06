@@ -1877,20 +1877,39 @@
         }
       });
 
-      const videoBlob = result.blob;
-      window.currentExportVideoBlob = videoBlob;
-      const videoUrl = URL.createObjectURL(videoBlob);
-      window.currentExportVideoUrl = videoUrl;
+      if (statusText) statusText.innerText = "Wandle in MP4 um (H.264 für Mac, iOS & WhatsApp)...";
+
+      const rawBlob = result.blob;
+      let finalVideoUrl = null;
+      let finalVideoBlob = null;
+
+      try {
+        const convertRes = await TC().client.convertWebmToMp4(rawBlob, "exercise_2d.webm");
+        if (convertRes && convertRes.video_url) {
+          finalVideoUrl = convertRes.video_url;
+          window.currentExportVideoUrl = finalVideoUrl;
+          window.currentExportVideoBlob = null; // Liegt als echtes H.264 MP4 auf dem Server
+        }
+      } catch (convErr) {
+        console.warn("Server MP4-Konvertierung für 2D fehlgeschlagen, nutze Fallback-Blob:", convErr);
+      }
+
+      if (!finalVideoUrl) {
+        finalVideoBlob = rawBlob;
+        window.currentExportVideoBlob = finalVideoBlob;
+        finalVideoUrl = URL.createObjectURL(rawBlob);
+        window.currentExportVideoUrl = finalVideoUrl;
+      }
 
       const player = document.getElementById("exportVideoPlayer");
       if (player) {
-        player.src = videoUrl;
+        player.src = finalVideoUrl;
         player.load();
       }
       const btnGif = document.getElementById("btnExportGif");
-      if (btnGif) btnGif.classList.add("hidden"); // WebM direkt abspielbar
+      if (btnGif) btnGif.classList.add("hidden");
       if (resultBox) resultBox.classList.remove("hidden");
-      window.showToast("🎬 2D-Video erfolgreich mit CCapture.js generiert!");
+      window.showToast("🎬 2D-Video als MP4 erfolgreich generiert!");
     } catch (e) {
       console.warn("Client-seitiger 2D-Render fehlgeschlagen, Fallback zu Server-Render:", e);
       // Automatischer Fallback auf Python ffmpeg Server falls WebM / CCapture im Browser fehlschlägt
