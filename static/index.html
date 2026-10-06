@@ -345,7 +345,7 @@
   </aside>
 
   <!-- Fullscreen Pitch Workspace (No Scroll, Flex-1 Layout) -->
-  <main class="relative flex-1 w-full min-h-0 bg-slate-950 flex flex-col items-center justify-between p-0 overflow-hidden select-none">
+  <main class="relative flex-1 w-full min-h-0 bg-slate-950 flex flex-col lg:flex-row items-stretch justify-between p-0 overflow-hidden select-none">
     
     <!-- Quick Context Popup Action Menu for Selected Element or Arrow (Directly above the Object) -->
     <div id="elementActionPopup" class="hidden absolute z-30 pointer-events-auto flex items-center gap-1 p-1 bg-slate-900/95 backdrop-blur-md border border-slate-600 rounded-xl shadow-2xl transition-all duration-150 transform -translate-x-1/2 -translate-y-full">
@@ -430,8 +430,10 @@
       </button>
     </div>
 
-    <!-- Canvas Container (Fills 100% of space, no fixed max-height) -->
-    <div id="canvasWrapper" class="relative flex-1 w-full min-h-0 overflow-hidden bg-[#24533e] flex items-center justify-center">
+    <!-- Center Column: Canvas + Bottom Tool Dock -->
+    <div class="relative flex-1 min-w-0 h-full flex flex-col items-center justify-between overflow-hidden">
+      <!-- Canvas Container (Fills 100% of space, no fixed max-height) -->
+      <div id="canvasWrapper" class="relative flex-1 w-full min-h-0 overflow-hidden bg-[#24533e] flex items-center justify-center">
       <canvas id="tacticCanvas" width="1000" height="700" class="w-full h-full object-fill cursor-crosshair"></canvas>
       
       <!-- Live Playback Overlay Badge -->
@@ -473,8 +475,8 @@
     <!-- Bottom Dock: Fixed Player & Material Palette + Keyframe Animation Bar -->
     <div class="w-full shrink-0 flex flex-col gap-0.5 pt-0.5 pb-0 z-20 safe-bottom">
       
-      <!-- Keyframe Animation Bar -->
-      <div class="w-full max-w-5xl mx-auto glass-panel rounded-lg px-2.5 py-1 flex items-center justify-between gap-1.5 shadow-md">
+      <!-- Keyframe Animation Bar (Mobile only, on Desktop it moves to the right sidebar) -->
+      <div id="mobileKeyframesBar" class="lg:hidden w-full max-w-5xl mx-auto glass-panel rounded-lg px-2.5 py-1 flex items-center justify-between gap-1.5 shadow-md">
         <!-- Playback Controls -->
         <div class="flex items-center space-x-1 shrink-0">
           <button id="playBtn" onclick="togglePlayAnimation()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-md font-bold flex items-center gap-1 shadow transition">
@@ -667,6 +669,57 @@
         </div>
       </div>
     </div>
+    </div>
+
+    <!-- Desktop Vertical Keyframe Steps Sidebar (Only visible on lg: / Desktop) -->
+    <aside id="desktopTimelineSidebar" class="hidden lg:flex flex-col w-72 shrink-0 h-full border-l border-slate-800 bg-slate-900/95 backdrop-blur-md z-20 select-none">
+      <!-- Sidebar Header: Title & Playback Controls -->
+      <div class="p-3 border-b border-slate-800 flex flex-col gap-2.5 bg-slate-950/40">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5 text-xs font-bold text-slate-200 tracking-wide">
+            <i class="fa-solid fa-film text-emerald-400"></i>
+            <span>Ablauf-Schritte</span>
+          </div>
+          <span id="desktopKeyframesCount" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-medium">0 Schritte</span>
+        </div>
+
+        <!-- Playback & Fast Action Bar -->
+        <div class="flex items-center gap-1.5">
+          <button id="desktopPlayBtn" onclick="togglePlayAnimation()" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-bold flex items-center justify-center gap-1.5 shadow transition">
+            <i class="fa-solid fa-play text-[11px]"></i> <span>Play</span>
+          </button>
+          <button onclick="stopAnimation()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition" title="Stopp">
+            <i class="fa-solid fa-stop text-[11px]"></i>
+          </button>
+          <button onclick="togglePlaybackSettingsMenu(event)" class="p-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white text-xs rounded-lg border border-slate-700 transition" title="Wiedergabe-Optionen (Ghost, Loop, Speed)">
+            <i class="fa-solid fa-sliders text-[11px]"></i>
+          </button>
+        </div>
+
+        <!-- Step Management Actions -->
+        <div class="grid grid-cols-2 gap-1.5 pt-0.5">
+          <button onclick="insertKeyframeAfterCurrent()" class="px-2 py-1.5 bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center justify-center gap-1.5 transition" title="Schritt direkt hier dazwischen einfügen">
+            <i class="fa-solid fa-code-commit text-cyan-400 text-xs"></i> <span>Dazwischen</span>
+          </button>
+          <button onclick="duplicateKeyframe()" class="px-2 py-1.5 bg-emerald-950/50 hover:bg-emerald-900/60 text-emerald-300 text-xs rounded-lg border border-emerald-700/60 flex items-center justify-center gap-1.5 font-semibold transition" title="Neuen Schritt am Ende anfügen">
+            <i class="fa-solid fa-plus text-xs"></i> <span>+ Schritt</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Vertical Keyframe List (Scrollable, full names, Drag & Drop) -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-2 space-y-1.5" id="keyframesListDesktop">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Sidebar Footer: Delete Step Button -->
+      <div class="p-2.5 border-t border-slate-800/80 bg-slate-950/50 flex items-center justify-between text-xs">
+        <span class="text-[11px] text-slate-400">Aktueller Schritt:</span>
+        <button onclick="deleteCurrentKeyframe()" class="px-2.5 py-1 bg-slate-800 hover:bg-rose-950/60 text-rose-400 hover:text-rose-300 rounded-md border border-slate-700 hover:border-rose-700/60 transition flex items-center gap-1.5 text-xs" title="Ausgewählten Schritt löschen">
+          <i class="fa-solid fa-trash text-[10px]"></i> <span>Löschen</span>
+        </button>
+      </div>
+    </aside>
   </main>
 
   <!-- Exercise Details / Steckbrief Modal (Modal statt blockierende Sidebar) -->
@@ -1185,7 +1238,7 @@
     <span id="toastMsg">Mitteilung</span>
   </div>
 
-  <script type="module" src="/static/js/app-module.js?v=161"></script>
-  <script src="/static/app.js?v=161"></script>
+  <script type="module" src="/static/js/app-module.js?v=162"></script>
+  <script src="/static/app.js?v=162"></script>
 </body>
 </html>

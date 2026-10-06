@@ -255,6 +255,7 @@ export class PlaybackController {
   updateUI(playing) {
     const playIcon = document.getElementById("playIcon");
     const playText = document.getElementById("playText");
+    const desktopPlayBtn = document.getElementById("desktopPlayBtn");
     const playingBadge = document.getElementById("playingBadge");
 
     if (playIcon) {
@@ -265,6 +266,13 @@ export class PlaybackController {
       }
     }
     if (playText) playText.innerText = playing ? "Pause" : "Play";
+
+    if (desktopPlayBtn) {
+      desktopPlayBtn.innerHTML = playing
+        ? `<i class="fa-solid fa-pause text-[11px]"></i> <span>Pause</span>`
+        : `<i class="fa-solid fa-play text-[11px]"></i> <span>Play</span>`;
+    }
+
     if (playingBadge) {
       if (playing) playingBadge.classList.remove("hidden");
       else playingBadge.classList.add("hidden");
