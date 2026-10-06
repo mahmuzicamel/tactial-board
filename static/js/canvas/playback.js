@@ -1,6 +1,7 @@
 // canvas/playback.js - Animation, Interpolation (Bézier & Jump) und Playback-Loop
 import { state, getCurrentExercise } from "../state/store.js";
 import { getEffectiveCurveControlPoints, getCubicBezierPoint } from "../core/geometry.js";
+import { closeAllContextMenus } from "../ui/popovers.js";
 
 export class PlaybackController {
   constructor(drawCallback, onStepChange = null) {
@@ -26,6 +27,9 @@ export class PlaybackController {
       }
       return;
     }
+
+    // Beim Play-Start sofort alle offenen Kontext- und Einstellungsmenüs ausblenden
+    closeAllContextMenus();
 
     this.stop();
 

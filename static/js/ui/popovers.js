@@ -155,6 +155,31 @@ export function closeEquipmentMenu() {
   }
 }
 
+// Schließt alle offenen Kontextmenüs, Popups und Inspectoren (z. B. beim Start von Play)
+export function closeAllContextMenus() {
+  closePlaybackSettingsMenu();
+  closeZoneMenu();
+  closeEquipmentMenu();
+  closeLineModeMenu();
+  closeSidebarMenu();
+
+  const viewDrawer = document.getElementById("viewControlsDrawer");
+  if (viewDrawer) viewDrawer.classList.add("hidden");
+
+  const elemActionPopup = document.getElementById("elementActionPopup");
+  if (elemActionPopup) elemActionPopup.classList.add("hidden");
+
+  const zoneColorSubmenu = document.getElementById("actionPopupZoneColorSubmenu");
+  if (zoneColorSubmenu) zoneColorSubmenu.classList.add("hidden");
+
+  const floatingBar = document.getElementById("floatingElementBar");
+  if (floatingBar) floatingBar.classList.add("hidden");
+
+  if (typeof window.deselectElement === "function") {
+    window.deselectElement(true);
+  }
+}
+
 export function setLineDrawMode(mode) {
   if (window.state) {
     window.state.lineDrawMode = mode;
