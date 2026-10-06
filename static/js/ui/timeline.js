@@ -51,8 +51,7 @@ export function updateKeyframeActiveTabs(activeIndex) {
     if (indicator && cards[activeIndex]) {
       const targetCard = cards[activeIndex];
       indicator.style.display = "block";
-      const padTop = 8; // p-2 padding vom keyframesListDesktop
-      indicator.style.transform = `translateY(${targetCard.offsetTop - padTop}px)`;
+      indicator.style.transform = `translateY(${targetCard.offsetTop}px)`;
       indicator.style.height = `${targetCard.offsetHeight}px`;
     }
   }
@@ -138,12 +137,12 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
 
   // 2. Rendere Desktop Vertical Cards (mit animiertem schwebendem grünen Indikator)
   if (listDesktop) {
-    // Schwebender grüner Rahmen-Indikator, der geschmeidig von oben nach unten gleitet
-    const indicator = document.createElement("div");
-    indicator.id = "desktopKeyframeIndicator";
-    indicator.className = "absolute left-2 right-2 rounded-xl pointer-events-none border-2 border-emerald-500 bg-emerald-500/10 shadow-lg shadow-emerald-500/20 z-10 transition-all duration-300 ease-out";
-    indicator.style.display = "none";
-    listDesktop.appendChild(indicator);
+  // Schwebender grüner Rahmen-Indikator, der geschmeidig von oben nach unten gleitet
+  const indicator = document.createElement("div");
+  indicator.id = "desktopKeyframeIndicator";
+  indicator.className = "absolute left-2 right-2 top-0 rounded-xl pointer-events-none border-2 border-emerald-500 bg-emerald-500/10 shadow-lg shadow-emerald-500/20 z-10 transition-all duration-300 ease-out";
+  indicator.style.display = "none";
+  listDesktop.appendChild(indicator);
 
     ex.keyframes.forEach((kf, idx) => {
       const card = document.createElement("div");
@@ -258,8 +257,7 @@ export function renderKeyframeTabs(onSelect, onEditTitle, onMove) {
       if (indicator && cards[activeIdx]) {
         const targetCard = cards[activeIdx];
         indicator.style.display = "block";
-        const padTop = 8;
-        indicator.style.transform = `translateY(${targetCard.offsetTop - padTop}px)`;
+        indicator.style.transform = `translateY(${targetCard.offsetTop}px)`;
         indicator.style.height = `${targetCard.offsetHeight}px`;
       }
     });
