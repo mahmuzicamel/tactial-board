@@ -293,7 +293,11 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
   const clickedRealElement = [...(kf.elements || [])]
     .filter(el => el.type !== "zone_rect" && el.type !== "zone_circle" && el.type !== "zone_triangle")
     .reverse()
-    .find(el => Math.hypot(el.x - x, el.y - y) <= baseHitRadius);
+    .find(el => {
+      // Ball bekommt eine kompaktere Toleranzzone (max 18px), Spieler behält baseHitRadius
+      const rHit = (el.type === "ball") ? Math.max(14 * effectiveElScale, 18) : baseHitRadius;
+      return Math.hypot(el.x - x, el.y - y) <= rHit;
+    });
 
   // 2b. Falls kein Spieler/Element angeklickt wurde: Zonen (Flächen) prüfen
   const clickedZoneElement = !clickedRealElement
@@ -432,12 +436,25 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
     hideInspector();
     updateActionPopupPosition();
 
+    let startX = x;
+    let startY = y;
+
+    // Wenn Pass- oder Lauf-Werkzeug aktiv ist und der Klick in der Nähe des Balls startet (Radius ~32px),
+    // docke den Pfeilstartpunkt magnetisch exakt an das Ball-Zentrum an!
+    if (state.activeTool === "pass" || state.activeTool === "run") {
+      const nearBall = (kf.elements || []).find(el => el.type === "ball" && Math.hypot(el.x - x, el.y - y) <= 32);
+      if (nearBall) {
+        startX = nearBall.x;
+        startY = nearBall.y;
+      }
+    }
+
     state.isDrawingArrow = true;
-    state.arrowStartX = x;
-    state.arrowStartY = y;
+    state.arrowStartX = startX;
+    state.arrowStartY = startY;
     state.arrowCurrentX = x;
     state.arrowCurrentY = y;
-    state.arrowDrawStrokePoints = [{ x, y }];
+    state.arrowDrawStrokePoints = [{ x: startX, y: startY }];
     drawScene();
   }
 }
@@ -691,6 +708,23 @@ export function handleCanvasPointerMove(e, canvas, getCanvasCoords, callbacks = 
     state.shapeCurrentX = x;
     state.shapeCurrentY = y;
     drawScene();
+  } else if (state.activeTool === "pass" || state.activeTool === "run") {
+    // Hover-Feedback: Wenn der Mauszeiger im Pass-Modus über/nahe dem Ball schwebt, Cursor & Ankerpunkt hervorheben
+    const kf = getCurrentKeyframe();
+    const nearBall = kf && (kf.elements || []).find(el => el.type === "ball" && Math.hypot(el.x - x, el.y - y) <= 32);
+    if (nearBall) {
+      if (canvas.style.cursor !== "pointer") canvas.style.cursor = "pointer";
+      if (!state.hoveredBallAnchorId) {
+        state.hoveredBallAnchorId = nearBall.id;
+        drawScene();
+      }
+    } else {
+      if (canvas.style.cursor === "pointer") canvas.style.cursor = "";
+      if (state.hoveredBallAnchorId) {
+        state.hoveredBallAnchorId = null;
+        drawScene();
+      }
+    }
   }
 }
 

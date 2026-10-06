@@ -57,9 +57,11 @@ export function drawElementOnCanvas(ctx, el, isSelected = false, fieldRotation =
 
   if (isSelected && !isZone) {
     ctx.strokeStyle = "#38bdf8";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.arc(0, 0, 26, 0, Math.PI * 2);
+    // Kompakter Auswahllkreis für den Ball (Radius 15), sonst 26 für Spieler
+    const selRadius = (el.type === "ball" ? 15 : 26);
+    ctx.arc(0, 0, selRadius, 0, Math.PI * 2);
     ctx.stroke();
   }
 

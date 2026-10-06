@@ -438,6 +438,35 @@
       }
     });
 
+    // 6-ballAnchor. Magnetischer Ankerpunkt über dem Ball anzeigen (wenn Pass/Lauf aktiv ist oder Ball hovered)
+    if (!s.isPlaying && (s.activeTool === "pass" || s.activeTool === "run" || s.hoveredBallAnchorId)) {
+      elements.forEach(el => {
+        if (el.type === "ball") {
+          const isHovered = (s.hoveredBallAnchorId === el.id);
+          const invZoom = 1 / (s.viewScale || 1.0);
+          const anchorRadius = (isHovered ? 5.5 : 4) * Math.max(0.7, invZoom);
+
+          ctx.save();
+          // Äußerer Puls-/Leucht-Ring
+          ctx.strokeStyle = isHovered ? "rgba(250, 204, 21, 0.95)" : "rgba(250, 204, 21, 0.65)";
+          ctx.lineWidth = 2 * Math.max(0.7, invZoom);
+          ctx.beginPath();
+          ctx.arc(el.x, el.y, (isHovered ? 13 : 11) * Math.max(0.7, invZoom), 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Zentrierter magnetischer Anker-Punkt direkt über dem Ball
+          ctx.fillStyle = "#facc15";
+          ctx.strokeStyle = "#0f172a";
+          ctx.lineWidth = 1.5 * Math.max(0.7, invZoom);
+          ctx.beginPath();
+          ctx.arc(el.x, el.y, anchorRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+      });
+    }
+
     // 6a-ghost. Ghost-Kurven-Griffe (P1, P2, Mid) für selektierte Elemente (Spieler/Ball) ÜBER den Elementen rendern!
     // So kann man auch bei Dribblings oder Ball am Fuß den Wölbungs-Griff direkt greifen, selbst wenn er unter/auf dem Spieler liegt.
     if (s.isGhostMode !== "off" && !s.isPlaying && s.currentKeyframeIndex > 0) {
