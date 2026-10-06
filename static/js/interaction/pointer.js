@@ -210,7 +210,7 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
   // 2. Element (Spieler, Bälle, Hütchen, Tore, etc.) oder Linie prüfen:
   // Wenn der Klick direkt auf den Körper eines Spielers/Balls/Geräts zielt, hat der Spieler IMMER Vorrang!
   const effectiveElScale = Math.max(0.6, state.globalElementScale || 1.0);
-  const playerBodyRadius = 20 * effectiveElScale; // Reeller Spielerkreis
+  const playerBodyRadius = 22 * effectiveElScale; // Reeller Spielerkreis
   const baseHitRadius = Math.max(26 * effectiveElScale, (34 * effectiveElScale) / Math.sqrt(state.viewScale));
 
   // 2a. Zuerst exakten Treffer auf ein reales Element (Spieler, Ball etc.) prüfen:
@@ -255,8 +255,8 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
 
   // 2b. Wenn kein direkter Treffer auf den Spielerkörper: Linien/Pfeile prüfen
   if (kf.arrows && kf.arrows.length > 0) {
-    const arrowHitThreshold = Math.max(18, 26 / Math.sqrt(state.viewScale));
-    const handleThreshold = Math.max(20, 28 / Math.sqrt(state.viewScale));
+    const arrowHitThreshold = Math.max(14, 18 / Math.sqrt(state.viewScale));
+    const handleThreshold = Math.max(16, 20 / Math.sqrt(state.viewScale));
 
     for (let i = kf.arrows.length - 1; i >= 0; i--) {
       const arr = kf.arrows[i];
@@ -341,10 +341,10 @@ export function handleCanvasPointerDown(e, canvas, getCanvasCoords, callbacks = 
     return;
   }
 
-  // 3. Check arrows / lines
+  // 3. Check arrows / lines (nur wenn vorher nichts getroffen wurde)
   if (kf.arrows && kf.arrows.length > 0) {
-    const arrowHitThreshold = Math.max(16, 22 / Math.sqrt(state.viewScale));
-    const handleThreshold = Math.max(18, 24 / Math.sqrt(state.viewScale));
+    const arrowHitThreshold = Math.max(14, 18 / Math.sqrt(state.viewScale));
+    const handleThreshold = Math.max(16, 20 / Math.sqrt(state.viewScale));
 
     for (let i = kf.arrows.length - 1; i >= 0; i--) {
       const arr = kf.arrows[i];

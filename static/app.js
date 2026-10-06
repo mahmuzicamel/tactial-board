@@ -458,9 +458,9 @@
       ctx.save();
       const effectiveElScale = Math.max(0.6, s.globalElementScale || 1.0);
       const baseHitRadius = Math.max(26 * effectiveElScale, (34 * effectiveElScale) / Math.sqrt(s.viewScale));
-      const playerBodyRadius = 20 * effectiveElScale;
-      const arrowHitThreshold = Math.max(18, 26 / Math.sqrt(s.viewScale));
-      const handleThreshold = Math.max(20, 28 / Math.sqrt(s.viewScale));
+      const playerBodyRadius = 22 * effectiveElScale;
+      const arrowHitThreshold = Math.max(14, 18 / Math.sqrt(s.viewScale));
+      const handleThreshold = Math.max(16, 20 / Math.sqrt(s.viewScale));
 
       // Elemente / Spieler: Kern-Hitbox (grün) und Toleranz-Zone (gepunktet cyan)
       (elements || []).forEach(el => {

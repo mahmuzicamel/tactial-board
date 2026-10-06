@@ -62,6 +62,9 @@ export class HistoryManager {
   clear() {
     this.undoStack = [];
     this.redoStack = [];
+    // Beim Initialisieren/Leeren sofort den Ausgangszustand als ersten Snap ablegen,
+    // damit bereits die ERSTE minimale Änderung per Undo rückgängig gemacht werden kann!
+    this.record();
     this.updateUI();
   }
 }

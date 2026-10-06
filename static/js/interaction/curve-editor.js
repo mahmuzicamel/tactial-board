@@ -47,29 +47,34 @@ export function handleCurvePointerDown(x, y, kf, prevKf, handleHitRadius) {
     }
   }
 
-  // 2. Selected arrow curve handles
+  // 2. Selected arrow curve handles (NUR wenn die Linie bereits selektiert ist UND tatsächlich gekrümmt ist!)
   if (state.selectedArrowIndex !== null && kf.arrows && kf.arrows[state.selectedArrowIndex]) {
     const selArr = kf.arrows[state.selectedArrowIndex];
-    const { p1: selP1, p2: selP2 } = getArrowCurveControlPoints(selArr);
-    const selPMid = getCubicBezierPoint(0.5, { x: selArr.x1, y: selArr.y1 }, selP1, selP2, { x: selArr.x2, y: selArr.y2 });
+    const isCurved = (selArr.cp1_dx || selArr.cp1_dy || selArr.cp2_dx || selArr.cp2_dy);
+    if (isCurved) {
+      const { p1: selP1, p2: selP2 } = getArrowCurveControlPoints(selArr);
+      const selPMid = getCubicBezierPoint(0.5, { x: selArr.x1, y: selArr.y1 }, selP1, selP2, { x: selArr.x2, y: selArr.y2 });
 
-    // Zuerst P1 (oberer Kontrollpunkt) und P2 (unterer Kontrollpunkt) mit Prio prüfen
-    if (Math.hypot(x - selP1.x, y - selP1.y) <= handleHitRadius) {
-      return { arrowIndex: state.selectedArrowIndex, handle: "p1", arrow: selArr };
-    }
-    if (Math.hypot(x - selP2.x, y - selP2.y) <= handleHitRadius) {
-      return { arrowIndex: state.selectedArrowIndex, handle: "p2", arrow: selArr };
-    }
-    if (Math.hypot(x - selPMid.x, y - selPMid.y) <= handleHitRadius) {
-      return { arrowIndex: state.selectedArrowIndex, handle: "mid", arrow: selArr };
+      if (Math.hypot(x - selP1.x, y - selP1.y) <= handleHitRadius) {
+        return { arrowIndex: state.selectedArrowIndex, handle: "p1", arrow: selArr };
+      }
+      if (Math.hypot(x - selP2.x, y - selP2.y) <= handleHitRadius) {
+        return { arrowIndex: state.selectedArrowIndex, handle: "p2", arrow: selArr };
+      }
+      if (Math.hypot(x - selPMid.x, y - selPMid.y) <= handleHitRadius) {
+        return { arrowIndex: state.selectedArrowIndex, handle: "mid", arrow: selArr };
+      }
     }
   }
 
-  // 3. Fallback: Auch wenn kein Pfeil vor-selektiert ist, Kontrollpunkte aller gekrümmten Pfeile prüfen
+  // 3. Fallback für unselektierte Pfeile: NUR wenn ein Pfeil bereits sichtbar gekrümmt ist
   if (kf.arrows && kf.arrows.length > 0) {
     for (let i = kf.arrows.length - 1; i >= 0; i--) {
       if (i === state.selectedArrowIndex) continue;
       const arr = kf.arrows[i];
+      const isCurved = (arr.cp1_dx || arr.cp1_dy || arr.cp2_dx || arr.cp2_dy);
+      if (!isCurved) continue;
+
       const { p1, p2 } = getArrowCurveControlPoints(arr);
       const pMid = getCubicBezierPoint(0.5, { x: arr.x1, y: arr.y1 }, p1, p2, { x: arr.x2, y: arr.y2 });
 
