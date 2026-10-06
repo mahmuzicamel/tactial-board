@@ -1946,20 +1946,39 @@
         }
       });
 
-      const videoBlob = result.blob;
-      window.currentExportVideoBlob = videoBlob;
-      const videoUrl = URL.createObjectURL(videoBlob);
-      window.currentExportVideoUrl = videoUrl;
+      if (statusText) statusText.innerText = "Wandle in MP4 um (H.264 für Mac, iOS & WhatsApp)...";
+      
+      const rawBlob = result.blob;
+      let finalVideoUrl = null;
+      let finalVideoBlob = null;
+
+      try {
+        const convertRes = await TC().client.convertWebmToMp4(rawBlob, "exercise_3d.webm");
+        if (convertRes && convertRes.video_url) {
+          finalVideoUrl = convertRes.video_url;
+          window.currentExportVideoUrl = finalVideoUrl;
+          window.currentExportVideoBlob = null; // Liegt als echtes MP4 auf dem Server
+        }
+      } catch (convErr) {
+        console.warn("Server MP4-Konvertierung fehlgeschlagen, nutze Fallback-Blob:", convErr);
+      }
+
+      if (!finalVideoUrl) {
+        finalVideoBlob = rawBlob;
+        window.currentExportVideoBlob = finalVideoBlob;
+        finalVideoUrl = URL.createObjectURL(rawBlob);
+        window.currentExportVideoUrl = finalVideoUrl;
+      }
 
       const player = document.getElementById("exportVideoPlayer");
       if (player) {
-        player.src = videoUrl;
+        player.src = finalVideoUrl;
         player.load();
       }
       const btnGif = document.getElementById("btnExportGif");
-      if (btnGif) btnGif.classList.add("hidden"); // GIF nur bei 2D Server-Render vorhanden
+      if (btnGif) btnGif.classList.add("hidden");
       if (resultBox) resultBox.classList.remove("hidden");
-      window.showToast("🎬 3D-Video erfolgreich aufgezeichnet!");
+      window.showToast("🎬 3D-Video als MP4 erfolgreich erstellt!");
     } catch (err) {
       console.error("3D Video Render Error:", err);
       window.showToast("Fehler bei 3D-Aufnahme: " + err.message, true);

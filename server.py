@@ -1,8 +1,9 @@
 import os
 import uuid
 import json
+import subprocess
 from typing import Optional, List, Dict, Any
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
@@ -190,6 +191,48 @@ def api_render_exercise(exercise_id: str, background_tasks: BackgroundTasks, syn
     else:
         background_tasks.add_task(generate_media_for_exercise, exercise_id)
         return {"status": "queued"}
+
+@app.post("/api/convert-video")
+async def api_convert_video(file: UploadFile = File(...)):
+    """Konvertiert hochgeladene WebM-Videos in universell abspielbare H.264 MP4-Dateien (Mac, iOS, WhatsApp kompatibel)."""
+    video_id = str(uuid.uuid4())[:8]
+    webm_filename = f"temp_{video_id}.webm"
+    mp4_filename = f"tactics_3d_{video_id}.mp4"
+    webm_path = os.path.join(MEDIA_DIR, webm_filename)
+    mp4_path = os.path.join(MEDIA_DIR, mp4_filename)
+
+    try:
+        content = await file.read()
+        with open(webm_path, "wb") as f:
+            f.write(content)
+
+        ffmpeg_cmd = [
+            "ffmpeg", "-y",
+            "-i", webm_path,
+            "-c:v", "libx264",
+            "-profile:v", "high",
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            "-crf", "18",
+            "-preset", "faster",
+            mp4_path
+        ]
+        res = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if res.returncode != 0:
+            print("FFmpeg convert error:", res.stderr.decode("utf-8", errors="ignore"))
+            raise HTTPException(status_code=500, detail="Video conversion failed")
+
+        return {
+            "status": "ok",
+            "video_url": f"/media/{mp4_filename}",
+            "filename": mp4_filename
+        }
+    finally:
+        if os.path.exists(webm_path):
+            try:
+                os.remove(webm_path)
+            except Exception:
+                pass
 
 @app.delete("/api/exercises/{exercise_id}")
 def api_delete_exercise(exercise_id: str):
