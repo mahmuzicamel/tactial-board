@@ -74,6 +74,69 @@ export function getEffectiveCurveControlPoints(fromEl, toEl) {
   return { p1, p2 };
 }
 
+// Interpoliert die Elemente zweier Keyframes an einem geglätteten Zeitpunkt smoothT (0..1).
+// Einzige Wahrheit für die Animations-Mathematik (Position/Bézier/Jump/Rotation),
+// genutzt von 2D-Playback (playback.js) und 3D-Playback (view3d.js) gleichermaßen.
+// includeRotation=true aktiviert die Winkel-Interpolation (nur für die 3D-Szene relevant).
+export function interpolateKeyframeElements(kf1, kf2, smoothT, { includeRotation = false } = {}) {
+  const map1 = new Map((kf1.elements || []).map((e) => [e.id, e]));
+  const map2 = new Map((kf2.elements || []).map((e) => [e.id, e]));
+  const interpolated = [];
+  const allIds = new Set([...map1.keys(), ...map2.keys()]);
+
+  for (const id of allIds) {
+    const el1 = map1.get(id);
+    const el2 = map2.get(id);
+
+    if (el1 && el2) {
+      let posX, posY;
+      if (el2.cp1_dx !== undefined || el2.cp1_dy !== undefined || el2.cp2_dx !== undefined || el2.cp2_dy !== undefined) {
+        const { p1, p2 } = getEffectiveCurveControlPoints(el1, el2);
+        const pt = getCubicBezierPoint(smoothT, el1, p1, p2, el2);
+        posX = pt.x;
+        posY = pt.y;
+      } else {
+        posX = el1.x + (el2.x - el1.x) * smoothT;
+        posY = el1.y + (el2.y - el1.y) * smoothT;
+      }
+
+      let scaleMult = 1.0;
+      let jumpOffset = 0;
+      if (el2.jump) {
+        const jumpFactor = Math.sin(smoothT * Math.PI);
+        scaleMult = 1.0 + jumpFactor * 0.45;
+        jumpOffset = jumpFactor;
+      }
+
+      const merged = {
+        ...el1,
+        ...el2,
+        x: posX,
+        y: posY,
+        scaleMultiplier: scaleMult,
+        jumpProgress: jumpOffset
+      };
+
+      if (includeRotation) {
+        const rot1 = el1.rotation || 0;
+        const rot2 = el2.rotation !== undefined ? el2.rotation : rot1;
+        let diffRot = (rot2 - rot1) % 360;
+        if (diffRot > 180) diffRot -= 360;
+        if (diffRot < -180) diffRot += 360;
+        merged.rotation = rot1 + diffRot * smoothT;
+      }
+
+      interpolated.push(merged);
+    } else if (el1) {
+      interpolated.push(el1);
+    } else if (el2 && smoothT > 0.5) {
+      interpolated.push(el2);
+    }
+  }
+
+  return interpolated;
+}
+
 export function getArrowCurveControlPoints(arr) {
   const dx = arr.x2 - arr.x1;
   const dy = arr.y2 - arr.y1;
