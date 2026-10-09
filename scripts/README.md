@@ -2,7 +2,7 @@
 
 ## Cache-Busting (`bump_version.py`)
 
-**Eine** Versionsquelle (kurzer Git-Commit-Hash) hält Service-Worker-Cache
+**Eine** Versionsquelle (Deploy-Zeitstempel) hält Service-Worker-Cache
 und alle `?v=`-Query-Strings synchron. Ersetzt das frühere manuelle
 Hochzählen von `v=NNN` in 3 Dateien (das regelmäßig driftete).
 
@@ -14,16 +14,11 @@ aus dem Dateisystem** — fehlende Dateien landen nicht mehr in der Liste
 ### Deploy-Workflow
 
 ```bash
-# 1. Code committen
+# 1. Version neu setzen (Zeitstempel), danach Code committen
+python3 scripts/bump_version.py
 git add -A && git commit -m "…"
 
-# 2. Version auf den neuen Commit-Hash setzen
-python3 scripts/bump_version.py
-
-# 3. Versions-Bump in denselben Commit falten
-git commit -a --amend --no-edit
-
-# 4. Service neu starten
+# 2. Service neu starten
 sudo systemctl restart tactics.service
 ```
 
@@ -33,4 +28,5 @@ sudo systemctl restart tactics.service
 python3 scripts/bump_version.py --check   # exit 0 = sync, 1 = drift
 ```
 
-Prüft, ob `CACHE_NAME` in `sw.js` zum aktuellen `HEAD` passt.
+Prüft, ob `CACHE_NAME` (sw.js) und alle `?v=`-Strings in index.html +
+app-module.js **denselben** Wert tragen.

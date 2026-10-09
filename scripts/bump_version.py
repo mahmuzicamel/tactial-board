@@ -19,7 +19,6 @@ Aufruf:  python3 scripts/bump_version.py            # nutzt Git-Hash
 import os
 import re
 import sys
-import subprocess
 import datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -60,15 +59,14 @@ VERSIONED_ENTRYPOINTS = [
 
 
 def get_version():
-    try:
-        h = subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, stderr=subprocess.DEVNULL
-        ).decode().strip()
-        if h:
-            return h
-    except Exception:
-        pass
-    return datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    """Monoton steigende Version pro Deploy (Zeitstempel).
+
+    Bewusst KEIN Git-Commit-Hash: Ein Hash von HEAD kann nie mit dem im
+    Working-Tree gespeicherten Wert übereinstimmen, weil das Committen den
+    Hash erneut ändert (Henne-Ei). Ein Zeitstempel ändert sich garantiert
+    pro Lauf und ist als reiner Cache-Buster völlig ausreichend.
+    """
+    return "b" + datetime.datetime.now().strftime("%Y%m%d%H%M")
 
 
 def url_exists(url):
@@ -153,22 +151,34 @@ def set_entrypoint_versions(text, version):
     return text
 
 
-def current_sw_version():
+def collect_versions():
+    """Alle im Code gesetzten Versionskennungen einsammeln (für Konsistenzprüfung)."""
+    found = {}
     with open(SW) as f:
         m = re.search(r"tactical-coach-([\w.]+)", f.read())
-    return m.group(1) if m else None
+        found["sw.js CACHE_NAME"] = m.group(1) if m else None
+    with open(INDEX) as f:
+        for m in re.finditer(r'(app\.js|app-module\.js)\?v=([\w.]+)', f.read()):
+            found[f"index.html {m.group(1)}"] = m.group(2)
+    with open(APP_MODULE) as f:
+        m = re.search(r'view3d\.js\?v=([\w.]+)', f.read())
+        found["app-module.js view3d.js"] = m.group(1) if m else None
+    return found
 
 
 def main():
     check_only = "--check" in sys.argv
-    version = get_version()
 
     if check_only:
-        cur = current_sw_version()
-        ok = cur == version
-        print(f"sw.js CACHE_NAME = {cur}; git = {version}; {'SYNC' if ok else 'DRIFT'}")
+        found = collect_versions()
+        vals = set(found.values())
+        ok = len(vals) == 1 and None not in vals
+        for k, v in found.items():
+            print(f"  {k}: {v}")
+        print("SYNC" if ok else "DRIFT")
         sys.exit(0 if ok else 1)
 
+    version = get_version()
     assets = build_asset_list(version)
 
     # sw.js neu rendern (Body VOR dem Truncate lesen!)
