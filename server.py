@@ -209,6 +209,7 @@ async def api_convert_video(file: UploadFile = File(...)):
         ffmpeg_cmd = [
             "ffmpeg", "-y",
             "-i", webm_path,
+            "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
             "-c:v", "libx264",
             "-profile:v", "high",
             "-pix_fmt", "yuv420p",

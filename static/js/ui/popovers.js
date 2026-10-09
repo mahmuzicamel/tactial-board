@@ -54,12 +54,27 @@ export function closeClearConfirmModal() {
 }
 
 export function togglePlaybackSettingsMenu(event) {
+  if (event) event.stopPropagation();
   const popup = document.getElementById("playbackSettingsPopup");
   if (!popup) return;
   const isHidden = popup.classList.contains("hidden");
   closeEquipmentMenu();
   closeLineModeMenu();
+
   if (isHidden) {
+    // Falls vom Desktop-Button geklickt (im rechten Sidebar), positioniere das Menü unterhalb des Desktop-Buttons
+    const desktopBtn = document.getElementById("desktopPlaybackSettingsBtn");
+    const mobileBtn = document.getElementById("playbackSettingsBtn");
+    const clickedBtn = (event && event.currentTarget) ? event.currentTarget : null;
+
+    if (clickedBtn === desktopBtn || (desktopBtn && desktopBtn.contains(event?.target))) {
+      desktopBtn.parentElement.appendChild(popup);
+      popup.className = "absolute top-full right-0 mt-1 z-50 p-2.5 glass-panel bg-slate-900/98 backdrop-blur-md rounded-xl border border-slate-700 shadow-2xl flex flex-col gap-2 min-w-[210px]";
+    } else if (mobileBtn) {
+      mobileBtn.parentElement.appendChild(popup);
+      popup.className = "absolute bottom-full left-0 mb-1 z-50 p-2.5 glass-panel bg-slate-900/98 backdrop-blur-md rounded-xl border border-slate-700 shadow-2xl flex flex-col gap-2 min-w-[210px]";
+    }
+
     popup.classList.remove("hidden");
   } else {
     popup.classList.add("hidden");
@@ -249,8 +264,9 @@ export function initGlobalClickDismiss() {
   document.addEventListener("pointerdown", (e) => {
     const playbackPopup = document.getElementById("playbackSettingsPopup");
     const playbackBtn = document.getElementById("playbackSettingsBtn");
+    const desktopPlaybackBtn = document.getElementById("desktopPlaybackSettingsBtn");
     if (playbackPopup && !playbackPopup.classList.contains("hidden")) {
-      if (!playbackPopup.contains(e.target) && !playbackBtn?.contains(e.target)) {
+      if (!playbackPopup.contains(e.target) && !playbackBtn?.contains(e.target) && !desktopPlaybackBtn?.contains(e.target)) {
         playbackPopup.classList.add("hidden");
       }
     }

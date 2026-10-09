@@ -7,7 +7,7 @@ import * as pitch from "./core/pitch.js";
 import * as elements from "./canvas/elements.js";
 import * as arrows from "./canvas/arrows.js";
 import * as viewport from "./canvas/viewport.js";
-import { View3DManager } from "./canvas/view3d.js";
+import { View3DManager } from "./canvas/view3d.js?v=200";
 import { PlaybackController } from "./canvas/playback.js";
 import * as popovers from "./ui/popovers.js";
 import * as hud from "./ui/hud.js";

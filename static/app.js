@@ -60,9 +60,12 @@
 
   window.updateUrlForExercise = function (id, replace = false) {
     if (!id) return;
-    const url = `/exercise/${encodeURIComponent(id)}`;
+    const currentParams = new URLSearchParams(window.location.search);
+    let queryString = currentParams.toString();
+    if (queryString) queryString = `?${queryString}`;
+    const url = `/exercise/${encodeURIComponent(id)}${queryString}`;
     if (replace) window.history.replaceState({ exerciseId: id }, "", url);
-    else if (window.location.pathname !== url) window.history.pushState({ exerciseId: id }, "", url);
+    else if (window.location.pathname !== `/exercise/${encodeURIComponent(id)}`) window.history.pushState({ exerciseId: id }, "", url);
   };
 
   window.copyExerciseShareLink = async function () {
@@ -1571,21 +1574,33 @@
     TC().timeline.renderKeyframeTabs(window.selectKeyframe, window.editKeyframeTitle, window.moveKeyframeToIndex);
   };
 
-  window.selectKeyframe = function (index) {
+  window.selectKeyframe = function (index, shouldAnimate = true) {
     const s = S();
-    // Wenn gerade Wiedergabe aktiv ist, stoppen wir sie sofort und springen zum Schritt
+    const prevIndex = s.currentKeyframeIndex;
+    if (index === prevIndex) return;
+
+    // Wenn gerade Voll-Wiedergabe aktiv ist, stoppen wir sie sofort
     if (s.isPlaying && typeof window.stopAnimation === "function") {
       window.stopAnimation();
     }
-    if (index === s.currentKeyframeIndex) return;
+
     s.currentKeyframeIndex = index;
     window.deselectElement(true);
+
     if (TC() && TC().timeline && typeof TC().timeline.updateKeyframeActiveTabs === "function") {
       TC().timeline.updateKeyframeActiveTabs(index);
     } else {
       window.renderKeyframeTabs();
     }
-    window.drawScene();
+
+    // Wenn ein einzelner Schritt geklickt wurde: weich von prevIndex nach index animieren!
+    if (shouldAnimate && playbackCtrl && typeof playbackCtrl.animateStepTransition === "function") {
+      playbackCtrl.animateStepTransition(prevIndex, index, () => {
+        window.drawScene();
+      });
+    } else {
+      window.drawScene();
+    }
   };
 
   function prepareNextKeyframeWithAutoPass(sourceKf, newKf) {
@@ -2513,6 +2528,23 @@
       }
     }
 
+    // URL Query Parameter auswerten: view=3d und play=true / autoplay=true
+    const urlParams = new URLSearchParams(window.location.search);
+    const viewParam = (urlParams.get("view") || "").toLowerCase();
+    const playParam = (urlParams.get("play") || urlParams.get("autoplay") || "").toLowerCase();
+
+    if (viewParam === "3d" && !S().is3DMode) {
+      window.toggle3DView();
+    }
+
+    if (playParam === "true" || playParam === "1" || playParam === "yes") {
+      setTimeout(() => {
+        if (playbackCtrl) {
+          playbackCtrl.start();
+        }
+      }, 500);
+    }
+
     window.resetUndoRedo();
     window.resizeCanvasToContainer();
     setupEvents();
@@ -2587,6 +2619,13 @@
     });
 
     console.log("⚡ Tactical Coach unified modular orchestrator initialized.");
+    // 3D-Ressourcen im Hintergrund vorladen
+    setTimeout(() => {
+      if (window.ensureView3DManager) {
+        const v = window.ensureView3DManager();
+        if (v && v.preloadFootballerAssets) v.preloadFootballerAssets();
+      }
+    }, 100);
   }
 
   // Wait for DOM & Module load
