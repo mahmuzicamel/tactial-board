@@ -86,6 +86,21 @@ export function toggle3DNames() {
   }
 };
 
+// Darstellungstyp der 3D-Spielerfiguren umschalten: "player" (Mixamo) <-> "tactic" (Low-Poly).
+export function set3DDisplayMode(mode) {
+  if (!window.view3dManager) return;
+  const active = window.view3dManager.setDisplayMode(mode);
+  const btnPlayer = document.getElementById("view3dModePlayerBtn");
+  const btnTactic = document.getElementById("view3dModeTacticBtn");
+  const onCls = "px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/60 text-cyan-300 text-[11px] font-medium shadow-sm";
+  const offCls = "px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[11px] font-medium";
+  if (btnPlayer && btnTactic) {
+    btnPlayer.className = active === "player" ? onCls : offCls;
+    btnTactic.className = active === "tactic" ? onCls : offCls;
+  }
+  window.showToast(active === "player" ? "Darstellung: Spieler (3D-Figuren)" : "Darstellung: Taktik (Low-Poly)");
+};
+
 export function toggleLoopMode() {
   const s = S();
   s.isLoopMode = !s.isLoopMode;

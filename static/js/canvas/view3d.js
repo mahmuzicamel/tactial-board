@@ -37,6 +37,7 @@ export class View3DManager {
     this.sharedGeometries = {};
     this.showNames = false; // Standardmäßig aus für sauberen Look
     this.showNumbers = false; // Standardmäßig schwebende Nummern aus, da Nummern jetzt auf dem Trikot stehen!
+    this.displayMode = "player"; // "player" = Mixamo-GLTF-Fussballer | "tactic" = prozedurale Low-Poly-Figur
 
     // GLTF Footballer Model & Animations Cache
     this.footballerGLTF = null;
@@ -286,12 +287,16 @@ export class View3DManager {
         console.log(`Mixamo Spieler & ${gltf.animations.length} Animationen erfolgreich geladen! Erneuere Meshes...`);
       }
 
-      // Bestehende Fallback-Spieler entfernen, damit sie als echtes GLTF neu gebaut werden:
-      for (const [id, grp] of this.elementMeshes.entries()) {
-        if (grp.userData && !grp.userData.isGLTF && grp.userData.torsoMesh) {
-          this.scene.remove(grp);
-          this.disposeGroup(grp);
-          this.elementMeshes.delete(id);
+      // Bestehende Fallback-Spieler entfernen, damit sie als echtes GLTF neu gebaut werden
+      // (nur wenn der Darstellungstyp "player" aktiv ist — im "tactic"-Modus bewusst
+      // die prozedurale Figur behalten):
+      if (this.displayMode === "player") {
+        for (const [id, grp] of this.elementMeshes.entries()) {
+          if (grp.userData && !grp.userData.isGLTF && grp.userData.torsoMesh) {
+            this.scene.remove(grp);
+            this.disposeGroup(grp);
+            this.elementMeshes.delete(id);
+          }
         }
       }
       if (this.isActive) this.syncScene();
@@ -863,7 +868,9 @@ export class View3DManager {
       group.userData.contactShadow = shadow;
 
       // 1. Prüfen, ob das GLTF-Fussballermodell mit Skelett verfügbar ist
-      if (this.footballerGLTF && window.THREE.SkeletonUtils) {
+      //    UND der Darstellungstyp "player" gewählt ist (sonst bewusst die
+      //    prozedurale Low-Poly-"Taktik"-Figur unten verwenden).
+      if (this.displayMode === "player" && this.footballerGLTF && window.THREE.SkeletonUtils) {
         try {
           const model = window.THREE.SkeletonUtils.clone(this.footballerGLTF.scene);
           // Skalierung: Originalmodell ist ca. 180 Einheiten groß -> an Tactical Board anpassen (Höhe ca. 50 Einheiten)
@@ -1480,6 +1487,27 @@ export class View3DManager {
     });
 
     return this.showNames;
+  }
+
+  // Darstellungstyp der Spielerfiguren zur Laufzeit umschalten:
+  //  "player" = animierter Mixamo-GLTF-Fussballer, "tactic" = prozedurale Low-Poly-Figur.
+  // Nur Spieler-Meshes werden verworfen und neu gebaut; Ball/Hütchen/Zonen bleiben unberührt.
+  setDisplayMode(mode) {
+    const next = (mode === "tactic") ? "tactic" : "player";
+    if (next === this.displayMode) return this.displayMode;
+    this.displayMode = next;
+
+    for (const [id, grp] of this.elementMeshes.entries()) {
+      const isPlayer = grp.userData && (grp.userData.isGLTF || grp.userData.torsoMesh);
+      if (isPlayer) {
+        this.scene.remove(grp);
+        this.disposeGroup(grp);
+        this.elementMeshes.delete(id);
+      }
+    }
+    // Neuaufbau beim nächsten Sync anhand des aktuellen State
+    if (this.isActive) this.syncScene();
+    return this.displayMode;
   }
 
   render3DZones(elements) {

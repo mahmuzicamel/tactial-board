@@ -451,6 +451,11 @@
         <button onclick="set3DCameraPreset('bird')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium" title="Vogelperspektive (Top-Down)">Top</button>
         <button onclick="set3DCameraPreset('sideline')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium" title="Seitenlinie / Spielfeldrand">Seitenlinie</button>
         <div class="h-3.5 w-px bg-slate-700"></div>
+        <!-- Darstellungstyp der Spieler: Mixamo-3D-Figur vs. Low-Poly-Taktikfigur (Laufzeit-Umschaltung) -->
+        <span class="text-[10px] text-slate-500 font-medium">Figur:</span>
+        <button id="view3dModePlayerBtn" onclick="set3DDisplayMode('player')" class="px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/60 text-cyan-300 text-[11px] font-medium shadow-sm" title="Realistische animierte 3D-Spielerfiguren">Spieler</button>
+        <button id="view3dModeTacticBtn" onclick="set3DDisplayMode('tactic')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[11px] font-medium" title="Abstrakte Low-Poly-Taktikfiguren (performant, eindeutig)">Taktik</button>
+        <div class="h-3.5 w-px bg-slate-700"></div>
         <!-- Toggle für Spieler-Namen im 3D-Modus (Standardmäßig aus für cleane 3D-Ansicht) -->
         <button id="view3dToggleNamesBtn" onclick="toggle3DNames()" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[11px] font-medium flex items-center gap-1 transition" title="Spielernamen in der 3D-Ansicht ein- oder ausblenden">
           <i id="view3dToggleNamesIcon" class="fa-solid fa-tag-slash text-[10px]"></i>
@@ -1237,7 +1242,7 @@
     <span id="toastMsg">Mitteilung</span>
   </div>
 
-  <script type="module" src="/static/js/app-module.js?v=b202610100930"></script>
-  <script src="/static/app.js?v=b202610100930"></script>
+  <script type="module" src="/static/js/app-module.js?v=b202610101019"></script>
+  <script src="/static/app.js?v=b202610101019"></script>
 </body>
 </html>
