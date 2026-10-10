@@ -2,6 +2,7 @@
 import { state, getCurrentExercise } from "../state/store.js";
 import { getEffectiveCurveControlPoints, getCubicBezierPoint, interpolateKeyframeElements } from "../core/geometry.js";
 import { closeAllContextMenus } from "../ui/popovers.js";
+import { createMp4Encoder, isMp4EncodingSupported } from "./mp4-encoder.js";
 
 export class PlaybackController {
   constructor(drawCallback, onStepChange = null) {
@@ -195,7 +196,8 @@ export class PlaybackController {
     state.animReqId = requestAnimationFrame(transitionLoop);
   }
 
-  // Nimmt eine vollständige 2D-Animation als Video via CCapture.js deterministisch auf (100% flüssig, 0 Framedrops)
+  // Nimmt eine vollständige 2D-Animation deterministisch als H.264-MP4 auf (frame-by-frame,
+  // 100% flüssig, 0 Framedrops, gestochen scharf) - direkt im Browser via WebCodecs + mp4-muxer.
   async recordAnimationVideo({ durationPerStep = 2000, fps = 30, onProgress = null, canvas = null }) {
     const currentEx = getCurrentExercise();
     if (!currentEx || !Array.isArray(currentEx.keyframes) || currentEx.keyframes.length < 2) {
@@ -207,63 +209,48 @@ export class PlaybackController {
       throw new Error("2D Taktik-Canvas nicht gefunden.");
     }
 
+    if (!(await isMp4EncodingSupported())) {
+      throw new Error("Dein Browser unterstützt kein Video-Encoding (WebCodecs). Bitte nutze Chrome/Edge/Safari 16+.");
+    }
+
     const totalSteps = currentEx.keyframes.length;
     const totalDuration = (totalSteps - 1) * durationPerStep;
     const totalFrames = Math.max(2, Math.round((totalDuration / 1000) * fps));
 
-    if (typeof window.CCapture === "undefined") {
-      throw new Error("CCapture.js ist nicht geladen.");
+    const encoder = await createMp4Encoder({
+      width: targetCanvas.width,
+      height: targetCanvas.height,
+      fps
+    });
+
+    // Frames deterministisch (nicht realtime) rendern & encodieren.
+    for (let frame = 0; frame <= totalFrames; frame++) {
+      const progress = frame / totalFrames;
+      if (onProgress) onProgress(progress);
+
+      const elapsed = (frame / fps) * 1000;
+      const stepIdx = Math.min(totalSteps - 2, Math.floor(elapsed / durationPerStep));
+      const stepProgress = Math.min(1.0, (elapsed % durationPerStep) / durationPerStep);
+      const smoothT = 0.5 - 0.5 * Math.cos(Math.PI * stepProgress);
+
+      const kf1 = currentEx.keyframes[stepIdx] || { elements: [], arrows: [] };
+      const kf2 = currentEx.keyframes[stepIdx + 1] || { elements: [], arrows: [] };
+
+      const interpolated = interpolateKeyframeElements(kf1, kf2, smoothT);
+
+      // Frame synchron im Canvas zeichnen, dann in den Encoder geben.
+      this.drawCallback(interpolated, kf1.arrows);
+      encoder.addFrame(targetCanvas);
+
+      // Event-Loop kurz atmen lassen, damit der Encoder nicht verhungert.
+      if (frame % 10 === 0) await new Promise((r) => setTimeout(r, 0));
     }
 
-    const capturer = new window.CCapture({
-      format: "webm",
-      framerate: fps,
-      quality: 95,
-      verbose: false
-    });
-
-    capturer.start();
-
-    return new Promise((resolve, reject) => {
-      let frame = 0;
-
-      const captureStep = () => {
-        if (frame > totalFrames) {
-          if (onProgress) onProgress(1.0);
-          capturer.stop();
-          capturer.save((blob) => {
-            // Nach Aufnahme Standard-Ansicht wiederherstellen
-            this.drawCallback();
-            resolve({ blob: blob, mimeType: "video/webm" });
-          });
-          return;
-        }
-
-        const progress = frame / totalFrames;
-        if (onProgress) onProgress(progress);
-
-        const elapsed = (frame / fps) * 1000;
-        const stepIdx = Math.min(totalSteps - 2, Math.floor(elapsed / durationPerStep));
-        const stepProgress = Math.min(1.0, (elapsed % durationPerStep) / durationPerStep);
-        const smoothT = 0.5 - 0.5 * Math.cos(Math.PI * stepProgress);
-
-        const kf1 = currentEx.keyframes[stepIdx] || { elements: [], arrows: [] };
-        const kf2 = currentEx.keyframes[stepIdx + 1] || { elements: [], arrows: [] };
-
-        const interpolated = interpolateKeyframeElements(kf1, kf2, smoothT);
-
-        // Frame synchron im Canvas zeichnen
-        this.drawCallback(interpolated, kf1.arrows);
-
-        // Frame in CCapture einspeisen
-        capturer.capture(targetCanvas);
-        frame++;
-
-        setTimeout(captureStep, 5);
-      };
-
-      captureStep();
-    });
+    if (onProgress) onProgress(1.0);
+    const blob = await encoder.finalize();
+    // Nach Aufnahme Standard-Ansicht wiederherstellen
+    this.drawCallback();
+    return { blob, mimeType: "video/mp4" };
   }
 
   updateUI(playing) {

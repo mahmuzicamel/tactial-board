@@ -6,6 +6,7 @@ import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from "../core/constants.js";
 import { drawPitchBackground } from "../core/pitch.js";
 import { drawArrow } from "./arrows.js";
 import { getArrowCurveControlPoints, interpolateKeyframeElements } from "../core/geometry.js";
+import { createMp4Encoder, isMp4EncodingSupported } from "./mp4-encoder.js";
 
 export class View3DManager {
   constructor(containerEl, stateRef, getCurrentExerciseFn) {
@@ -1545,7 +1546,8 @@ export class View3DManager {
     }
   }
 
-  // Nimmt eine vollständige Animation als Video via CCapture.js frame-by-frame auf (100% flüssig, keine Framedrops)
+  // Nimmt eine vollständige Animation frame-by-frame als H.264-MP4 auf (100% flüssig, keine Framedrops,
+  // gestochen scharf) - direkt im Browser via WebCodecs + mp4-muxer, ohne Server.
   async recordAnimationVideo({ durationPerStep = 2000, fps = 30, onProgress = null }) {
     if (!this.renderer || !this.scene || !this.camera) {
       throw new Error("3D Ansicht ist nicht initialisiert.");
@@ -1560,126 +1562,46 @@ export class View3DManager {
     const totalDuration = (totalSteps - 1) * durationPerStep;
     const totalFrames = Math.max(2, Math.round((totalDuration / 1000) * fps));
 
-    // Nutzen von CCapture falls geladen
-    if (typeof window.CCapture !== "undefined") {
-      const capturer = new window.CCapture({
-        format: "webm",
-        framerate: fps,
-        quality: 95,
-        verbose: false
-      });
-
-      capturer.start();
-
-      return new Promise((resolve, reject) => {
-        let frame = 0;
-
-        const captureStep = () => {
-          if (frame > totalFrames) {
-            if (onProgress) onProgress(1.0);
-            capturer.stop();
-            capturer.save((blob) => {
-              resolve({ blob: blob, mimeType: "video/webm" });
-            });
-            return;
-          }
-
-          const progress = frame / totalFrames;
-          if (onProgress) onProgress(progress);
-
-          const elapsed = (frame / fps) * 1000;
-          const stepIdx = Math.min(totalSteps - 2, Math.floor(elapsed / durationPerStep));
-          const stepProgress = Math.min(1.0, (elapsed % durationPerStep) / durationPerStep);
-          const smoothT = 0.5 - 0.5 * Math.cos(Math.PI * stepProgress);
-
-          const kf1 = currentEx.keyframes[stepIdx] || { elements: [], arrows: [] };
-          const kf2 = currentEx.keyframes[stepIdx + 1] || { elements: [], arrows: [] };
-
-          const interpolated = interpolateKeyframeElements(kf1, kf2, smoothT, { includeRotation: true });
-
-          this.syncScene(interpolated, kf1.arrows);
-
-          if (this.controls) this.controls.update();
-          if (this.renderer && this.scene && this.camera) {
-            this.renderer.render(this.scene, this.camera);
-          }
-
-          capturer.capture(canvas);
-          frame++;
-
-          // Kleines Timeout, um dem UI/Mainthread Luft zu geben und Fortschritt anzuzeigen
-          setTimeout(captureStep, 5);
-        };
-
-        captureStep();
-      });
+    if (!(await isMp4EncodingSupported())) {
+      throw new Error("Dein Browser unterstützt kein Video-Encoding (WebCodecs). Bitte nutze Chrome/Edge/Safari 16+.");
     }
 
-    // Fallback: MediaRecorder captureStream
-    let mimeType = "video/webm;codecs=vp9";
-    if (window.MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")) {
-      mimeType = "video/mp4;codecs=avc1";
-    } else if (window.MediaRecorder.isTypeSupported("video/mp4")) {
-      mimeType = "video/mp4";
-    } else if (window.MediaRecorder.isTypeSupported("video/webm;codecs=vp8")) {
-      mimeType = "video/webm;codecs=vp8";
-    } else if (window.MediaRecorder.isTypeSupported("video/webm")) {
-      mimeType = "video/webm";
+    const encoder = await createMp4Encoder({
+      width: canvas.width,
+      height: canvas.height,
+      fps
+    });
+
+    // Frames deterministisch (nicht realtime) rendern & encodieren - 0 Framedrops, gestochen scharf.
+    for (let frame = 0; frame <= totalFrames; frame++) {
+      const progress = frame / totalFrames;
+      if (onProgress) onProgress(progress);
+
+      const elapsed = (frame / fps) * 1000;
+      const stepIdx = Math.min(totalSteps - 2, Math.floor(elapsed / durationPerStep));
+      const stepProgress = Math.min(1.0, (elapsed % durationPerStep) / durationPerStep);
+      const smoothT = 0.5 - 0.5 * Math.cos(Math.PI * stepProgress);
+
+      const kf1 = currentEx.keyframes[stepIdx] || { elements: [], arrows: [] };
+      const kf2 = currentEx.keyframes[stepIdx + 1] || { elements: [], arrows: [] };
+
+      const interpolated = interpolateKeyframeElements(kf1, kf2, smoothT, { includeRotation: true });
+
+      this.syncScene(interpolated, kf1.arrows);
+
+      if (this.controls) this.controls.update();
+      this.renderer.render(this.scene, this.camera);
+
+      // preserveDrawingBuffer:true garantiert, dass der Canvas als Frame lesbar ist.
+      encoder.addFrame(canvas);
+
+      // Event-Loop kurz atmen lassen, damit der Encoder nicht verhungert.
+      if (frame % 10 === 0) await new Promise((r) => setTimeout(r, 0));
     }
 
-    const stream = canvas.captureStream(fps);
-    const recorder = new window.MediaRecorder(stream, {
-      mimeType: mimeType,
-      videoBitsPerSecond: 6000000
-    });
-
-    const chunks = [];
-    recorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) chunks.push(e.data);
-    };
-
-    return new Promise(async (resolve, reject) => {
-      recorder.onerror = (err) => reject(err);
-      recorder.onstop = () => {
-        const finalBlob = new Blob(chunks, { type: mimeType });
-        resolve({ blob: finalBlob, mimeType: mimeType });
-      };
-
-      const startTime = performance.now();
-      recorder.start();
-
-      const renderLoop = () => {
-        const elapsed = performance.now() - startTime;
-        const progress = Math.min(1.0, elapsed / totalDuration);
-        if (onProgress) onProgress(progress);
-
-        const stepIdx = Math.min(totalSteps - 2, Math.floor(elapsed / durationPerStep));
-        const stepProgress = Math.min(1.0, (elapsed % durationPerStep) / durationPerStep);
-        const smoothT = 0.5 - 0.5 * Math.cos(Math.PI * stepProgress);
-
-        const kf1 = currentEx.keyframes[stepIdx] || { elements: [], arrows: [] };
-        const kf2 = currentEx.keyframes[stepIdx + 1] || { elements: [], arrows: [] };
-
-        const interpolated = interpolateKeyframeElements(kf1, kf2, smoothT, { includeRotation: true });
-
-        this.syncScene(interpolated, kf1.arrows);
-
-        if (this.controls) this.controls.update();
-        if (this.renderer && this.scene && this.camera) {
-          this.renderer.render(this.scene, this.camera);
-        }
-
-        if (elapsed < totalDuration) {
-          requestAnimationFrame(renderLoop);
-        } else {
-          setTimeout(() => {
-            recorder.stop();
-          }, 350);
-        }
-      };
-
-      requestAnimationFrame(renderLoop);
-    });
+    if (onProgress) onProgress(1.0);
+    const blob = await encoder.finalize();
+    return { blob, mimeType: "video/mp4" };
   }
 
   // Liefert Data-URL eines 3D-Snapshots

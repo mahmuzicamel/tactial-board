@@ -1488,7 +1488,7 @@
     } else {
       if (btn2d) btn2d.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-blue-600 text-white shadow";
       if (btn3d) btn3d.className = "px-2 py-0.5 rounded text-[11px] font-medium text-slate-400 hover:text-white";
-      if (desc) desc.innerHTML = `<i class="fa-solid fa-video text-blue-400"></i> Frame-genauer 2D-Export mit CCapture.js`;
+      if (desc) desc.innerHTML = `<i class="fa-solid fa-video text-blue-400"></i> Frame-genauer 2D-Export (H.264 MP4, im Browser)`;
     }
   };
 
@@ -1498,18 +1498,6 @@
     } else {
       window.trigger2DVideoRender();
     }
-  };
-
-  // Hilfsfunktion: Lädt CCapture.js asynchron nur bei Bedarf für Video-Export
-  window.loadCCaptureIfNeeded = function () {
-    if (typeof window.CCapture !== "undefined") return Promise.resolve();
-    return new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = "/static/vendor/CCapture.all.min.js?v=136";
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error("CCapture.js konnte nicht geladen werden."));
-      document.head.appendChild(script);
-    });
   };
 
   window.trigger2DVideoRender = async function () {
@@ -1532,11 +1520,10 @@
 
     if (btn) btn.disabled = true;
     if (statusBox) statusBox.classList.remove("hidden");
-    if (statusText) statusText.innerText = "CCapture.js wird vorbereitet...";
+    if (statusText) statusText.innerText = "Video-Encoder wird vorbereitet...";
     if (resultBox) resultBox.classList.add("hidden");
 
     try {
-      await window.loadCCaptureIfNeeded();
       const speed = (typeof s.currentSpeed === "number" && s.currentSpeed > 0) ? s.currentSpeed : 1.0;
       const stepDuration = 2000 / speed;
 
@@ -1549,29 +1536,11 @@
         }
       });
 
-      if (statusText) statusText.innerText = "Wandle in MP4 um (H.264 für Mac, iOS & WhatsApp)...";
-
-      const rawBlob = result.blob;
-      let finalVideoUrl = null;
-      let finalVideoBlob = null;
-
-      try {
-        const convertRes = await TC().client.convertWebmToMp4(rawBlob, "exercise_2d.webm");
-        if (convertRes && convertRes.video_url) {
-          finalVideoUrl = convertRes.video_url;
-          window.currentExportVideoUrl = finalVideoUrl;
-          window.currentExportVideoBlob = null; // Liegt als echtes H.264 MP4 auf dem Server
-        }
-      } catch (convErr) {
-        console.warn("Server MP4-Konvertierung für 2D fehlgeschlagen, nutze Fallback-Blob:", convErr);
-      }
-
-      if (!finalVideoUrl) {
-        finalVideoBlob = rawBlob;
-        window.currentExportVideoBlob = finalVideoBlob;
-        finalVideoUrl = URL.createObjectURL(rawBlob);
-        window.currentExportVideoUrl = finalVideoUrl;
-      }
+      // Blob ist bereits H.264-MP4 (direkt im Browser via WebCodecs erzeugt) - keine Server-Konvertierung nötig.
+      const finalVideoBlob = result.blob;
+      window.currentExportVideoBlob = finalVideoBlob;
+      const finalVideoUrl = URL.createObjectURL(finalVideoBlob);
+      window.currentExportVideoUrl = finalVideoUrl;
 
       const player = document.getElementById("exportVideoPlayer");
       if (player) {
@@ -1583,9 +1552,8 @@
       if (resultBox) resultBox.classList.remove("hidden");
       window.showToast("🎬 2D-Video als MP4 erfolgreich generiert!");
     } catch (e) {
-      console.warn("Client-seitiger 2D-Render fehlgeschlagen, Fallback zu Server-Render:", e);
-      // Automatischer Fallback auf Python ffmpeg Server falls WebM / CCapture im Browser fehlschlägt
-      await window.triggerServerVideoRender();
+      console.error("2D Video Render Error:", e);
+      window.showToast("Fehler bei 2D-Aufnahme: " + e.message, true);
     } finally {
       if (btn) btn.disabled = false;
       if (statusBox) statusBox.classList.add("hidden");
@@ -1623,9 +1591,6 @@
     if (resultBox) resultBox.classList.add("hidden");
 
     try {
-      if (typeof window.loadCCaptureIfNeeded === "function") {
-        await window.loadCCaptureIfNeeded();
-      }
       const speed = (typeof s.currentSpeed === "number" && s.currentSpeed > 0) ? s.currentSpeed : 1.0;
       const stepDuration = 2000 / speed;
 
@@ -1637,29 +1602,11 @@
         }
       });
 
-      if (statusText) statusText.innerText = "Wandle in MP4 um (H.264 für Mac, iOS & WhatsApp)...";
-      
-      const rawBlob = result.blob;
-      let finalVideoUrl = null;
-      let finalVideoBlob = null;
-
-      try {
-        const convertRes = await TC().client.convertWebmToMp4(rawBlob, "exercise_3d.webm");
-        if (convertRes && convertRes.video_url) {
-          finalVideoUrl = convertRes.video_url;
-          window.currentExportVideoUrl = finalVideoUrl;
-          window.currentExportVideoBlob = null; // Liegt als echtes MP4 auf dem Server
-        }
-      } catch (convErr) {
-        console.warn("Server MP4-Konvertierung fehlgeschlagen, nutze Fallback-Blob:", convErr);
-      }
-
-      if (!finalVideoUrl) {
-        finalVideoBlob = rawBlob;
-        window.currentExportVideoBlob = finalVideoBlob;
-        finalVideoUrl = URL.createObjectURL(rawBlob);
-        window.currentExportVideoUrl = finalVideoUrl;
-      }
+      // Blob ist bereits H.264-MP4 (direkt im Browser via WebCodecs erzeugt) - keine Server-Konvertierung nötig.
+      const finalVideoBlob = result.blob;
+      window.currentExportVideoBlob = finalVideoBlob;
+      const finalVideoUrl = URL.createObjectURL(finalVideoBlob);
+      window.currentExportVideoUrl = finalVideoUrl;
 
       const player = document.getElementById("exportVideoPlayer");
       if (player) {
@@ -1673,45 +1620,6 @@
     } catch (err) {
       console.error("3D Video Render Error:", err);
       window.showToast("Fehler bei 3D-Aufnahme: " + err.message, true);
-    } finally {
-      if (btn) btn.disabled = false;
-      if (statusBox) statusBox.classList.add("hidden");
-    }
-  };
-
-  window.triggerServerVideoRender = async function () {
-    const s = S();
-    const btn = document.getElementById("btnRenderVideo");
-    const statusBox = document.getElementById("videoRenderStatus");
-    const resultBox = document.getElementById("videoResultBox");
-    const exId = s.currentExercise.id;
-    if (!exId || exId === "ex_initial") {
-      window.showToast("Bitte speichere die Übung zuerst!", true);
-      return;
-    }
-    if (btn) btn.disabled = true;
-    if (statusBox) statusBox.classList.remove("hidden");
-    if (resultBox) resultBox.classList.add("hidden");
-    try {
-      const data = await TC().client.renderExerciseVideo(exId);
-      const videoUrl = data.video_url || (data.exercise && data.exercise.video_mp4);
-      if (data.status === "ok" && videoUrl) {
-        window.currentExportVideoUrl = videoUrl;
-        window.currentExportVideoBlob = null;
-        const player = document.getElementById("exportVideoPlayer");
-        if (player) {
-          player.src = `${videoUrl}?t=${Date.now()}`;
-          player.load();
-        }
-        const btnGif = document.getElementById("btnExportGif");
-        if (btnGif) btnGif.classList.remove("hidden");
-        if (resultBox) resultBox.classList.remove("hidden");
-        window.showToast("🎬 Video fertig generiert!");
-      } else {
-        throw new Error(data.detail || "Keine Video-URL zurückerhalten");
-      }
-    } catch (e) {
-      window.showToast("Fehler beim Video-Rendern: " + e.message, true);
     } finally {
       if (btn) btn.disabled = false;
       if (statusBox) statusBox.classList.add("hidden");

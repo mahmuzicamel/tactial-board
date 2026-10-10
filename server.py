@@ -1,15 +1,14 @@
 import os
 import uuid
 import json
-import subprocess
 from typing import Optional, List, Dict, Any
-from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from db import init_db, save_exercise, get_exercise, list_exercises, delete_exercise
-from renderer import render_frame, render_exercise_video
+from renderer import render_frame
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
@@ -94,31 +93,21 @@ def generate_media_for_exercise(exercise_id: str):
     speed = float(ex.get("playback_speed") or 0.5)
     duration_per_step = 2.0 / speed if speed > 0 else 4.0
 
-    # 1. Preview PNG of first keyframe
+    # 1. Preview PNG of first keyframe (reines PIL-Rendering, kein ffmpeg)
     preview_filename = f"{exercise_id}_preview.png"
     preview_path = os.path.join(MEDIA_DIR, preview_filename)
     first_kf = keyframes[0]
     first_img = render_frame(pitch_type, first_kf.get("elements", []), first_kf.get("arrows", []), step_title="", element_scale=el_scale, field_rotation=field_rot)
     first_img.save(preview_path)
 
-    # 2. Render MP4 and GIF
-    mp4_filename = f"{exercise_id}.mp4"
-    gif_filename = f"{exercise_id}.gif"
-    mp4_path = os.path.join(MEDIA_DIR, mp4_filename)
-    gif_path = os.path.join(MEDIA_DIR, gif_filename)
-
-    try:
-        render_exercise_video(keyframes, pitch_type=pitch_type, output_mp4=mp4_path, output_gif=gif_path, element_scale=el_scale, field_rotation=field_rot, duration_per_step=duration_per_step)
-    except Exception as e:
-        print(f"Error rendering video for {exercise_id}: {e}")
-
-    # Update DB with media URLs
+    # Video-Rendering (MP4/GIF) läuft jetzt ausschließlich im Browser (WebCodecs + mp4-muxer).
+    # Server-seitiges ffmpeg wurde entfernt. Preview-PNG bleibt als Listen-Thumbnail erhalten.
     save_data = {
         **ex,
         "keyframes_json": json.dumps(keyframes),
         "preview_image": f"/media/{preview_filename}",
-        "video_mp4": f"/media/{mp4_filename}",
-        "video_gif": f"/media/{gif_filename}",
+        "video_mp4": None,
+        "video_gif": None,
     }
     save_exercise(save_data)
 
@@ -191,49 +180,6 @@ def api_render_exercise(exercise_id: str, background_tasks: BackgroundTasks, syn
     else:
         background_tasks.add_task(generate_media_for_exercise, exercise_id)
         return {"status": "queued"}
-
-@app.post("/api/convert-video")
-async def api_convert_video(file: UploadFile = File(...)):
-    """Konvertiert hochgeladene WebM-Videos in universell abspielbare H.264 MP4-Dateien (Mac, iOS, WhatsApp kompatibel)."""
-    video_id = str(uuid.uuid4())[:8]
-    webm_filename = f"temp_{video_id}.webm"
-    mp4_filename = f"tactics_3d_{video_id}.mp4"
-    webm_path = os.path.join(MEDIA_DIR, webm_filename)
-    mp4_path = os.path.join(MEDIA_DIR, mp4_filename)
-
-    try:
-        content = await file.read()
-        with open(webm_path, "wb") as f:
-            f.write(content)
-
-        ffmpeg_cmd = [
-            "ffmpeg", "-y",
-            "-i", webm_path,
-            "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
-            "-c:v", "libx264",
-            "-profile:v", "high",
-            "-pix_fmt", "yuv420p",
-            "-movflags", "+faststart",
-            "-crf", "18",
-            "-preset", "faster",
-            mp4_path
-        ]
-        res = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if res.returncode != 0:
-            print("FFmpeg convert error:", res.stderr.decode("utf-8", errors="ignore"))
-            raise HTTPException(status_code=500, detail="Video conversion failed")
-
-        return {
-            "status": "ok",
-            "video_url": f"/media/{mp4_filename}",
-            "filename": mp4_filename
-        }
-    finally:
-        if os.path.exists(webm_path):
-            try:
-                os.remove(webm_path)
-            except Exception:
-                pass
 
 @app.delete("/api/exercises/{exercise_id}")
 def api_delete_exercise(exercise_id: str):

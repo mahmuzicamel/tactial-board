@@ -38,7 +38,7 @@ EXTRA_ASSETS = [
     "/static/vendor/OrbitControls.js",
     "/static/vendor/GLTFLoader.js",
     "/static/vendor/SkeletonUtils.js",
-    "/static/vendor/CCapture.all.min.js",
+    "/static/vendor/mp4-muxer.min.js",
     "/static/models/footballer.glb",
     "/static/animations/idle.glb",
     "/static/animations/walk.glb",

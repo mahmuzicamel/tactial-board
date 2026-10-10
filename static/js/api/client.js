@@ -33,22 +33,3 @@ export async function deleteExercise(id) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return await res.json();
 }
-
-export async function renderExerciseVideo(id) {
-  const res = await fetch(`/api/exercises/${encodeURIComponent(id)}/render?sync=true`, {
-    method: "POST"
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return await res.json();
-}
-
-export async function convertWebmToMp4(blob, filename = "video.webm") {
-  const formData = new FormData();
-  formData.append("file", blob, filename);
-  const res = await fetch("/api/convert-video", {
-    method: "POST",
-    body: formData
-  });
-  if (!res.ok) throw new Error(`Konvertierungsfehler HTTP ${res.status}`);
-  return await res.json();
-}

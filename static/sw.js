@@ -1,10 +1,11 @@
-const CACHE_NAME = 'tactical-coach-b202610091959';
+const CACHE_NAME = 'tactical-coach-b202610100702';
 const ASSETS_TO_CACHE = [
-  '/static/app.js?v=b202610091959',
-  '/static/js/app-module.js?v=b202610091959',
+  '/static/app.js?v=b202610100702',
+  '/static/js/app-module.js?v=b202610100702',
   '/static/js/api/client.js',
   '/static/js/canvas/arrows.js',
   '/static/js/canvas/elements.js',
+  '/static/js/canvas/mp4-encoder.js',
   '/static/js/canvas/playback.js',
   '/static/js/canvas/scene.js',
   '/static/js/canvas/view3d.js',
@@ -28,7 +29,7 @@ const ASSETS_TO_CACHE = [
   '/static/vendor/OrbitControls.js',
   '/static/vendor/GLTFLoader.js',
   '/static/vendor/SkeletonUtils.js',
-  '/static/vendor/CCapture.all.min.js',
+  '/static/vendor/mp4-muxer.min.js',
   '/static/models/footballer.glb',
   '/static/animations/idle.glb',
   '/static/animations/walk.glb',
