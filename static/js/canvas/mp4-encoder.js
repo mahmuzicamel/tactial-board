@@ -1,6 +1,6 @@
 // canvas/mp4-encoder.js - Browser-seitiger H.264/MP4-Encoder (WebCodecs + mp4-muxer)
 //
-// Ersetzt den alten Pfad CCapture(whammy)->WebM->Server-ffmpeg->MP4 vollständig.
+// Ersetzt den alten whammy/WebM->Server-ffmpeg->MP4-Pfad vollständig.
 // Erzeugt deterministisch, frame-by-frame, gestochen scharfes H.264-MP4 DIREKT im Browser.
 // Kein Server, keine whammy-Kompression, keine Framedrops.
 //
