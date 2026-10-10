@@ -866,6 +866,72 @@ export class View3DManager {
       group.add(shadow);
       group.userData.contactShadow = shadow;
 
+      // --- SUBBUTEO-Modus: Spielfigur auf schwerem Rundsockel (klassische Tischfußball-Optik) ---
+      if (this.displayMode === "tactic") {
+        // 1. Schwerer Sockel (dunkle, leicht konische Scheibe wie bei Subbuteo/Tipp-Kick)
+        const baseMat = this.getMaterialForColor(0x1e293b, 0.6);
+        const baseDisc = new T.Mesh(new T.CylinderGeometry(13, 15, 5, 28), baseMat);
+        baseDisc.position.y = 2.5;
+        baseDisc.castShadow = true;
+        baseDisc.receiveShadow = true;
+        group.add(baseDisc);
+
+        // 1b. Farbiger Ring oben auf dem Sockel (Teamfarbe zur schnellen Zuordnung)
+        const ringMat = this.getMaterialForColor(teamCol, 0.4);
+        const ring = new T.Mesh(new T.CylinderGeometry(13.2, 13.2, 1.6, 28), ringMat);
+        ring.position.y = 5.2;
+        group.add(ring);
+
+        // 2. Gewölbte Standfigur: halbe, nach vorn geneigte Scheibe in Teamfarbe (mit Rückennummer).
+        //    LatheGeometry wäre teuer -> flache, dicke, oben abgerundete "Fahne" aus einem Zylinder-Segment.
+        const bodyMat = torsoJerseyMat; // trägt die aufgedruckte Rückennummer
+        // Oben abgerundete, flache Figur: Kapsel-artig aus Zylinder (Höhe) + Kugelkappe.
+        const bodyGeo = new T.CylinderGeometry(9, 10, 30, 20, 1, false, 0, Math.PI * 2);
+        const body = new T.Mesh(bodyGeo, bodyMat);
+        body.scale.set(1.0, 1.0, 0.42); // nach vorn/hinten abgeflacht -> Standee-Look
+        body.position.y = 22;
+        body.castShadow = true;
+        group.add(body);
+        group.userData.torsoMesh = body;
+
+        // 2b. Abgerundete Schulter/Kopfpartie oben (Kugelkappe in Teamfarbe)
+        const topCap = new T.Mesh(new T.SphereGeometry(9, 20, 16, 0, Math.PI * 2, 0, Math.PI / 2), baseJerseyMat);
+        topCap.scale.set(1.0, 1.0, 0.42);
+        topCap.position.y = 37;
+        topCap.castShadow = true;
+        group.add(topCap);
+
+        // 3. Kopf (Hautton) obenauf
+        const subHead = new T.Mesh(this.sharedGeometries.playerHead, skinMat);
+        subHead.position.y = 44;
+        subHead.scale.set(0.85, 0.85, 0.85);
+        subHead.castShadow = true;
+        group.add(subHead);
+
+        // 4. Blickrichtungs-Nase (+Z vorne, konsistent mit Spieler-Modus)
+        const subNose = new T.Mesh(this.sharedGeometries.playerNose, skinMat);
+        subNose.position.set(0, 43.5, 6);
+        subNose.rotation.x = Math.PI / 2;
+        group.add(subNose);
+
+        // 5. Nummern- & Namens-Billboards (gleiche Logik/Höhe wie Spieler-Modus)
+        const subSprite = this.createNumberSprite(el.number || "");
+        subSprite.position.y = 58;
+        subSprite.name = "numberSprite";
+        subSprite.visible = !!this.showNumbers;
+        group.add(subSprite);
+
+        if (el.name || el.label) {
+          const subNameSprite = this.createNameSprite(el.name || el.label);
+          subNameSprite.position.y = 58;
+          subNameSprite.name = "nameSprite";
+          subNameSprite.visible = !!this.showNames;
+          group.add(subNameSprite);
+        }
+
+        return group;
+      }
+
       // 1. Prüfen, ob das GLTF-Fussballermodell mit Skelett verfügbar ist
       //    UND der Darstellungstyp "player" gewählt ist (sonst bewusst die
       //    prozedurale Low-Poly-"Taktik"-Figur unten verwenden).
