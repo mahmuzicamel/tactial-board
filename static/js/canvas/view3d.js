@@ -463,7 +463,7 @@ export class View3DManager {
     // Feste Materialien
     this.sharedMaterials.skin = new T.MeshStandardMaterial({ color: 0xffedd5, roughness: 0.7 });
     this.sharedMaterials.hair = new T.MeshStandardMaterial({ color: 0x332211, roughness: 0.8 });
-    this.sharedMaterials.shorts = new T.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5, skinning: true }); // Klassisch weiße Shorts
+    this.sharedMaterials.shorts = new T.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 }); // Klassisch weiße Shorts (kein skinning: wird von der prozeduralen Taktik-Figur genutzt)
     this.sharedMaterials.cleats = new T.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4, metalness: 0.2 }); // Schwarze Fußballschuhe
 
     // Material-Palette
@@ -538,8 +538,7 @@ export class View3DManager {
     const mat = new T.MeshStandardMaterial({
       map: tex,
       roughness: 0.4,
-      metalness: 0.1,
-      skinning: true
+      metalness: 0.1
     });
 
     this.jerseyMaterialCache.set(key, mat);
@@ -885,13 +884,18 @@ export class View3DManager {
               child.castShadow = true;
               child.receiveShadow = true;
               // Teamfarben auf Mesh-Oberfläche mappen
+              // WICHTIG: geklonte Materialien mit skinning:true, damit die geteilten
+              // Materialien der prozeduralen Taktik-Figur NICHT vergiftet werden
+              // (skinning:true auf nicht-geriggten Meshes kollabiert Vertices -> weiße Bänder).
               if (child.name === 'Beta_Surface') {
-                torsoJerseyMat.skinning = true;
-                child.material = torsoJerseyMat;
+                const skinnedTorso = torsoJerseyMat.clone();
+                skinnedTorso.skinning = true;
+                child.material = skinnedTorso;
                 group.userData.torsoMesh = child;
               } else if (child.name === 'Beta_Joints') {
-                shortsMat.skinning = true;
-                child.material = shortsMat;
+                const skinnedShorts = shortsMat.clone();
+                skinnedShorts.skinning = true;
+                child.material = skinnedShorts;
                 group.userData.jointsMesh = child;
               }
             }
@@ -1376,7 +1380,15 @@ export class View3DManager {
     if (el.type === "player") {
       const teamCol = el.team === "red" ? 0xef4444 : (el.team === "blue" ? 0x3b82f6 : (el.team === "yellow" ? 0xeab308 : (el.team === "orange" ? 0xf97316 : 0x10b981)));
       if (group.userData.torsoMesh) {
-        group.userData.torsoMesh.material = this.getJerseyMaterial(teamCol, el.number);
+        const newMat = this.getJerseyMaterial(teamCol, el.number);
+        // GLTF-SkinnedMesh braucht skinning:true -> Flag des alten Materials erhalten
+        if (group.userData.isGLTF) {
+          const skinnedMat = newMat.clone();
+          skinnedMat.skinning = true;
+          group.userData.torsoMesh.material = skinnedMat;
+        } else {
+          group.userData.torsoMesh.material = newMat;
+        }
       }
 
       const sprite = group.getObjectByName("numberSprite");
