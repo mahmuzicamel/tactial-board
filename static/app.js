@@ -61,7 +61,7 @@
   // drawScene selbst enthält KEINE Rendering-Logik mehr – einzige Wahrheit ist das Modul.
   window.drawScene = function (customElements = null, customArrows = null, customTitle = null) {
     if (!ctx || !canvas || !TC() || !TC().scene) return;
-    TC().scene.drawScene(ctx, canvas, S, TC, view3dManager, customElements, customArrows);
+    TC().scene.drawScene(ctx, canvas, S, TC, window.view3dManager, customElements, customArrows);
 
     // Check guide pulsing loop
     window.checkGuidePulseLoop();
@@ -101,7 +101,7 @@
 
   // Playback Controller Bridge
   let playbackCtrl = null;
-  let view3dManager = null;
+  if (typeof window.view3dManager === "undefined") window.view3dManager = null;
   window.togglePlayAnimation = function () { if (playbackCtrl) playbackCtrl.toggle(); };
   window.startAnimation = function () { if (playbackCtrl) playbackCtrl.start(); };
   window.stopAnimation = function () { if (playbackCtrl) playbackCtrl.stop(); };

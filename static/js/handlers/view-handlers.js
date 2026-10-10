@@ -9,12 +9,12 @@ const SPEED_STEPS = [0.25, 0.5, 0.75, 1.0, 1.5, 2.0];
 
 
   window.ensureView3DManager = function () {
-    if (!view3dManager && TC() && TC().View3DManager) {
+    if (!window.view3dManager && TC() && TC().View3DManager) {
       const wrapper = document.getElementById("canvasWrapper");
-      view3dManager = new (TC().View3DManager)(wrapper, S(), () => S().currentExercise);
-      window.view3dManager = view3dManager;
+      window.view3dManager = new (TC().View3DManager)(wrapper, S(), () => S().currentExercise);
+      window.view3dManager = window.view3dManager;
     }
-    return view3dManager;
+    return window.view3dManager;
   };
 
   window.toggle3DView = function () {
@@ -26,7 +26,7 @@ const SPEED_STEPS = [0.25, 0.5, 0.75, 1.0, 1.5, 2.0];
     const hud = document.getElementById("view3dHud");
     const c2d = document.getElementById("tacticCanvas");
 
-    if (!view3dManager && TC().View3DManager) {
+    if (!window.view3dManager && TC().View3DManager) {
       window.ensureView3DManager();
     }
 
@@ -41,8 +41,8 @@ const SPEED_STEPS = [0.25, 0.5, 0.75, 1.0, 1.5, 2.0];
       // Schließe 2D Selektions-Popups
       window.deselectElement();
 
-      if (view3dManager) {
-        view3dManager.show();
+      if (window.view3dManager) {
+        window.view3dManager.show();
       }
     } else {
       if (btn) {
@@ -52,22 +52,22 @@ const SPEED_STEPS = [0.25, 0.5, 0.75, 1.0, 1.5, 2.0];
       if (hud) hud.classList.add("hidden");
       if (c2d) c2d.style.opacity = "1";
 
-      if (view3dManager) {
-        view3dManager.hide();
+      if (window.view3dManager) {
+        window.view3dManager.hide();
       }
       window.drawScene();
     }
   };
 
   window.set3DCameraPreset = function (preset) {
-    if (view3dManager) {
-      view3dManager.setCameraPreset(preset);
+    if (window.view3dManager) {
+      window.view3dManager.setCameraPreset(preset);
     }
   };
 
   window.toggle3DNames = function () {
-    if (view3dManager) {
-      const isVisible = view3dManager.toggleNamesVisibility();
+    if (window.view3dManager) {
+      const isVisible = window.view3dManager.toggleNamesVisibility();
       const btn = document.getElementById("view3dToggleNamesBtn");
       const lbl = document.getElementById("view3dToggleNamesLabel");
       const icon = document.getElementById("view3dToggleNamesIcon");

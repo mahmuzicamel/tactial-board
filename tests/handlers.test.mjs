@@ -31,3 +31,14 @@ test("alle Handler-Module laden kollisionsfrei im geteilten Scope", () => {
   const fnCount = Object.keys(ctx.window).filter((k) => typeof ctx.window[k] === "function").length;
   assert.ok(fnCount >= 60, `erwartet >=60 window-Handler, gesetzt ${fnCount}`);
 });
+
+test("kein Handler nutzt bare view3dManager (muss window.view3dManager sein)", () => {
+  // view3dManager ist geteilter mutabler State zwischen app.js (IIFE) und den
+  // Handler-IIFEs. Bare-Zugriff erzeugt getrennte Modul-Globals -> 3D bricht.
+  const files = fs.readdirSync(handlersDir).filter((f) => f.endsWith(".js"));
+  for (const f of files) {
+    const code = fs.readFileSync(path.join(handlersDir, f), "utf8");
+    const bare = code.match(/(?<![.\w])view3dManager(?![\w])/g) || [];
+    assert.strictEqual(bare.length, 0, `${f}: bare view3dManager gefunden (muss window.view3dManager sein)`);
+  }
+});
