@@ -28,136 +28,16 @@
   });
 
   // Helper: Toast Notifications
-  window.showToast = function (message, isError = false) {
-    let container = document.getElementById("toastContainer");
-    if (!container) {
-      container = document.createElement("div");
-      container.id = "toastContainer";
-      container.className = "fixed bottom-16 sm:bottom-6 right-4 sm:right-6 z-50 flex flex-col gap-2 pointer-events-none";
-      document.body.appendChild(container);
-    }
-    const toast = document.createElement("div");
-    toast.className = `px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xl border flex items-center gap-2 transform transition-all duration-300 translate-y-4 opacity-0 pointer-events-auto ${
-      isError
-        ? "bg-rose-950/90 text-rose-200 border-rose-500/60 shadow-rose-950/40"
-        : "bg-emerald-950/90 text-emerald-200 border-emerald-500/60 shadow-emerald-950/40"
-    }`;
-    toast.innerHTML = `<i class="fa-solid ${isError ? "fa-circle-exclamation text-rose-400" : "fa-circle-check text-emerald-400"}"></i><span>${message}</span>`;
-    container.appendChild(toast);
-    requestAnimationFrame(() => toast.classList.remove("translate-y-4", "opacity-0"));
-    setTimeout(() => {
-      toast.classList.add("translate-y-4", "opacity-0");
-      setTimeout(() => toast.remove(), 300);
-    }, 3000);
-  };
 
   // URL Helpers
-  window.getExerciseIdFromUrl = function () {
-    const match = window.location.pathname.match(/\/exercise\/([a-zA-Z0-9_-]+)/);
-    if (match) return match[1];
-    return new URLSearchParams(window.location.search).get("id");
-  };
 
-  window.updateUrlForExercise = function (id, replace = false) {
-    if (!id) return;
-    const currentParams = new URLSearchParams(window.location.search);
-    let queryString = currentParams.toString();
-    if (queryString) queryString = `?${queryString}`;
-    const url = `/exercise/${encodeURIComponent(id)}${queryString}`;
-    if (replace) window.history.replaceState({ exerciseId: id }, "", url);
-    else if (window.location.pathname !== `/exercise/${encodeURIComponent(id)}`) window.history.pushState({ exerciseId: id }, "", url);
-  };
 
-  window.copyExerciseShareLink = async function () {
-    const s = S();
-    const id = s?.currentExercise?.id;
-    if (!id || id === "ex_initial") {
-      window.showToast("Bitte speichere die Übung zuerst!", true);
-      return;
-    }
-    const url = `${window.location.origin}/exercise/${encodeURIComponent(id)}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      window.showToast("🔗 Link kopiert!");
-    } catch {
-      window.showToast("Link konnte nicht kopiert werden.", true);
-    }
-  };
 
   // Local Storage Drafts
-  window.saveLocalDraft = function () {
-    try {
-      const s = S();
-      if (!s) return;
-      localStorage.setItem("tactical_coach_draft", JSON.stringify({
-        exercise: s.currentExercise,
-        keyframeIndex: s.currentKeyframeIndex
-      }));
-    } catch (e) {}
-  };
 
-  window.loadLocalDraft = function () {
-    try {
-      const draft = localStorage.getItem("tactical_coach_draft");
-      return draft ? JSON.parse(draft) : null;
-    } catch {
-      return null;
-    }
-  };
 
   // Form Sync
-  window.syncFormToState = function () {
-    const s = S();
-    if (!s) return;
-    const get = (id) => document.getElementById(id)?.value || "";
-    s.currentExercise.title = get("exTitle") || "Neue Übung";
-    s.currentExercise.age_group = get("exAgeGroup");
-    s.currentExercise.focus = get("exFocus");
-    s.currentExercise.player_count = get("exPlayers");
-    s.currentExercise.dimensions = get("exDimensions");
-    s.currentExercise.description = get("exDescription");
-    s.currentExercise.coaching_points = get("exCoaching");
-    window.saveLocalDraft();
-  };
 
-  window.updateFormFields = function () {
-    const s = S();
-    if (!s) return;
-    const set = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.value = val || "";
-    };
-    const ex = s.currentExercise;
-    set("exTitle", ex.title);
-    set("exAgeGroup", ex.age_group);
-    set("exFocus", ex.focus);
-    set("exPlayers", ex.player_count);
-    set("exDimensions", ex.dimensions);
-    set("exDescription", ex.description);
-    set("exCoaching", ex.coaching_points);
-    const pSel = document.getElementById("pitchSelect");
-    if (pSel && ex.pitch_type) pSel.value = ex.pitch_type;
-
-    // Synchronisiere Wiedergabe-Optionen (Ghost & Speed)
-    const ghostBtn = document.getElementById("ghostToggleBtn");
-    const ghostLbl = document.getElementById("ghostToggleLabel");
-    if (ghostBtn && ghostLbl) {
-      if (S().isGhostMode === "prev") {
-        ghostBtn.className = "px-1.5 py-1 bg-cyan-950/70 text-cyan-300 font-bold text-[11px] rounded-md border border-cyan-500/60 transition flex items-center gap-1";
-        ghostLbl.innerText = "Ghost: 1";
-      } else if (S().isGhostMode === "all") {
-        ghostBtn.className = "px-1.5 py-1 bg-purple-950/80 text-purple-200 font-bold text-[11px] rounded-md border border-purple-500/70 transition flex items-center gap-1";
-        ghostLbl.innerText = "Ghost: Alle";
-      } else {
-        ghostBtn.className = "px-1.5 py-1 bg-slate-800 text-slate-400 font-bold text-[11px] rounded-md border border-slate-700 transition flex items-center gap-1";
-        ghostLbl.innerText = "Ghost";
-      }
-    }
-    const speedLbl = document.getElementById("speedToggleLabel");
-    if (speedLbl) {
-      speedLbl.innerText = `${(S().currentSpeed || 1.0).toFixed(1)}x`;
-    }
-  };
 
   // Canvas Resize & Dimensions
   window.resizeCanvasToContainer = function () {
@@ -227,155 +107,17 @@
   window.stopAnimation = function () { if (playbackCtrl) playbackCtrl.stop(); };
 
   // Helper: Stellt sicher, dass View3DManager erzeugt ist
-  window.ensureView3DManager = function () {
-    if (!view3dManager && TC() && TC().View3DManager) {
-      const wrapper = document.getElementById("canvasWrapper");
-      view3dManager = new (TC().View3DManager)(wrapper, S(), () => S().currentExercise);
-      window.view3dManager = view3dManager;
-    }
-    return view3dManager;
-  };
 
   // 3D View Bridge
-  window.toggle3DView = function () {
-    const s = S();
-    s.is3DMode = !s.is3DMode;
 
-    const btn = document.getElementById("view3dToggleBtn");
-    const lbl = document.getElementById("view3dToggleLabel");
-    const hud = document.getElementById("view3dHud");
-    const c2d = document.getElementById("tacticCanvas");
 
-    if (!view3dManager && TC().View3DManager) {
-      window.ensureView3DManager();
-    }
 
-    if (s.is3DMode) {
-      if (btn) {
-        btn.className = "ml-1 px-2 py-1 bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white rounded-lg flex items-center gap-1.5 text-[11px] font-bold border border-cyan-400 transition shadow-md shadow-cyan-500/30";
-      }
-      if (lbl) lbl.innerText = "2D";
-      if (hud) hud.classList.remove("hidden");
-      if (c2d) c2d.style.opacity = "0.05"; // 2D im Hintergrund schwach halten
 
-      // Schließe 2D Selektions-Popups
-      window.deselectElement();
 
-      if (view3dManager) {
-        view3dManager.show();
-      }
-    } else {
-      if (btn) {
-        btn.className = "ml-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-cyan-400 hover:text-cyan-300 rounded-lg flex items-center gap-1.5 text-[11px] font-bold border border-slate-700 transition shadow-sm";
-      }
-      if (lbl) lbl.innerText = "3D";
-      if (hud) hud.classList.add("hidden");
-      if (c2d) c2d.style.opacity = "1";
-
-      if (view3dManager) {
-        view3dManager.hide();
-      }
-      window.drawScene();
-    }
-  };
-
-  window.set3DCameraPreset = function (preset) {
-    if (view3dManager) {
-      view3dManager.setCameraPreset(preset);
-    }
-  };
-
-  window.toggle3DNames = function () {
-    if (view3dManager) {
-      const isVisible = view3dManager.toggleNamesVisibility();
-      const btn = document.getElementById("view3dToggleNamesBtn");
-      const lbl = document.getElementById("view3dToggleNamesLabel");
-      const icon = document.getElementById("view3dToggleNamesIcon");
-      if (btn && lbl) {
-        if (isVisible) {
-          btn.className = "px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/60 text-cyan-300 text-[11px] font-medium flex items-center gap-1 shadow-sm";
-          lbl.innerText = "Namen: An";
-          if (icon) icon.className = "fa-solid fa-tag text-[10px]";
-          window.showToast("Spielernamen in 3D eingeblendet");
-        } else {
-          btn.className = "px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[11px] font-medium flex items-center gap-1";
-          lbl.innerText = "Namen: Aus";
-          if (icon) icon.className = "fa-solid fa-tag-slash text-[10px]";
-          window.showToast("Spielernamen in 3D ausgeblendet");
-        }
-      }
-    }
-  };
-
-  window.toggleLoopMode = function () {
-    const s = S();
-    s.isLoopMode = !s.isLoopMode;
-    const btn = document.getElementById("loopToggleBtn");
-    const lbl = document.getElementById("loopToggleLabel");
-    if (btn && lbl) {
-      btn.className = s.isLoopMode
-        ? "px-1.5 py-1 bg-emerald-950/60 hover:bg-emerald-900/60 active:scale-95 text-emerald-400 font-bold text-[11px] rounded-md border border-emerald-600/60 transition flex items-center gap-1"
-        : "px-1.5 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-300 font-bold text-[11px] rounded-md border border-slate-700 transition flex items-center gap-1";
-      lbl.innerText = s.isLoopMode ? "Loop" : "1x";
-    }
-  };
-
-  window.toggleGhostLayer = function () {
-    const s = S();
-    s.isGhostMode = s.isGhostMode === "off" ? "prev" : (s.isGhostMode === "prev" ? "all" : "off");
-    const btn = document.getElementById("ghostToggleBtn");
-    const lbl = document.getElementById("ghostToggleLabel");
-    if (btn && lbl) {
-      if (s.isGhostMode === "prev") {
-        btn.className = "px-1.5 py-1 bg-cyan-950/70 text-cyan-300 font-bold text-[11px] rounded-md border border-cyan-500/60 transition flex items-center gap-1";
-        lbl.innerText = "Ghost: 1";
-      } else if (s.isGhostMode === "all") {
-        btn.className = "px-1.5 py-1 bg-purple-950/80 text-purple-200 font-bold text-[11px] rounded-md border border-purple-500/70 transition flex items-center gap-1";
-        lbl.innerText = "Ghost: Alle";
-      } else {
-        btn.className = "px-1.5 py-1 bg-slate-800 text-slate-400 font-bold text-[11px] rounded-md border border-slate-700 transition flex items-center gap-1";
-        lbl.innerText = "Ghost";
-      }
-    }
-    window.drawScene();
-  };
-
-  window.toggleDebugHitAreas = function () {
-    const s = S();
-    s.isDebugHitAreas = !s.isDebugHitAreas;
-    const btn = document.getElementById("debugHitboxToggleBtn");
-    const lbl = document.getElementById("debugHitboxToggleLabel");
-    if (btn && lbl) {
-      if (s.isDebugHitAreas) {
-        btn.className = "px-2 py-0.5 bg-rose-950/70 text-rose-300 font-bold text-[11px] rounded-md border border-rose-600/60 transition flex items-center gap-1";
-        lbl.innerText = "Ein";
-      } else {
-        btn.className = "px-2 py-0.5 bg-slate-800 text-slate-400 font-bold text-[11px] rounded-md border border-slate-700 transition flex items-center gap-1";
-        lbl.innerText = "Aus";
-      }
-    }
-    window.drawScene();
-  };
 
   const SPEED_STEPS = [0.25, 0.5, 0.75, 1.0, 1.5, 2.0];
-  window.cyclePlaybackSpeed = function () {
-    const s = S();
-    const curIdx = SPEED_STEPS.indexOf(s.currentSpeed);
-    s.currentSpeed = SPEED_STEPS[(curIdx + 1) % SPEED_STEPS.length];
-    const lbl = document.getElementById("speedToggleLabel");
-    if (lbl) lbl.innerText = `${s.currentSpeed.toFixed(1)}x`;
-  };
 
   // Viewport Controls (Zoom, Pan, Rotate)
-  window.rotatePitch = function () {
-    const s = S();
-    s.fieldRotation = (s.fieldRotation + 90) % 360;
-    const badge = document.getElementById("rotationLevelText");
-    if (badge) badge.textContent = `${s.fieldRotation}°`;
-    window.resizeCanvasToContainer();
-    window.drawScene();
-    window.updateActionPopupPosition();
-  };
 
   window.zoomIn = function () {
     TC().viewport.zoomAt(canvas, S().viewScale + 0.25, null, window.drawScene);
@@ -385,64 +127,10 @@
     TC().viewport.zoomAt(canvas, S().viewScale - 0.25, null, window.drawScene);
   };
 
-  window.resetZoom = function () {
-    const s = S();
-    s.viewScale = 1.0;
-    s.viewPanX = 0;
-    s.viewPanY = 0;
-    TC().viewport.updateZoomUI();
-    window.drawScene();
-  };
 
   let isViewControlsOpen = false;
-  window.toggleViewControls = function () {
-    const drawer = document.getElementById("viewControlsDrawer");
-    const btn = document.getElementById("viewControlsToggleBtn");
-    if (!drawer) return;
-    const isHidden = drawer.classList.contains("hidden");
-    if (isHidden) {
-      drawer.classList.remove("hidden");
-      // Intelligente Positionierung: prüfe ob das Popup rechts oder links überläuft
-      const rect = btn ? btn.getBoundingClientRect() : null;
-      if (rect) {
-        const drawerWidth = 288; // w-72 = 18rem = 288px
-        const screenWidth = window.innerWidth;
-        // Wenn links nicht genug Platz ist oder rechts abgeschnitten wird:
-        if (rect.left + drawerWidth > screenWidth - 10) {
-          drawer.style.left = "auto";
-          drawer.style.right = "0px";
-        } else {
-          drawer.style.left = "0px";
-          drawer.style.right = "auto";
-        }
-      }
-    } else {
-      drawer.classList.add("hidden");
-    }
-  };
 
-  window.changePitchType = function (type) {
-    S().currentExercise.pitch_type = type;
-    window.drawScene();
-    window.recordHistory();
-  };
 
-  window.onElementScaleChange = function (val) {
-    const s = S();
-    s.globalElementScale = parseFloat(val) || 1.0;
-    s.currentExercise.element_scale = s.globalElementScale;
-    const pStr = `${Math.round(s.globalElementScale * 100)}%`;
-    const s1 = document.getElementById("elementScaleSlider");
-    const l1 = document.getElementById("elementScaleLabel");
-    const s2 = document.getElementById("sidebarElementScaleSlider");
-    const l2 = document.getElementById("sidebarElementScaleLabel");
-    if (s1) s1.value = s.globalElementScale;
-    if (l1) l1.textContent = pStr;
-    if (s2) s2.value = s.globalElementScale;
-    if (l2) l2.textContent = pStr;
-    window.drawScene();
-    window.updateActionPopupPosition();
-  };
 
   // Context Action Popup & Floating Inspector
   window.updateActionPopupPosition = function () {
@@ -535,591 +223,33 @@
     window.updateFocusButtonState();
   };
 
-  window.updateArrowPersistentButtonState = function (arr) {
-    const btn = document.getElementById("actionPopupPersistentBtn");
-    const lbl = document.getElementById("actionPopupPersistentLabel");
-    const rBtn = document.getElementById("actionPopupArrowResetCurveBtn");
-    if (rBtn) {
-      const hasCurve = (arr.cp1_dx !== undefined && arr.cp1_dx !== 0) || (arr.cp1_dy !== undefined && arr.cp1_dy !== 0) ||
-                       (arr.cp2_dx !== undefined && arr.cp2_dx !== 0) || (arr.cp2_dy !== undefined && arr.cp2_dy !== 0);
-      rBtn.classList.toggle("hidden", !hasCurve);
-    }
-    if (!btn || !lbl || !arr) return;
-    if (arr.persistent) {
-      btn.className = "h-8 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1 text-[11px] font-bold shadow-md shadow-emerald-500/30";
-      lbl.innerText = "Alle Schritte ✓";
-    } else {
-      btn.className = "h-8 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center gap-1 text-[11px] font-bold border border-slate-700";
-      lbl.innerText = "Dauerhaft machen";
-    }
-  };
 
-  window.updateFocusButtonState = function () {
-    const s = S();
-    const kf = TC().getCurrentKeyframe();
-    const btn = document.getElementById("actionPopupFocusBtn");
-    if (!btn || !kf) return;
-    let isFocused = false;
-    if (s.selectedElementIds.length > 0) isFocused = kf.elements.some(it => s.selectedElementIds.includes(it.id) && it.focus);
-    else if (s.selectedElementId) {
-      const el = kf.elements.find(it => it.id === s.selectedElementId);
-      isFocused = el ? !!el.focus : false;
-    }
-    if (isFocused) {
-      btn.className = "w-8 h-8 rounded-lg bg-yellow-500 text-black flex items-center justify-center text-xs shadow-md shadow-yellow-500/30";
-    } else {
-      btn.className = "w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-yellow-400 flex items-center justify-center text-xs";
-    }
 
-    const jBtn = document.getElementById("actionPopupJumpBtn");
-    if (jBtn) {
-      let isJumping = false;
-      if (s.selectedElementId) {
-        const el = kf.elements.find(it => it.id === s.selectedElementId);
-        if (el && el.jump) isJumping = true;
-      }
-      if (isJumping) jBtn.className = "w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs shadow-md shadow-purple-500/30";
-      else jBtn.className = "w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-400 flex items-center justify-center text-xs";
-    }
-
-    const rBtn = document.getElementById("actionPopupResetCurveBtn");
-    if (rBtn) {
-      let hasCurve = false;
-      if (s.selectedElementId && s.currentKeyframeIndex > 0) {
-        const el = kf.elements.find(it => it.id === s.selectedElementId);
-        if (el && (el.cp1_dx !== undefined || el.cp1_dy !== undefined || el.cp2_dx !== undefined || el.cp2_dy !== undefined)) hasCurve = true;
-      }
-      rBtn.classList.toggle("hidden", !hasCurve);
-    }
-
-    // Zone Color Palette visibility & active color indicator
-    const zoneColorWrapper = document.getElementById("actionPopupZoneColorWrapper");
-    const zoneColorDot = document.getElementById("actionPopupZoneColorDot");
-    const zoneColorSubmenu = document.getElementById("actionPopupZoneColorSubmenu");
-    if (zoneColorWrapper) {
-      const curEl = s.selectedElementId ? kf.elements.find(it => it.id === s.selectedElementId) : null;
-      const isZone = curEl && (curEl.type === "zone_rect" || curEl.type === "zone_circle" || curEl.type === "zone_triangle");
-      zoneColorWrapper.classList.toggle("hidden", !isZone);
-
-      if (!isZone && zoneColorSubmenu) {
-        zoneColorSubmenu.classList.add("hidden");
-      }
-
-      if (isZone) {
-        const curColor = curEl.color ? curEl.color.toLowerCase() : "#38bdf8";
-        if (zoneColorDot) {
-          zoneColorDot.style.backgroundColor = curColor;
-        }
-        if (zoneColorSubmenu) {
-          zoneColorSubmenu.querySelectorAll("[data-zone-color]").forEach(dot => {
-            const c = dot.getAttribute("data-zone-color").toLowerCase();
-            if (c === curColor) {
-              dot.classList.add("ring-2", "ring-white", "scale-110");
-            } else {
-              dot.classList.remove("ring-2", "ring-white", "scale-110");
-            }
-          });
-        }
-      }
-    }
-  };
-
-  function getForwardOffset(distance = 45) {
-    const s = S();
-    const rad = ((s.fieldRotation || 0) * Math.PI) / 180;
-    const dx = -distance * Math.sin(rad);
-    const dy = -distance * Math.cos(rad);
-    return { dx: Math.round(dx), dy: Math.round(dy) };
-  }
 
   // Element Actions
-  window.spawnElement = function (type, options = {}) {
-    const s = S();
-    const kf = TC().getCurrentKeyframe();
-    let x = 500, y = 350;
-    if (s.selectedElementId) {
-      const prevEl = kf.elements.find(it => it.id === s.selectedElementId);
-      if (prevEl) {
-        const offset = getForwardOffset(45);
-        x = Math.max(30, Math.min(970, (prevEl.x || 500) + offset.dx));
-        y = Math.max(30, Math.min(670, (prevEl.y || 350) + offset.dy));
-      }
-    } else if (type === "player") {
-      const existing = kf.elements.filter(e => e.type === "player" && e.team === (options.team || "blue"));
-      x = 350 + (existing.length % 5) * 60;
-      y = 200 + Math.floor(existing.length / 5) * 70;
-    } else if (type === "ball") {
-      x = 500; y = 350;
-    }
-    const newEl = {
-      id: "el_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-      type,
-      x: Math.round(x),
-      y: Math.round(y),
-      rotation: 0,
-      ...options
-    };
-    if (type === "player" && !newEl.number) {
-      const sameTeam = kf.elements.filter(e => e.type === "player" && e.team === newEl.team);
-      newEl.number = (sameTeam.length + 1).toString();
-    }
-    kf.elements.push(newEl);
-    s.selectedElementId = newEl.id;
-    s.selectedElementIds = [];
-    s.selectedArrowIndex = null;
 
-    // Elements (Player, Ball, Equipment) propagate automatically to ALL keyframes in the exercise!
-    // So the trainer never loses newly added players/balls in other steps.
-    if (s.currentExercise && Array.isArray(s.currentExercise.keyframes)) {
-      s.currentExercise.keyframes.forEach((otherKf, idx) => {
-        if (idx !== s.currentKeyframeIndex) {
-          if (!otherKf.elements) otherKf.elements = [];
-          const exists = otherKf.elements.some(it => it.id === newEl.id);
-          if (!exists) {
-            otherKf.elements.push(JSON.parse(JSON.stringify(newEl)));
-          }
-        }
-      });
-    }
 
-    TC().inspectors.showInspector(newEl);
-    window.drawScene();
-    window.updateActionPopupPosition();
-    window.recordHistory();
-  };
 
-  window.duplicateSelectedElement = function () {
-    const s = S();
-    const kf = TC().getCurrentKeyframe();
-    if (!kf) return;
-    const offset = getForwardOffset(45);
-    if (s.selectedElementIds.length > 0) {
-      const newIds = [];
-      kf.elements.forEach(el => {
-        if (s.selectedElementIds.includes(el.id)) {
-          const clone = JSON.parse(JSON.stringify(el));
-          clone.id = "el_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
-          clone.x = Math.max(30, Math.min(970, clone.x + offset.dx));
-          clone.y = Math.max(30, Math.min(670, clone.y + offset.dy));
-          kf.elements.push(clone);
-          newIds.push(clone.id);
 
-          // Propagate cloned element to all other keyframes
-          if (s.currentExercise && Array.isArray(s.currentExercise.keyframes)) {
-            s.currentExercise.keyframes.forEach((otherKf, oIdx) => {
-              if (oIdx !== s.currentKeyframeIndex) {
-                if (!otherKf.elements) otherKf.elements = [];
-                otherKf.elements.push(JSON.parse(JSON.stringify(clone)));
-              }
-            });
-          }
-        }
-      });
-      s.selectedElementIds = newIds;
-      TC().inspectors.showGroupInspector(newIds.length);
-      window.drawScene();
-      window.updateActionPopupPosition();
-      window.recordHistory();
-      return;
-    }
-    if (s.selectedElementId) {
-      const el = kf.elements.find(it => it.id === s.selectedElementId);
-      if (el) {
-        const clone = JSON.parse(JSON.stringify(el));
-        clone.id = "el_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
-        clone.x = Math.max(30, Math.min(970, clone.x + offset.dx));
-        clone.y = Math.max(30, Math.min(670, clone.y + offset.dy));
-        if (clone.type === "player" && clone.number) {
-          const num = parseInt(clone.number, 10);
-          if (!isNaN(num)) clone.number = (num + 1).toString();
-        }
-        kf.elements.push(clone);
-        s.selectedElementId = clone.id;
-
-        // Propagate cloned element to all other keyframes
-        if (s.currentExercise && Array.isArray(s.currentExercise.keyframes)) {
-          s.currentExercise.keyframes.forEach((otherKf, oIdx) => {
-            if (oIdx !== s.currentKeyframeIndex) {
-              if (!otherKf.elements) otherKf.elements = [];
-              otherKf.elements.push(JSON.parse(JSON.stringify(clone)));
-            }
-          });
-        }
-
-        TC().inspectors.showInspector(clone);
-        window.drawScene();
-        window.updateActionPopupPosition();
-        window.recordHistory();
-      }
-    }
-  };
-
-  window.deleteSelectedElement = function () {
-    const s = S();
-    const kf = TC().getCurrentKeyframe();
-    if (!kf) return;
-    if (s.selectedElementIds.length > 0) {
-      const idsToDelete = [...s.selectedElementIds];
-      kf.elements = kf.elements.filter(el => !idsToDelete.includes(el.id));
-      if (s.currentExercise && Array.isArray(s.currentExercise.keyframes)) {
-        s.currentExercise.keyframes.forEach(otherKf => {
-          otherKf.elements = otherKf.elements.filter(el => !(idsToDelete.includes(el.id) && TC().constants.isEquipment(el.type)));
-        });
-      }
-      s.selectedElementIds = [];
-      s.selectedElementId = null;
-    } else if (s.selectedElementId) {
-      const idToDelete = s.selectedElementId;
-      const elToDelete = kf.elements.find(el => el.id === idToDelete);
-      kf.elements = kf.elements.filter(el => el.id !== idToDelete);
-      if (elToDelete && TC().constants.isEquipment(elToDelete.type) && s.currentExercise && Array.isArray(s.currentExercise.keyframes)) {
-        s.currentExercise.keyframes.forEach(otherKf => {
-          otherKf.elements = otherKf.elements.filter(el => el.id !== idToDelete);
-        });
-      }
-      s.selectedElementId = null;
-    } else if (s.selectedArrowIndex !== null) {
-      kf.arrows.splice(s.selectedArrowIndex, 1);
-      s.selectedArrowIndex = null;
-      s.selectedArrowPart = null;
-    }
-    TC().inspectors.hideInspector();
-    window.drawScene();
-    window.updateActionPopupPosition();
-    window.recordHistory();
-  };
-
-  function hexToRgba(hex, alpha = 0.2) {
-    if (!hex) return `rgba(56, 189, 248, ${alpha})`;
-    let c = hex.replace("#", "");
-    if (c.length === 3) c = c.split("").map(x => x + x).join("");
-    const num = parseInt(c, 16);
-    if (isNaN(num)) return `rgba(56, 189, 248, ${alpha})`;
-    const r = (num >> 16) & 255;
-    const g = (num >> 8) & 255;
-    const b = num & 255;
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-
-  window.toggleZoneColorMenu = function (e) {
-    if (e) e.stopPropagation();
-    const sub = document.getElementById("actionPopupZoneColorSubmenu");
-    if (!sub) return;
-    sub.classList.toggle("hidden");
-  };
 
   // Helper to sync equipment properties (rotation, scale, color, position) across all keyframes
-  function syncEquipmentElementAcrossAllKeyframes(element) {
-    if (!element || !TC().constants.isEquipment(element.type)) return;
-    const ex = S().currentExercise;
-    if (!ex || !Array.isArray(ex.keyframes)) return;
-    ex.keyframes.forEach(otherKf => {
-      const match = (otherKf.elements || []).find(it => it.id === element.id);
-      if (match) {
-        match.x = element.x;
-        match.y = element.y;
-        if (element.rotation !== undefined) match.rotation = element.rotation;
-        if (element.scale !== undefined) match.scale = element.scale;
-        if (element.width !== undefined) match.width = element.width;
-        if (element.height !== undefined) match.height = element.height;
-        if (element.radius !== undefined) match.radius = element.radius;
-        if (element.size !== undefined) match.size = element.size;
-        if (element.color !== undefined) match.color = element.color;
-        if (element.fillColor !== undefined) match.fillColor = element.fillColor;
-      }
-    });
-  }
 
-  window.setSelectedZoneColor = function (colorHex) {
-    const s = S();
-    const kf = TC().getCurrentKeyframe();
-    if (!kf) return;
-    const items = s.selectedElementIds.length > 0
-      ? kf.elements.filter(it => s.selectedElementIds.includes(it.id))
-      : (s.selectedElementId ? [kf.elements.find(it => it.id === s.selectedElementId)].filter(Boolean) : []);
 
-    items.forEach(el => {
-      if (el.type === "zone_rect" || el.type === "zone_circle" || el.type === "zone_triangle") {
-        el.color = colorHex;
-        el.fillColor = hexToRgba(colorHex, 0.2);
-        syncEquipmentElementAcrossAllKeyframes(el);
-      }
-    });
 
-    const sub = document.getElementById("actionPopupZoneColorSubmenu");
-    if (sub) sub.classList.add("hidden");
 
-    window.drawScene();
-    window.updateFocusButtonState();
-    window.recordHistory();
-  };
 
-  window.rotateSelectedElement = function (deltaDeg = 45) {
-    const s = S();
-    const kf = TC().getCurrentKeyframe();
-    if (!kf) return;
-    if (s.selectedElementIds.length > 0) {
-      kf.elements.forEach(it => {
-        if (s.selectedElementIds.includes(it.id)) {
-          it.rotation = ((it.rotation || 0) + deltaDeg + 360) % 360;
-          syncEquipmentElementAcrossAllKeyframes(it);
-        }
-      });
-    } else if (s.selectedElementId) {
-      const el = kf.elements.find(it => it.id === s.selectedElementId);
-      if (el) {
-        el.rotation = ((el.rotation || 0) + deltaDeg + 360) % 360;
-        syncEquipmentElementAcrossAllKeyframes(el);
-      }
-    }
-    window.drawScene();
-    window.recordHistory();
-  };
 
-  window.scaleSelectedElement = function (delta = 0.15) {
-    const s = S();
-    const kf = TC().getCurrentKeyframe();
-    if (!kf) return;
-    const factor = 1 + delta;
-    const items = s.selectedElementIds.length > 0
-      ? kf.elements.filter(it => s.selectedElementIds.includes(it.id))
-      : (s.selectedElementId ? [kf.elements.find(it => it.id === s.selectedElementId)].filter(Boolean) : []);
 
-    items.forEach(el => {
-      if (el.type === "zone_rect") {
-        el.width = Math.max(30, Math.min(800, Math.round((el.width || 120) * factor)));
-        el.height = Math.max(20, Math.min(600, Math.round((el.height || 80) * factor)));
-      } else if (el.type === "zone_circle") {
-        el.radius = Math.max(15, Math.min(400, Math.round((el.radius || 50) * factor)));
-      } else if (el.type === "zone_triangle") {
-        el.size = Math.max(25, Math.min(500, Math.round((el.size || 70) * factor)));
-      } else {
-        el.scale = Math.max(0.4, Math.min(3.0, (el.scale || 1.0) * factor));
-      }
-      syncEquipmentElementAcrossAllKeyframes(el);
-    });
 
-    window.drawScene();
-    window.updateActionPopupPosition();
-    window.recordHistory();
-  };
 
-  window.toggleFocusSelectedElement = function () {
-    const s = S();
-    const kf = TC().getCurrentKeyframe();
-    if (!kf) return;
-    if (s.selectedElementIds.length > 0) {
-      const items = kf.elements.filter(it => s.selectedElementIds.includes(it.id));
-      const anyF = items.some(it => it.focus);
-      items.forEach(it => { it.focus = !anyF; });
-    } else if (s.selectedElementId) {
-      const el = kf.elements.find(it => it.id === s.selectedElementId);
-      if (el) el.focus = !el.focus;
-    }
-    window.drawScene();
-    window.updateFocusButtonState();
-    window.recordHistory();
-  };
 
-  window.toggleSelectedElementJump = function () {
-    const s = S();
-    const kf = TC().getCurrentKeyframe();
-    if (!kf || !s.selectedElementId) return;
-    const el = kf.elements.find(it => it.id === s.selectedElementId);
-    if (el) {
-      el.jump = !el.jump;
-      window.drawScene();
-      window.updateFocusButtonState();
-      window.recordHistory();
-    }
-  };
 
-  window.resetSelectedElementCurve = function () {
-    const s = S();
-    const kf = TC().getCurrentKeyframe();
-    if (!kf || !s.selectedElementId) return;
-    const el = kf.elements.find(it => it.id === s.selectedElementId);
-    if (el) {
-      delete el.cp1_dx; delete el.cp1_dy; delete el.cp2_dx; delete el.cp2_dy;
-      window.drawScene();
-      window.updateFocusButtonState();
-      window.recordHistory();
-      window.showToast("Bogen begradigt");
-    }
-  };
 
-  window.resetSelectedArrowCurve = function () {
-    const s = S();
-    const kf = TC().getCurrentKeyframe();
-    if (!kf || s.selectedArrowIndex === null || !kf.arrows[s.selectedArrowIndex]) return;
-    const arr = kf.arrows[s.selectedArrowIndex];
-    delete arr.cp1_dx; delete arr.cp1_dy; delete arr.cp2_dx; delete arr.cp2_dy;
-    window.drawScene();
-    window.updateArrowPersistentButtonState(arr);
-    window.recordHistory();
-    window.showToast("Pfeilkurve begradigt");
-  };
-
-  window.copyArrowToNextKeyframe = function () {
-    const s = S();
-    const ex = s.currentExercise;
-    const kf = TC().getCurrentKeyframe();
-    if (!kf || s.selectedArrowIndex === null || !kf.arrows || !kf.arrows[s.selectedArrowIndex]) return;
-    if (!ex || !Array.isArray(ex.keyframes)) return;
-
-    const sourceArrow = kf.arrows[s.selectedArrowIndex];
-    const currentIndex = s.currentKeyframeIndex;
-
-    // Wenn es noch keinen nächsten Schritt gibt, neuen Schritt erzeugen
-    if (currentIndex >= ex.keyframes.length - 1) {
-      if (typeof window.duplicateKeyframe === "function") {
-        window.duplicateKeyframe();
-      } else {
-        window.showToast("Kein nächster Schritt vorhanden");
-        return;
-      }
-    }
-
-    const nextIndex = currentIndex + 1;
-    const nextKf = ex.keyframes[nextIndex];
-    if (!nextKf) return;
-    if (!nextKf.arrows) nextKf.arrows = [];
-
-    // Erstelle eine saubere Kopie der Linie mit neuer ID
-    const copiedArrow = JSON.parse(JSON.stringify(sourceArrow));
-    copiedArrow.id = "arrow_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
-    nextKf.arrows.push(copiedArrow);
-
-    // Optional: Direkt in den nächsten Schritt wechseln und die kopierte Linie markieren
-    TC().selectKeyframe(nextIndex);
-    s.selectedArrowIndex = nextKf.arrows.length - 1;
-    s.selectedArrowPart = null;
-    s.selectedElementId = null;
-    s.selectedElementIds = [];
-
-    window.drawScene();
-    window.updateActionPopupPosition();
-    window.recordHistory();
-    window.showToast(`Linie in Schritt ${nextIndex + 1} übernommen`);
-  };
-
-  window.propagateSelectedElementToAllKeyframes = function () {
-    const s = S();
-    const ex = s.currentExercise;
-    const kf = TC().getCurrentKeyframe();
-    if (!kf || !ex || !Array.isArray(ex.keyframes)) return;
-
-    const items = s.selectedElementIds.length > 0
-      ? kf.elements.filter(it => s.selectedElementIds.includes(it.id))
-      : (s.selectedElementId ? [kf.elements.find(it => it.id === s.selectedElementId)].filter(Boolean) : []);
-
-    if (items.length === 0) return;
-
-    let addedCount = 0;
-    let updatedCount = 0;
-
-    ex.keyframes.forEach((otherKf, idx) => {
-      if (!otherKf.elements) otherKf.elements = [];
-
-      items.forEach(sourceEl => {
-        const existingIdx = otherKf.elements.findIndex(it => it.id === sourceEl.id);
-        const clone = JSON.parse(JSON.stringify(sourceEl));
-
-        // Wenn der Keyframe nicht der aktuelle Bearbeitungsschritt ist, Kurvenabweichungen entfernen,
-        // damit das Element an seiner definierten Position stabil steht.
-        if (idx !== s.currentKeyframeIndex) {
-          delete clone.cp1_dx;
-          delete clone.cp1_dy;
-          delete clone.cp2_dx;
-          delete clone.cp2_dy;
-        }
-
-        if (existingIdx >= 0) {
-          // Nur überschreiben wenn nicht der aktuelle Ausgangsframe
-          if (idx !== s.currentKeyframeIndex) {
-            otherKf.elements[existingIdx] = clone;
-            updatedCount++;
-          }
-        } else {
-          otherKf.elements.push(clone);
-          addedCount++;
-        }
-      });
-    });
-
-    window.drawScene();
-    window.updateActionPopupPosition();
-    window.recordHistory();
-
-    const name = items.length === 1 ? (items[0].label || items[0].number || "Element") : `${items.length} Elemente`;
-    window.showToast(`${name} in alle ${ex.keyframes.length} Schritte übernommen`);
-  };
-
-  window.toggleArrowPersistent = function () {
-    const s = S();
-    const kf = TC().getCurrentKeyframe();
-    if (!kf || s.selectedArrowIndex === null || !kf.arrows[s.selectedArrowIndex]) return;
-    const arr = kf.arrows[s.selectedArrowIndex];
-    arr.persistent = !arr.persistent;
-    window.updateArrowPersistentButtonState(arr);
-    window.drawScene();
-    window.recordHistory();
-  };
-
-  window.deselectElement = function (skipDraw = false) {
-    const s = S();
-    if (!s) return;
-    s.selectedElementId = null;
-    s.selectedElementIds = [];
-    s.selectedArrowIndex = null;
-    s.selectedArrowPart = null;
-    TC()?.inspectors?.hideInspector();
-    window.updateActionPopupPosition();
-    if (!skipDraw) {
-      window.drawScene();
-    }
-  };
-
-  window.syncFloatingProps = function () {
-    const s = S();
-    const kf = TC().getCurrentKeyframe();
-    if (!kf || !s.selectedElementId) return;
-    const el = kf.elements.find(it => it.id === s.selectedElementId);
-    if (el) {
-      el.number = document.getElementById("floatingPropNumber")?.value || "";
-      el.name = document.getElementById("floatingPropName")?.value || "";
-      window.drawScene();
-      window.recordHistory();
-    }
-  };
 
   // Canvas Clearing
-  window.clearCurrentCanvas = function () {
-    TC().popovers.openClearConfirmModal();
-  };
 
-  window.closeClearConfirmModal = function (proceed = false) {
-    TC().popovers.closeClearConfirmModal();
-    if (proceed) {
-      const s = S();
-      const kf = TC().getCurrentKeyframe();
-      if (!kf) return;
-      kf.arrows = [];
-      kf.elements = kf.elements.filter(el => TC().constants.isEquipment(el.type));
-      s.selectedElementId = null;
-      s.selectedElementIds = [];
-      TC().inspectors.hideInspector();
-      window.drawScene();
-      window.recordHistory();
-      window.saveLocalDraft();
-      window.showToast("🧹 Schritt geleert!");
-    }
-  };
 
   // Keyframes Timeline
-  window.renderKeyframeTabs = function () {
-    TC().timeline.renderKeyframeTabs(window.selectKeyframe, window.editKeyframeTitle, window.moveKeyframeToIndex);
-  };
 
   window.selectKeyframe = function (index, shouldAnimate = true) {
     const s = S();
@@ -1150,257 +280,27 @@
     }
   };
 
-  function prepareNextKeyframeWithAutoPass(sourceKf, newKf) {
-    if (!sourceKf || !newKf || !Array.isArray(sourceKf.arrows)) return;
-    
-    const passArrows = sourceKf.arrows.filter(a => a.type === "pass");
-    if (passArrows.length === 0) return;
-    
-    const balls = (newKf.elements || []).filter(e => e.type === "ball");
-    if (balls.length === 0) return;
 
-    // Ordne jeden Pass-Pfeil dem Ball zu, an dem er tatsächlich gestartet ist (Startpunkt x1, y1 nahe Ball)
-    const assignedBalls = new Set();
-    passArrows.forEach(pass => {
-      // Finde den Ball im Quell-Schritt, der dem Startpunkt des Passes am nächsten liegt
-      let closestBall = null;
-      let minDistance = 50; // Max Fang-Radius: Pass muss beim Ball starten
 
-      balls.forEach(b => {
-        if (assignedBalls.has(b.id)) return;
-        const srcB = (sourceKf.elements || []).find(e => e.id === b.id);
-        const refX = srcB ? srcB.x : b.x;
-        const refY = srcB ? srcB.y : b.y;
-        const d = Math.hypot(pass.x1 - refX, pass.y1 - refY);
-        if (d < minDistance) {
-          minDistance = d;
-          closestBall = b;
-        }
-      });
 
-      // Wenn ein zugehöriger Ball gefunden wurde, wandert GENAU dieser Ball an das Ziel seines Passes
-      if (closestBall) {
-        closestBall.x = Math.round(pass.x2);
-        closestBall.y = Math.round(pass.y2);
-        delete closestBall.cp1_dx;
-        delete closestBall.cp1_dy;
-        delete closestBall.cp2_dx;
-        delete closestBall.cp2_dy;
-        assignedBalls.add(closestBall.id);
-      }
-    });
-  }
 
-  window.insertKeyframeAfterCurrent = function () {
-    const s = S();
-    const ex = s.currentExercise;
-    const curKf = TC().getCurrentKeyframe();
-    const newKf = JSON.parse(JSON.stringify(curKf));
-    newKf.title = `Schritt ${s.currentKeyframeIndex + 2}`;
-    prepareNextKeyframeWithAutoPass(curKf, newKf);
-    ex.keyframes.splice(s.currentKeyframeIndex + 1, 0, newKf);
-    s.currentKeyframeIndex++;
-    window.renderKeyframeTabs();
-    window.drawScene();
-    window.recordHistory();
-    window.saveLocalDraft();
-  };
 
-  window.duplicateKeyframe = function () {
-    const s = S();
-    const ex = s.currentExercise;
-    const curKf = TC().getCurrentKeyframe();
-    const newKf = JSON.parse(JSON.stringify(curKf));
-    newKf.title = `Schritt ${ex.keyframes.length + 1}`;
-    prepareNextKeyframeWithAutoPass(curKf, newKf);
-    ex.keyframes.push(newKf);
-    s.currentKeyframeIndex = ex.keyframes.length - 1;
-    window.renderKeyframeTabs();
-    window.drawScene();
-    window.recordHistory();
-    window.saveLocalDraft();
-  };
-
-  window.deleteCurrentKeyframe = function () {
-    const s = S();
-    const ex = s.currentExercise;
-    if (ex.keyframes.length <= 1) {
-      window.showToast("Die Übung muss mindestens einen Schritt enthalten.", true);
-      return;
-    }
-    ex.keyframes.splice(s.currentKeyframeIndex, 1);
-    s.currentKeyframeIndex = Math.max(0, s.currentKeyframeIndex - 1);
-    window.deselectElement();
-    window.renderKeyframeTabs();
-    window.drawScene();
-    window.recordHistory();
-    window.saveLocalDraft();
-  };
-
-  window.editKeyframeTitle = function (index) {
-    const ex = S().currentExercise;
-    const kf = ex.keyframes[index];
-    if (!kf) return;
-    const newTitle = prompt("Name für diesen Schritt:", kf.title || `Schritt ${index + 1}`);
-    if (newTitle !== null && newTitle.trim()) {
-      kf.title = newTitle.trim();
-      window.renderKeyframeTabs();
-      window.recordHistory();
-      window.saveLocalDraft();
-    }
-  };
-
-  window.moveKeyframeToIndex = function (fromIdx, toIdx) {
-    const ex = S().currentExercise;
-    if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= ex.keyframes.length || toIdx >= ex.keyframes.length) return;
-    const [moved] = ex.keyframes.splice(fromIdx, 1);
-    ex.keyframes.splice(toIdx, 0, moved);
-    S().currentKeyframeIndex = toIdx;
-    window.renderKeyframeTabs();
-    window.drawScene();
-    window.recordHistory();
-    window.saveLocalDraft();
-  };
 
   // Exercise API & Catalog
-  window.saveCurrentExercise = async function () {
-    window.syncFormToState();
-    try {
-      const res = await TC().client.saveExercise(S().currentExercise);
-      if (res.status === "ok") {
-        S().currentExercise.id = res.id;
-        window.saveLocalDraft();
-        window.updateUrlForExercise(res.id);
-        window.showToast("✅ Übung erfolgreich gespeichert!");
-        window.refreshExerciseBadge();
-      }
-    } catch (err) {
-      window.showToast("Fehler beim Speichern: " + err.message, true);
-    }
-  };
 
-  window.refreshExerciseBadge = async function () {
-    try {
-      const list = await TC().client.fetchExercises();
-      const badge = document.getElementById("exerciseCountBadge");
-      if (badge && Array.isArray(list)) badge.innerText = list.length;
-    } catch {}
-  };
 
-  window.createNewExercise = function () {
-    if (confirm("Neue leere Übung anlegen? Nicht gespeicherte Änderungen gehen verloren.")) {
-      if (S().isPlaying) window.stopAnimation();
-      S().currentExercise = TC().store.createEmptyExercise();
-      S().currentKeyframeIndex = 0;
-      window.deselectElement();
-      window.updateFormFields();
-      window.renderKeyframeTabs();
-      window.drawScene();
-      window.resetUndoRedo();
-      window.saveLocalDraft();
-      if (window.location.pathname !== "/") window.history.pushState({}, "", "/");
-    }
-  };
 
-  window.openExerciseCatalog = function () {
-    TC().popovers.openExerciseCatalog();
-    window.loadCatalogExercises();
-  };
 
-  window.closeCatalogModal = function () {
-    TC().popovers.closeCatalogModal();
-  };
 
-  window.loadCatalogExercises = async function (search = "") {
-    try {
-      const list = await TC().client.fetchExercises(search);
-      const container = document.getElementById("catalogList");
-      if (!container) return;
-      container.innerHTML = "";
-      if (list.length === 0) {
-        container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">Keine Übungen gefunden.</div>`;
-        return;
-      }
-      list.forEach(ex => {
-        const item = document.createElement("div");
-        item.className = "p-2.5 sm:p-3 bg-slate-800/90 hover:bg-slate-750 border border-slate-700/80 rounded-xl flex items-center justify-between gap-2 transition";
-        item.innerHTML = `
-          <div class="flex items-center gap-2.5 min-w-0 flex-1">
-            <div class="w-10 h-10 shrink-0 bg-emerald-950/70 rounded-lg border border-emerald-700/60 flex items-center justify-center text-emerald-400 font-bold text-base shadow-inner">
-              <i class="fa-solid fa-futbol text-emerald-400 text-lg"></i>
-            </div>
-            <div class="min-w-0 flex-1">
-              <h4 class="text-xs font-bold text-white truncate" title="${ex.title}">${ex.title}</h4>
-              <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-slate-400 mt-0.5">
-                <span class="truncate">🎯 ${ex.focus}</span>
-                <span class="truncate">👥 ${ex.player_count}</span>
-                <span class="truncate">📐 ${ex.dimensions}</span>
-              </div>
-            </div>
-          </div>
-          <div class="flex items-center gap-1.5 shrink-0">
-            <button onclick="loadExerciseFromCatalog('${ex.id}')" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-semibold rounded-lg shadow transition">
-              Öffnen
-            </button>
-            <button onclick="deleteExerciseFromCatalog('${ex.id}')" class="p-1.5 text-slate-400 hover:text-rose-400 text-xs transition" title="Löschen">
-              <i class="fa-solid fa-trash"></i>
-            </button>
-          </div>
-        `;
-        container.appendChild(item);
-      });
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
-  window.filterCatalog = function () {
-    const query = document.getElementById("catalogSearch")?.value || "";
-    window.loadCatalogExercises(query);
-  };
 
-  window.loadExerciseFromCatalog = async function (id, updateUrl = true) {
-    try {
-      if (S().isPlaying) window.stopAnimation();
-      const data = await TC().client.fetchExerciseById(id);
-      if (!data || !data.keyframes) throw new Error("Ungültiges Übungsformat");
-      S().currentExercise = data;
-      S().currentKeyframeIndex = 0;
-      window.deselectElement();
-      window.updateFormFields();
-      window.renderKeyframeTabs();
-      window.drawScene();
-      window.resetUndoRedo();
-      window.closeCatalogModal();
-      TC().popovers.closeSidebarMenu();
-      window.saveLocalDraft();
-      if (updateUrl) window.updateUrlForExercise(data.id);
-    } catch (err) {
-      window.showToast("Fehler beim Laden: " + err.message, true);
-    }
-  };
 
-  window.deleteExerciseFromCatalog = async function (id) {
-    if (confirm("Übung wirklich löschen?")) {
-      await TC().client.deleteExercise(id);
-      await window.loadCatalogExercises();
-      window.refreshExerciseBadge();
-    }
-  };
 
   // Export, Video & Print
   window.currentExportVideoUrl = "";
   window.currentExportVideoBlob = null;
   window.currentExportVideoType = "2d"; // '2d' oder '3d'
   window.currentExportPhotoType = "2d"; // '2d' oder '3d'
-  window.openExportModal = function () {
-    TC().popovers.openExportModal();
-    // Wenn der Nutzer gerade im 3D-Modus war, Export direkt auf 3D vorwählen
-    const s = S();
-    const initialMode = s.is3DMode ? "3d" : "2d";
-    window.setVideoRenderMode(initialMode);
-    window.preparePhotoSnapshot(initialMode);
-  };
 
   window.closeExportModal = function () {
     TC().popovers.closeExportModal();
@@ -1409,34 +309,8 @@
     if (playbackCtrl) playbackCtrl.stop();
   };
 
-  window.openDetailsModal = function () {
-    document.getElementById("detailsModal")?.classList.remove("hidden");
-  };
 
-  window.closeDetailsModal = function () {
-    document.getElementById("detailsModal")?.classList.add("hidden");
-  };
 
-  window.switchSidebarTab = function (tab) {
-    const tEx = document.getElementById("sidebarTabExercises");
-    const tDet = document.getElementById("sidebarTabDetails");
-    const cEx = document.getElementById("sidebarViewExercises");
-    const cDet = document.getElementById("sidebarViewDetails");
-    if (!tEx || !tDet || !cEx || !cDet) return;
-    if (tab === "exercises") {
-      tEx.className = "flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition bg-slate-800 text-emerald-400 shadow";
-      tDet.className = "flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition text-slate-400 hover:text-white";
-      cEx.classList.remove("hidden");
-      cDet.classList.add("hidden");
-      window.loadCatalogExercises();
-    } else {
-      tDet.className = "flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition bg-slate-800 text-emerald-400 shadow";
-      tEx.className = "flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition text-slate-400 hover:text-white";
-      cDet.classList.remove("hidden");
-      cEx.classList.add("hidden");
-      window.updateFormFields();
-    }
-  };
 
   window.preparePhotoSnapshot = function (mode = null) {
     if (mode) window.currentExportPhotoType = mode;
@@ -1476,29 +350,7 @@
     }
   };
 
-  window.setVideoRenderMode = function (mode) {
-    window.currentExportVideoType = mode;
-    const btn2d = document.getElementById("videoMode2dBtn");
-    const btn3d = document.getElementById("videoMode3dBtn");
-    const desc = document.getElementById("videoModeDescription");
-    if (mode === "3d") {
-      if (btn3d) btn3d.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-600 text-white shadow";
-      if (btn2d) btn2d.className = "px-2 py-0.5 rounded text-[11px] font-medium text-slate-400 hover:text-white";
-      if (desc) desc.innerHTML = `<i class="fa-solid fa-cube text-cyan-400"></i> Direkter 3D-Stadion-Videomitschnitt mit Three.js`;
-    } else {
-      if (btn2d) btn2d.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-blue-600 text-white shadow";
-      if (btn3d) btn3d.className = "px-2 py-0.5 rounded text-[11px] font-medium text-slate-400 hover:text-white";
-      if (desc) desc.innerHTML = `<i class="fa-solid fa-video text-blue-400"></i> Frame-genauer 2D-Export (H.264 MP4, im Browser)`;
-    }
-  };
 
-  window.triggerVideoRender = function () {
-    if (window.currentExportVideoType === "3d") {
-      window.trigger3DVideoRender();
-    } else {
-      window.trigger2DVideoRender();
-    }
-  };
 
   window.trigger2DVideoRender = async function () {
     const s = S();
@@ -1560,88 +412,7 @@
     }
   };
 
-  window.trigger3DVideoRender = async function () {
-    const s = S();
-    const btn = document.getElementById("btnRenderVideo");
-    const statusBox = document.getElementById("videoRenderStatus");
-    const statusText = document.getElementById("videoRenderStatusText");
-    const resultBox = document.getElementById("videoResultBox");
 
-    const currentEx = s.currentExercise;
-    if (!currentEx || !Array.isArray(currentEx.keyframes) || currentEx.keyframes.length < 2) {
-      window.showToast("Füge mindestens 2 Schritte hinzu, um ein Video aufzunehmen!", true);
-      return;
-    }
-
-    const v3d = window.ensureView3DManager();
-    if (!v3d) {
-      window.showToast("3D Manager nicht verfügbar.", true);
-      return;
-    }
-
-    // Sicherstellen, dass 3D initialisiert ist
-    if (!v3d.isActive) {
-      v3d.init();
-      v3d.syncScene();
-    }
-
-    if (btn) btn.disabled = true;
-    if (statusBox) statusBox.classList.remove("hidden");
-    if (statusText) statusText.innerText = "3D-Animation wird aufgezeichnet (0%)...";
-    if (resultBox) resultBox.classList.add("hidden");
-
-    try {
-      const speed = (typeof s.currentSpeed === "number" && s.currentSpeed > 0) ? s.currentSpeed : 1.0;
-      const stepDuration = 2000 / speed;
-
-      const result = await v3d.recordAnimationVideo({
-        durationPerStep: stepDuration,
-        fps: 30,
-        onProgress: (p) => {
-          if (statusText) statusText.innerText = `3D-Animation wird aufgezeichnet (${Math.round(p * 100)}%)...`;
-        }
-      });
-
-      // Blob ist bereits H.264-MP4 (direkt im Browser via WebCodecs erzeugt) - keine Server-Konvertierung nötig.
-      const finalVideoBlob = result.blob;
-      window.currentExportVideoBlob = finalVideoBlob;
-      const finalVideoUrl = URL.createObjectURL(finalVideoBlob);
-      window.currentExportVideoUrl = finalVideoUrl;
-
-      const player = document.getElementById("exportVideoPlayer");
-      if (player) {
-        player.src = finalVideoUrl;
-        player.load();
-      }
-      const btnGif = document.getElementById("btnExportGif");
-      if (btnGif) btnGif.classList.add("hidden");
-      if (resultBox) resultBox.classList.remove("hidden");
-      window.showToast("🎬 3D-Video als MP4 erfolgreich erstellt!");
-    } catch (err) {
-      console.error("3D Video Render Error:", err);
-      window.showToast("Fehler bei 3D-Aufnahme: " + err.message, true);
-    } finally {
-      if (btn) btn.disabled = false;
-      if (statusBox) statusBox.classList.add("hidden");
-    }
-  };
-
-  window.downloadBlobFile = async function (url, filename) {
-    try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const bUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = bUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(bUrl);
-    } catch {
-      window.open(url, "_blank");
-    }
-  };
 
   window.shareMedia = async function (type) {
     const s = S();
@@ -1689,17 +460,6 @@
     }
   };
 
-  window.downloadCurrentVideo = function () {
-    if (!window.currentExportVideoUrl) return;
-    const title = (S().currentExercise.title || "taktik").replace(/[^a-zA-Z0-9_\u00C0-\u017F-]/g, "_");
-    const is3d = window.currentExportVideoType === "3d";
-    let ext = "mp4";
-    if (window.currentExportVideoBlob && window.currentExportVideoBlob.type.includes("webm")) {
-      ext = "webm";
-    }
-    const suffix = is3d ? "_3d" : "";
-    window.downloadBlobFile(window.currentExportVideoUrl, `${title}${suffix}.${ext}`);
-  };
 
   window.exportCanvasPNG = function () {
     const is3d = window.currentExportPhotoType === "3d";
@@ -1900,7 +660,7 @@
             if (s.selectedElementIds.includes(el.id)) {
               el.x = Math.max(5, Math.min(1000 - 5, el.x + dx));
               el.y = Math.max(5, Math.min(700 - 5, el.y + dy));
-              syncEquipmentElementAcrossAllKeyframes(el);
+              window.syncEquipmentElementAcrossAllKeyframes(el);
             }
           });
           moved = true;
@@ -1910,7 +670,7 @@
           if (el) {
             el.x = Math.max(5, Math.min(1000 - 5, el.x + dx));
             el.y = Math.max(5, Math.min(700 - 5, el.y + dy));
-            syncEquipmentElementAcrossAllKeyframes(el);
+            window.syncEquipmentElementAcrossAllKeyframes(el);
             moved = true;
           }
         }

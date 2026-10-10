@@ -1,7 +1,7 @@
-const CACHE_NAME = 'tactical-coach-b202610100729';
+const CACHE_NAME = 'tactical-coach-b202610100746';
 const ASSETS_TO_CACHE = [
-  '/static/app.js?v=b202610100729',
-  '/static/js/app-module.js?v=b202610100729',
+  '/static/app.js?v=b202610100746',
+  '/static/js/app-module.js?v=b202610100746',
   '/static/js/api/client.js',
   '/static/js/canvas/arrows.js',
   '/static/js/canvas/elements.js',
@@ -13,6 +13,13 @@ const ASSETS_TO_CACHE = [
   '/static/js/core/constants.js',
   '/static/js/core/geometry.js',
   '/static/js/core/pitch.js',
+  '/static/js/handlers/arrow-handlers.js',
+  '/static/js/handlers/element-handlers.js',
+  '/static/js/handlers/exercise-io.js',
+  '/static/js/handlers/export-handlers.js',
+  '/static/js/handlers/keyframe-handlers.js',
+  '/static/js/handlers/misc-handlers.js',
+  '/static/js/handlers/view-handlers.js',
   '/static/js/interaction/curve-editor.js',
   '/static/js/interaction/pointer.js',
   '/static/js/interaction/tools.js',

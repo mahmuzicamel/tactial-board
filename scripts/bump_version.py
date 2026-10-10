@@ -148,6 +148,8 @@ def set_entrypoint_versions(text, version):
     text = re.sub(r'(app\.js\?v=)[\w.]+', r'\g<1>' + version, text)
     text = re.sub(r'(app-module\.js\?v=)[\w.]+', r'\g<1>' + version, text)
     text = re.sub(r'(view3d\.js\?v=)[\w.]+', r'\g<1>' + version, text)
+    # /static/js/handlers/*.js?v=NNN  (Feature-Handler-Module aus app.js-Zerlegung)
+    text = re.sub(r'(handlers/[a-z-]+\.js\?v=)[\w.]+', r'\g<1>' + version, text)
     return text
 
 
