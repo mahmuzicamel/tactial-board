@@ -1,12 +1,12 @@
 // static/js/handlers/misc-handlers.js
-// Extrahiert aus app.js (verhaltenserhaltend, byte-identische Funktionskörper).
-// Handler bleiben an window.* gebunden, damit die onclick="..."-Bindings in index.html funktionieren.
-(function () {
+// ES-Modul (importiert von app-module.js). Funktionskörper byte-identisch aus
+// app.js. app-module.js haengt die Exports an window.* fuer die onclick=""-Bindings.
+// ESM-Modulscope ist pro Datei isoliert -> keine const-Kollision, kein geteilter
+// Mutable-State moeglich (Haertung gegen die beiden frueheren Regressionen).
 const TC = () => window.TacticalCoach;
 const S = () => window.TacticalCoach?.state;
 
-
-  window.showToast = function (message, isError = false) {
+export function showToast(message, isError = false) {
     let container = document.getElementById("toastContainer");
     if (!container) {
       container = document.createElement("div");
@@ -27,9 +27,9 @@ const S = () => window.TacticalCoach?.state;
       toast.classList.add("translate-y-4", "opacity-0");
       setTimeout(() => toast.remove(), 300);
     }, 3000);
-  };
+}
 
-  window.syncFormToState = function () {
+export function syncFormToState() {
     const s = S();
     if (!s) return;
     const get = (id) => document.getElementById(id)?.value || "";
@@ -41,9 +41,9 @@ const S = () => window.TacticalCoach?.state;
     s.currentExercise.description = get("exDescription");
     s.currentExercise.coaching_points = get("exCoaching");
     window.saveLocalDraft();
-  };
+}
 
-  window.updateFormFields = function () {
+export function updateFormFields() {
     const s = S();
     if (!s) return;
     const set = (id, val) => {
@@ -80,5 +80,4 @@ const S = () => window.TacticalCoach?.state;
     if (speedLbl) {
       speedLbl.innerText = `${(S().currentSpeed || 1.0).toFixed(1)}x`;
     }
-  };
-})();
+}

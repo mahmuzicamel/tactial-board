@@ -1,7 +1,7 @@
-const CACHE_NAME = 'tactical-coach-b202610100755';
+const CACHE_NAME = 'tactical-coach-b202610100920';
 const ASSETS_TO_CACHE = [
-  '/static/app.js?v=b202610100755',
-  '/static/js/app-module.js?v=b202610100755',
+  '/static/app.js?v=b202610100920',
+  '/static/js/app-module.js?v=b202610100920',
   '/static/js/api/client.js',
   '/static/js/canvas/arrows.js',
   '/static/js/canvas/elements.js',

@@ -8,7 +8,7 @@ import * as elements from "./canvas/elements.js";
 import * as arrows from "./canvas/arrows.js";
 import * as viewport from "./canvas/viewport.js";
 import * as scene from "./canvas/scene.js";
-import { View3DManager } from "./canvas/view3d.js?v=b202610100755";
+import { View3DManager } from "./canvas/view3d.js?v=b202610100920";
 import { PlaybackController } from "./canvas/playback.js";
 import * as popovers from "./ui/popovers.js";
 import * as hud from "./ui/hud.js";
@@ -20,6 +20,13 @@ import * as pointer from "./interaction/pointer.js";
 import * as client from "./api/client.js";
 import { state, createEmptyExercise, getCurrentKeyframe, getCurrentExercise, setCurrentExercise } from "./state/store.js";
 import { HistoryManager } from "./state/history.js";
+import * as miscHandlers from "./handlers/misc-handlers.js";
+
+// Handler-Module (ESM): Exports an window.* fuer onclick=""-Bindings in index.html.
+// Jedes Handler-Modul ist ein isolierter ESM-Scope -> keine const-Kollision/State-Sharing.
+window.showToast = miscHandlers.showToast;
+window.syncFormToState = miscHandlers.syncFormToState;
+window.updateFormFields = miscHandlers.updateFormFields;
 
 // Make popover functions globally callable for HTML inline handlers
 window.toggleTopMenu = popovers.toggleTopMenu;
