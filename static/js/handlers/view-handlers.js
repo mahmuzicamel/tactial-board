@@ -1,6 +1,7 @@
 // static/js/handlers/view-handlers.js
 // Extrahiert aus app.js (verhaltenserhaltend, byte-identische Funktionskörper).
 // Handler bleiben an window.* gebunden, damit die onclick="..."-Bindings in index.html funktionieren.
+(function () {
 const TC = () => window.TacticalCoach;
 const S = () => window.TacticalCoach?.state;
 
@@ -194,3 +195,4 @@ const SPEED_STEPS = [0.25, 0.5, 0.75, 1.0, 1.5, 2.0];
     window.drawScene();
     window.recordHistory();
   };
+})();

@@ -1,6 +1,7 @@
 // static/js/handlers/element-handlers.js
 // Extrahiert aus app.js (verhaltenserhaltend, byte-identische Funktionskörper).
 // Handler bleiben an window.* gebunden, damit die onclick="..."-Bindings in index.html funktionieren.
+(function () {
 const TC = () => window.TacticalCoach;
 const S = () => window.TacticalCoach?.state;
 
@@ -492,3 +493,4 @@ const S = () => window.TacticalCoach?.state;
       window.recordHistory();
     }
   };
+})();

@@ -1,6 +1,7 @@
 // static/js/handlers/export-handlers.js
 // Extrahiert aus app.js (verhaltenserhaltend, byte-identische Funktionskörper).
 // Handler bleiben an window.* gebunden, damit die onclick="..."-Bindings in index.html funktionieren.
+(function () {
 const TC = () => window.TacticalCoach;
 const S = () => window.TacticalCoach?.state;
 
@@ -161,3 +162,4 @@ const S = () => window.TacticalCoach?.state;
     const suffix = is3d ? "_3d" : "";
     window.downloadBlobFile(window.currentExportVideoUrl, `${title}${suffix}.${ext}`);
   };
+})();
